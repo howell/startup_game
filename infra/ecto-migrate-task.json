@@ -1,0 +1,43 @@
+{
+    "family": "ecto_migrate",
+    "containerDefinitions": [
+        {
+            "name": "startup_game",
+            "image": "222634374714.dkr.ecr.us-east-1.amazonaws.com/startup_game:latest",
+            "entryPoint": ["bin/startup_game", "eval", "StartupGame.Release.migrate()"],
+            "memory": 512,
+            "cpu": 256,
+            "essential": true,
+            "logConfiguration":{
+                "logDriver":"awslogs",
+                "options":{
+                    "awslogs-group":"/ecs/startup_game",
+                    "awslogs-region":"us-east-1",
+                    "awslogs-stream-prefix":"ecs"
+                }
+            },
+            "environment": [
+                {
+                    "name": "MIX_ENV",
+                    "value": "prod"
+                }
+            ],
+            "secrets": [
+                {
+                    "name": "DATABASE_URL",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:222634374714:secret:StartupAppSecrets-07N1wD:DATABASE_URL::"
+                },
+                {
+                    "name": "SECRET_KEY_BASE",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:222634374714:secret:StartupAppSecrets-07N1wD:SECRET_KEY_BASE::"
+                }
+            ]
+        }
+    ],
+    "networkMode": "awsvpc",
+    "requiresCompatibilities": ["FARGATE"],
+    "cpu": "256",
+    "memory": "512",
+    "executionRoleArn": "arn:aws:iam::222634374714:role/ecsTaskExecutionRole",
+    "runtimePlatform": {"operatingSystemFamily": "LINUX"}
+}
