@@ -31,6 +31,10 @@ WORKDIR /app
 RUN mix local.hex --force && \
     mix local.rebar --force
 
+# for cross-platform builds
+# see https://elixirforum.com/t/elixir-docker-image-wont-build-for-linux-arm64-v8-using-github-actions/56383/13
+ENV ERL_FLAGS="+JPperf true"
+
 # set build ENV
 ENV MIX_ENV="prod"
 
