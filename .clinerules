@@ -6,3 +6,7 @@
 
 # Style/Conventions
 - Database schema modules should `use StartupGame.Schema` rather than `Ecto.Schema`
+
+# Creating database schemas/migrations
+- Each schema/migration should use the terminal command `mix phx.gen.schema ARGS ...`
+ and then edit the resulting file(s)
