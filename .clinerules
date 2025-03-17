@@ -1,7 +1,7 @@
 # Working with the Project
 - To update dependencies, run `mix deps.get && mix deps.compile`
 - To build the project, run `mix compile`
-- To run linting/analysis, run `mix credo`
+- To run linting/analysis, run `mix credo` and `mix dialyzer`
 - To test the project, run `mix test`
 
 # Style/Conventions
