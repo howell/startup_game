@@ -43,7 +43,7 @@ defmodule StartupGameWeb do
         layouts: [html: StartupGameWeb.Layouts]
 
       import Plug.Conn
-      import StartupGameWeb.Gettext
+      use Gettext, backend: StartupGameWeb.Gettext
 
       unquote(verified_routes())
     end
@@ -85,7 +85,7 @@ defmodule StartupGameWeb do
       import Phoenix.HTML
       # Core UI components and translation
       import StartupGameWeb.CoreComponents
-      import StartupGameWeb.Gettext
+      use Gettext, backend: StartupGameWeb.Gettext
 
       # Shortcut for generating JS commands
       alias Phoenix.LiveView.JS

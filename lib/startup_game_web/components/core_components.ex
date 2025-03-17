@@ -17,7 +17,7 @@ defmodule StartupGameWeb.CoreComponents do
   use Phoenix.Component
 
   alias Phoenix.LiveView.JS
-  import StartupGameWeb.Gettext
+  use Gettext, backend: StartupGameWeb.Gettext
 
   @doc """
   Renders a modal.
