@@ -6,6 +6,17 @@ defmodule StartupGame.Accounts.User do
   The schema for the users table and functions for working with users.
   """
 
+  @type t() :: %__MODULE__{
+          id: Ecto.UUID.t(),
+          email: String.t(),
+          password: String.t(),
+          hashed_password: String.t(),
+          current_password: String.t(),
+          confirmed_at: DateTime.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
   schema "users" do

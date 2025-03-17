@@ -9,6 +9,16 @@ defmodule StartupGame.Games.Ownership do
   use StartupGame.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+    id: Ecto.UUID.t(),
+    entity_name: String.t(),
+    percentage: Decimal.t(),
+    game_id: Ecto.UUID.t(),
+    game: StartupGame.Games.Game.t() | Ecto.Association.NotLoaded.t(),
+    inserted_at: DateTime.t(),
+    updated_at: DateTime.t()
+  }
+
   schema "ownerships" do
     field :entity_name, :string
     field :percentage, :decimal

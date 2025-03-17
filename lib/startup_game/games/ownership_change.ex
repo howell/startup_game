@@ -11,6 +11,20 @@ defmodule StartupGame.Games.OwnershipChange do
   use StartupGame.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+    id: Ecto.UUID.t(),
+    entity_name: String.t(),
+    previous_percentage: Decimal.t(),
+    new_percentage: Decimal.t(),
+    change_type: :initial | :dilution | :investment | :transfer | :exit,
+    game_id: Ecto.UUID.t(),
+    round_id: Ecto.UUID.t(),
+    game: StartupGame.Games.Game.t() | Ecto.Association.NotLoaded.t(),
+    round: StartupGame.Games.Round.t() | Ecto.Association.NotLoaded.t(),
+    inserted_at: DateTime.t(),
+    updated_at: DateTime.t()
+  }
+
   schema "ownership_changes" do
     field :entity_name, :string
     field :previous_percentage, :decimal

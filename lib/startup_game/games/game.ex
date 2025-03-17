@@ -11,6 +11,26 @@ defmodule StartupGame.Games.Game do
   use StartupGame.Schema
   import Ecto.Changeset
 
+  @type t :: %__MODULE__{
+    id: Ecto.UUID.t(),
+    name: String.t(),
+    description: String.t(),
+    status: :in_progress | :completed | :failed,
+    cash_on_hand: Decimal.t(),
+    burn_rate: Decimal.t(),
+    is_public: boolean(),
+    is_leaderboard_eligible: boolean(),
+    exit_value: Decimal.t(),
+    exit_type: :none | :acquisition | :ipo | :shutdown,
+    user_id: Ecto.UUID.t(),
+    user: StartupGame.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
+    rounds: [StartupGame.Games.Round.t()] | Ecto.Association.NotLoaded.t(),
+    ownerships: [StartupGame.Games.Ownership.t()] | Ecto.Association.NotLoaded.t(),
+    ownership_changes: [StartupGame.Games.OwnershipChange.t()] | Ecto.Association.NotLoaded.t(),
+    inserted_at: DateTime.t(),
+    updated_at: DateTime.t()
+  }
+
   schema "games" do
     field :name, :string
     field :description, :string
