@@ -1,10 +1,14 @@
-# Working with the Project
+# Project Overview
+- See the [project overview](project-overview.md) for a description of the
+  project and its intended functionality
+
+## Working with the Project
 - To update dependencies, run `mix deps.get && mix deps.compile`
 - To build the project, run `mix compile`
 - To run linting/analysis, run `mix credo` and `mix dialyzer`
 - To test the project, run `mix test`
 
-# Style/Conventions
+## Style/Conventions
 - Database schema modules should `use StartupGame.Schema` rather than `Ecto.Schema`
 - Typespecs (`@spec`) should be defined for each public function of a module
 - A type (`@type`) should be defined for each struct/schema
@@ -12,6 +16,6 @@
 - Whenever new business logic is defined, simple unit tests should be created
   for it as well whenever possible
 
-# Creating database schemas/migrations
+## Creating database schemas/migrations
 - Each schema/migration should use the terminal command `mix phx.gen.schema ARGS ...`
  and then edit the resulting file(s)
