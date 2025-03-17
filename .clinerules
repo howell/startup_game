@@ -6,6 +6,11 @@
 
 # Style/Conventions
 - Database schema modules should `use StartupGame.Schema` rather than `Ecto.Schema`
+- Typespecs (`@spec`) should be defined for each public function of a module
+- A typespec should be defined for each struct/schema
+- Common patterns of data should be defined as a typespec where appropriate
+- Whenever new business logic is defined, simple unit tests should be created
+  for it as well whenever possible
 
 # Creating database schemas/migrations
 - Each schema/migration should use the terminal command `mix phx.gen.schema ARGS ...`
