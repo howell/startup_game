@@ -9,7 +9,12 @@ import Config
 
 config :startup_game,
   ecto_repos: [StartupGame.Repo],
-  generators: [timestamp_type: :utc_datetime]
+  generators: [timestamp_type: :utc_datetime_usec]
+
+config :startup_game, StartupGame.Repo,
+  migration_primary_key: [type: :binary_id],
+  migration_foreign_key_type: :binary_id,
+  migration_timestamps: [type: :utc_datetime_usec]
 
 # Configures the endpoint
 config :startup_game, StartupGameWeb.Endpoint,
