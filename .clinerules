@@ -3,3 +3,6 @@
 - To build the project, run `mix compile`
 - To run linting/analysis, run `mix credo`
 - To test the project, run `mix test`
+
+# Style/Conventions
+- Database schema modules should `use StartupGame.Schema` rather than `Ecto.Schema`
