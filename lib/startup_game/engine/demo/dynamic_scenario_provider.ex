@@ -8,6 +8,7 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.Scenario
+  alias StartupGame.Engine.Demo.BaseScenarioProvider
 
   @impl true
   @spec get_initial_scenario(GameState.t()) :: Scenario.t()
@@ -32,8 +33,11 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
   def generate_outcome(game_state, scenario, response_text) do
-    # Try to match the response to a choice
-    case match_response_to_choice(scenario, response_text) do
+    # Get the choices for this scenario
+    choices = get_choices_for_scenario(scenario.id)
+
+    # Use the base provider function
+    case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
       {:ok, choice_id} ->
         # Generate an outcome based on the choice and response
         outcome = generate_dynamic_outcome(game_state, scenario, choice_id, response_text)
@@ -45,53 +49,7 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
     end
   end
 
-  # Helper function to match a response to a choice
-  @spec match_response_to_choice(Scenario.t(), String.t()) ::
-          {:ok, String.t()} | {:error, String.t()}
-  defp match_response_to_choice(scenario, response_text) do
-    # Get the choices for this scenario
-    choices = get_choices_for_scenario(scenario.id)
-
-    # Normalize the response text
-    normalized = String.trim(response_text) |> String.downcase()
-
-    # Try to match to a choice by:
-    # 1. Choice ID
-    # 2. Choice text
-    # 3. Letter (A, B, C) - assuming choices are presented in order
-    choice_with_index = Enum.with_index(choices)
-
-    match =
-      Enum.find(choice_with_index, fn {choice, index} ->
-        # A, B, C, etc.
-        letter = <<65 + index::utf8>>
-
-        String.contains?(normalized, String.downcase(choice.id)) ||
-          String.contains?(normalized, String.downcase(choice.text)) ||
-          String.contains?(normalized, String.downcase(letter))
-      end)
-
-    case match do
-      {choice, _} ->
-        {:ok, choice.id}
-
-      nil ->
-        {:error, "Could not determine your choice. Please try again with a clearer response."}
-    end
-  end
-
   # Private helper functions
-
-  # Helper function to format choices for display
-  defp format_choices_for_display(choices) do
-    choices_text = Enum.with_index(choices)
-      |> Enum.map_join("\n", fn {choice, _index} ->
-        # We don't need the index variable anymore
-        "- #{choice.text} (`(#{String.first(choice.id |> String.upcase())})#{String.slice(choice.id, 1..-1//1)}`)"
-      end)
-
-    "\n\nDo you:\n#{choices_text}"
-  end
 
   @spec generate_scenario(GameState.t(), :initial | :next) :: Scenario.t()
   defp generate_scenario(game_state, type) do
@@ -110,12 +68,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        # Create the scenario with formatted choices
-        %Scenario{
+        # Create the base scenario
+        base_scenario = %Scenario{
           id: scenario_id,
           type: :funding,
-          situation: "Based on your startup '#{game_state.name}', an angel investor is interested in your company." <> format_choices_for_display(choices)
+          situation:
+            "Based on your startup '#{game_state.name}', an angel investor is interested in your company."
         }
+
+        # Add choices using the base provider
+        BaseScenarioProvider.add_choices_to_scenario(base_scenario, choices)
 
       :next ->
         # Generate based on game history
@@ -225,12 +187,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        # Create the scenario with formatted choices
-        %Scenario{
+        # Create the base scenario
+        base_scenario = %Scenario{
           id: scenario_id,
           type: :funding,
-          situation: "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company." <> format_choices_for_display(choices)
+          situation:
+            "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company."
         }
+
+        # Add choices using the base provider
+        BaseScenarioProvider.add_choices_to_scenario(base_scenario, choices)
 
       1 ->
         # Hiring scenario
@@ -244,12 +210,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        # Create the scenario with formatted choices
-        %Scenario{
+        # Create the base scenario
+        base_scenario = %Scenario{
           id: scenario_id,
           type: :hiring,
-          situation: "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO." <> format_choices_for_display(choices)
+          situation:
+            "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO."
         }
+
+        # Add choices using the base provider
+        BaseScenarioProvider.add_choices_to_scenario(base_scenario, choices)
 
       2 ->
         # Product scenario
@@ -263,12 +233,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        # Create the scenario with formatted choices
-        %Scenario{
+        # Create the base scenario
+        base_scenario = %Scenario{
           id: scenario_id,
           type: :other,
-          situation: "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience." <> format_choices_for_display(choices)
+          situation:
+            "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience."
         }
+
+        # Add choices using the base provider
+        BaseScenarioProvider.add_choices_to_scenario(base_scenario, choices)
     end
   end
 

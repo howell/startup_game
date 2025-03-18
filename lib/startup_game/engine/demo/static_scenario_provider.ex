@@ -8,6 +8,7 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
 
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.Scenario
+  alias StartupGame.Engine.Demo.BaseScenarioProvider
 
   # Fixed sequence for deterministic gameplay
   @scenario_sequence [
@@ -169,18 +170,7 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     }
   }
 
-  # Helper function to format choices for display
-  defp format_choices_for_display(scenario_id) do
-    choices = Map.get(@scenario_choices, scenario_id)
-
-    choices_text = Enum.with_index(choices)
-      |> Enum.map_join("\n", fn {choice, _index} ->
-        # We don't need the index variable anymore
-        "- #{choice.text} (`(#{String.first(choice.id |> String.upcase())})#{String.slice(choice.id, 1..-1//1)}`)"
-      end)
-
-    "\n\nDo you:\n#{choices_text}"
-  end
+  # This function was moved to BaseScenarioProvider
 
   # Predefined scenarios
   @scenarios %{
@@ -213,10 +203,10 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   def get_initial_scenario(_game_state) do
     scenario_id = List.first(@scenario_sequence)
     scenario = Map.get(@scenarios, scenario_id)
+    choices = Map.get(@scenario_choices, scenario_id)
 
-    # Add choices to the situation text
-    choices_text = format_choices_for_display(scenario_id)
-    %{scenario | situation: scenario.situation <> choices_text}
+    # Use the base provider function
+    BaseScenarioProvider.add_choices_to_scenario(scenario, choices)
   end
 
   @impl true
@@ -229,9 +219,8 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
       scenario = Map.get(@scenarios, next_id)
 
       if scenario do
-        # Add choices to the situation text
-        choices_text = format_choices_for_display(next_id)
-        %{scenario | situation: scenario.situation <> choices_text}
+        choices = Map.get(@scenario_choices, next_id)
+        BaseScenarioProvider.add_choices_to_scenario(scenario, choices)
       else
         nil
       end
@@ -245,8 +234,11 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
   def generate_outcome(_game_state, scenario, response_text) do
-    # Try to match the response to a choice
-    case match_response_to_choice(scenario, response_text) do
+    # Get the choices for this scenario
+    choices = Map.get(@scenario_choices, scenario.id)
+
+    # Use the base provider function
+    case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
       {:ok, choice_id} ->
         # Get the predefined outcome for this choice
         outcome = get_outcome_for_choice(scenario.id, choice_id)
@@ -258,40 +250,7 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     end
   end
 
-  # Helper function to match a response to a choice
-  @spec match_response_to_choice(Scenario.t(), String.t()) ::
-          {:ok, String.t()} | {:error, String.t()}
-  defp match_response_to_choice(scenario, response_text) do
-    # Get the choices for this scenario
-    choices = Map.get(@scenario_choices, scenario.id)
-
-    # Normalize the response text
-    normalized = String.trim(response_text) |> String.downcase()
-
-    # Try to match to a choice by:
-    # 1. Choice ID
-    # 2. Choice text
-    # 3. Letter (A, B, C) - assuming choices are presented in order
-    choice_with_index = Enum.with_index(choices)
-
-    match =
-      Enum.find(choice_with_index, fn {choice, index} ->
-        # A, B, C, etc.
-        letter = <<65 + index::utf8>>
-
-        String.contains?(normalized, String.downcase(choice.id)) ||
-          String.contains?(normalized, String.downcase(choice.text)) ||
-          String.contains?(normalized, String.downcase(letter))
-      end)
-
-    case match do
-      {choice, _} ->
-        {:ok, choice.id}
-
-      nil ->
-        {:error, "Could not determine your choice. Please try again with a clearer response."}
-    end
-  end
+  # This function was moved to BaseScenarioProvider
 
   # Helper function to get an outcome for a choice
   @spec get_outcome_for_choice(String.t(), String.t()) :: map()
