@@ -1,4 +1,4 @@
-defmodule StartupGame.StaticScenarioProvider do
+defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @moduledoc """
   Provides predefined scenarios from a static collection for testing.
   Implements the ScenarioProvider behavior.

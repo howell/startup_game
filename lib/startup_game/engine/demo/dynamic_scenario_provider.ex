@@ -1,4 +1,4 @@
-defmodule StartupGame.DynamicScenarioProvider do
+defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
   @moduledoc """
   Provides dynamically generated scenarios for testing.
   Implements the ScenarioProvider behavior.
@@ -29,7 +29,8 @@ defmodule StartupGame.DynamicScenarioProvider do
   end
 
   @impl true
-  @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) :: {:ok, Scenario.outcome()} | {:error, String.t()}
+  @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
+          {:ok, Scenario.outcome()} | {:error, String.t()}
   def generate_outcome(game_state, scenario, response_text) do
     # Try to match the response to a choice
     case match_response_to_choice(scenario, response_text) do
@@ -45,7 +46,8 @@ defmodule StartupGame.DynamicScenarioProvider do
   end
 
   # Helper function to match a response to a choice
-  @spec match_response_to_choice(Scenario.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  @spec match_response_to_choice(Scenario.t(), String.t()) ::
+          {:ok, String.t()} | {:error, String.t()}
   defp match_response_to_choice(scenario, response_text) do
     # Get the choices for this scenario
     choices = get_choices_for_scenario(scenario.id)
@@ -59,17 +61,22 @@ defmodule StartupGame.DynamicScenarioProvider do
     # 3. Letter (A, B, C) - assuming choices are presented in order
     choice_with_index = Enum.with_index(choices)
 
-    match = Enum.find(choice_with_index, fn {choice, index} ->
-      letter = <<65 + index::utf8>> # A, B, C, etc.
+    match =
+      Enum.find(choice_with_index, fn {choice, index} ->
+        # A, B, C, etc.
+        letter = <<65 + index::utf8>>
 
-      String.contains?(normalized, String.downcase(choice.id)) ||
-      String.contains?(normalized, String.downcase(choice.text)) ||
-      String.contains?(normalized, String.downcase(letter))
-    end)
+        String.contains?(normalized, String.downcase(choice.id)) ||
+          String.contains?(normalized, String.downcase(choice.text)) ||
+          String.contains?(normalized, String.downcase(letter))
+      end)
 
     case match do
-      {choice, _} -> {:ok, choice.id}
-      nil -> {:error, "Could not determine your choice. Please try again with a clearer response."}
+      {choice, _} ->
+        {:ok, choice.id}
+
+      nil ->
+        {:error, "Could not determine your choice. Please try again with a clearer response."}
     end
   end
 
@@ -87,7 +94,8 @@ defmodule StartupGame.DynamicScenarioProvider do
         scenario = %Scenario{
           id: scenario_id,
           type: :funding,
-          situation: "Based on your startup '#{game_state.name}', an angel investor is interested in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
+          situation:
+            "Based on your startup '#{game_state.name}', an angel investor is interested in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
         }
 
         # Store the choices for this scenario
@@ -96,6 +104,7 @@ defmodule StartupGame.DynamicScenarioProvider do
           %{id: "negotiate", text: "Try to negotiate better terms"},
           %{id: "decline", text: "Decline the offer"}
         ]
+
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
         scenario
@@ -114,36 +123,58 @@ defmodule StartupGame.DynamicScenarioProvider do
       "accept" ->
         %{
           choice_id: "accept",
-          text: "Your response: '#{String.slice(response_text, 0, 30)}...' led to the investor accepting your terms.",
+          text:
+            "Your response: '#{String.slice(response_text, 0, 30)}...' led to the investor accepting your terms.",
           cash_change: Decimal.new("100000.00"),
           burn_rate_change: Decimal.new("0.00"),
           ownership_changes: [
-            %{entity_name: "Founder", previous_percentage: Decimal.new("100.00"), new_percentage: Decimal.new("85.00")},
-            %{entity_name: "Angel Investor", previous_percentage: Decimal.new("0.00"), new_percentage: Decimal.new("15.00")}
+            %{
+              entity_name: "Founder",
+              previous_percentage: Decimal.new("100.00"),
+              new_percentage: Decimal.new("85.00")
+            },
+            %{
+              entity_name: "Angel Investor",
+              previous_percentage: Decimal.new("0.00"),
+              new_percentage: Decimal.new("15.00")
+            }
           ],
           exit_type: :none
         }
+
       "negotiate" ->
         %{
           choice_id: "negotiate",
-          text: "Your negotiation approach: '#{String.slice(response_text, 0, 30)}...' was successful. The investor agreed to better terms.",
+          text:
+            "Your negotiation approach: '#{String.slice(response_text, 0, 30)}...' was successful. The investor agreed to better terms.",
           cash_change: Decimal.new("100000.00"),
           burn_rate_change: Decimal.new("0.00"),
           ownership_changes: [
-            %{entity_name: "Founder", previous_percentage: Decimal.new("100.00"), new_percentage: Decimal.new("90.00")},
-            %{entity_name: "Angel Investor", previous_percentage: Decimal.new("0.00"), new_percentage: Decimal.new("10.00")}
+            %{
+              entity_name: "Founder",
+              previous_percentage: Decimal.new("100.00"),
+              new_percentage: Decimal.new("90.00")
+            },
+            %{
+              entity_name: "Angel Investor",
+              previous_percentage: Decimal.new("0.00"),
+              new_percentage: Decimal.new("10.00")
+            }
           ],
           exit_type: :none
         }
+
       "decline" ->
         %{
           choice_id: "decline",
-          text: "You declined with this explanation: '#{String.slice(response_text, 0, 30)}...'. The investor respects your decision.",
+          text:
+            "You declined with this explanation: '#{String.slice(response_text, 0, 30)}...'. The investor respects your decision.",
           cash_change: Decimal.new("0.00"),
           burn_rate_change: Decimal.new("0.00"),
           ownership_changes: nil,
           exit_type: :none
         }
+
       _ ->
         # Default outcome for any other choice
         %{
@@ -180,7 +211,8 @@ defmodule StartupGame.DynamicScenarioProvider do
         scenario = %Scenario{
           id: scenario_id,
           type: :funding,
-          situation: "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
+          situation:
+            "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
         }
 
         # Store the choices for this scenario
@@ -189,9 +221,11 @@ defmodule StartupGame.DynamicScenarioProvider do
           %{id: "negotiate", text: "Try to negotiate better terms"},
           %{id: "decline", text: "Decline the offer"}
         ]
+
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
         scenario
+
       1 ->
         # Hiring scenario
         scenario_id = "dynamic_hiring_#{:rand.uniform(1000)}"
@@ -199,7 +233,8 @@ defmodule StartupGame.DynamicScenarioProvider do
         scenario = %Scenario{
           id: scenario_id,
           type: :hiring,
-          situation: "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO. Do you want to:\nA) Hire a team of junior developers\nB) Hire an experienced CTO"
+          situation:
+            "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO. Do you want to:\nA) Hire a team of junior developers\nB) Hire an experienced CTO"
         }
 
         # Store the choices for this scenario
@@ -207,9 +242,11 @@ defmodule StartupGame.DynamicScenarioProvider do
           %{id: "team", text: "Hire a team of junior developers"},
           %{id: "cto", text: "Hire an experienced CTO"}
         ]
+
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
         scenario
+
       2 ->
         # Product scenario
         scenario_id = "dynamic_product_#{:rand.uniform(1000)}"
@@ -217,7 +254,8 @@ defmodule StartupGame.DynamicScenarioProvider do
         scenario = %Scenario{
           id: scenario_id,
           type: :other,
-          situation: "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience. Do you want to:\nA) Focus on adding new features\nB) Focus on improving user experience"
+          situation:
+            "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience. Do you want to:\nA) Focus on adding new features\nB) Focus on improving user experience"
         }
 
         # Store the choices for this scenario
@@ -225,6 +263,7 @@ defmodule StartupGame.DynamicScenarioProvider do
           %{id: "features", text: "Focus on adding new features"},
           %{id: "ux", text: "Focus on improving user experience"}
         ]
+
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
         scenario
@@ -237,10 +276,10 @@ defmodule StartupGame.DynamicScenarioProvider do
     # Could be based on number of rounds, financial state, etc.
 
     # For now, end after 5 rounds
+    # Or if cash is too low
+    # Or if runway is less than 1 month
     length(game_state.rounds) >= 5 or
-      # Or if cash is too low
       Decimal.compare(game_state.cash_on_hand, Decimal.new("0")) == :lt or
-      # Or if runway is less than 1 month
       Decimal.compare(GameState.calculate_runway(game_state), Decimal.new("1")) == :lt
   end
 end

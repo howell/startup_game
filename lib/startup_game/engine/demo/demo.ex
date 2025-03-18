@@ -1,4 +1,4 @@
-defmodule StartupGame.Engine.Demo do
+defmodule StartupGame.Engine.Demo.Demo do
   @moduledoc """
   Demonstration script for the simplified startup game engine.
 
@@ -7,7 +7,7 @@ defmodule StartupGame.Engine.Demo do
   """
 
   alias StartupGame.Engine.GameRunner
-  alias StartupGame.Engine.StaticScenarioProvider
+  alias StartupGame.Engine.Demo.StaticScenarioProvider
 
   @doc """
   Runs a demo game with a predefined set of choices and prints the results.
@@ -26,7 +26,8 @@ defmodule StartupGame.Engine.Demo do
     IO.puts("Description: #{startup_description}")
 
     # Start the game
-    {game_state, situation} = GameRunner.start_game(startup_name, startup_description, StaticScenarioProvider)
+    {game_state, situation} =
+      GameRunner.start_game(startup_name, startup_description, StaticScenarioProvider)
 
     # Display initial state
     display_game_state(game_state)
@@ -78,7 +79,8 @@ defmodule StartupGame.Engine.Demo do
     IO.puts("Description: #{startup_description}")
 
     # Start the game
-    {game_state, situation} = GameRunner.start_game(startup_name, startup_description, StaticScenarioProvider)
+    {game_state, situation} =
+      GameRunner.start_game(startup_name, startup_description, StaticScenarioProvider)
 
     # Display initial state
     display_game_state(game_state)

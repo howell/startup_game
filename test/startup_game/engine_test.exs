@@ -4,7 +4,7 @@ defmodule StartupGame.EngineTest do
   alias StartupGame.Engine
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.GameRunner
-  alias StartupGame.StaticScenarioProvider
+  alias StartupGame.Engine.Demo.StaticScenarioProvider
 
   describe "simplified engine" do
     test "creates a new game with initial state" do

@@ -2,8 +2,7 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
   use ExUnit.Case, async: true
 
   alias StartupGame.Engine
-  alias StartupGame.DynamicScenarioProvider
-  alias StartupGame.StaticScenarioProvider
+  alias StartupGame.Engine.Demo.{DynamicScenarioProvider, StaticScenarioProvider}
 
   describe "dynamic scenario provider" do
     test "creates a game with dynamic scenario provider" do
