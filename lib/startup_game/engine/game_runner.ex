@@ -9,19 +9,20 @@ defmodule StartupGame.Engine.GameRunner do
 
   alias StartupGame.Engine
   alias StartupGame.Engine.GameState
+  alias StartupGame.Engine.ScenarioProvider
 
   @doc """
   Starts a new game and returns the initial game state and situation.
 
   ## Examples
 
-      iex> GameRunner.start_game("TechNova", "AI-powered project management")
+      iex> GameRunner.start_game("TechNova", "AI-powered project management", StaticScenarioProvider)
       {%GameState{...}, %{situation: "An angel investor offers...", choices: [...]}}
 
   """
-  @spec start_game(String.t(), String.t()) :: {GameState.t(), %{situation: String.t(), choices: list(map())}}
-  def start_game(name, description) do
-    game_state = Engine.new_game(name, description)
+  @spec start_game(String.t(), String.t(), ScenarioProvider.behaviour()) :: {GameState.t(), %{situation: String.t(), choices: list(map())}}
+  def start_game(name, description, provider) do
+    game_state = Engine.new_game(name, description, provider)
     situation = Engine.get_current_situation(game_state)
 
     {game_state, situation}
@@ -100,9 +101,9 @@ defmodule StartupGame.Engine.GameRunner do
       %GameState{status: :completed, exit_type: :acquisition, ...}
 
   """
-  @spec run_game(String.t(), String.t(), [String.t()]) :: GameState.t()
-  def run_game(name, description, choices) do
-    {game_state, _} = start_game(name, description)
+  @spec run_game(String.t(), String.t(), [String.t()], ScenarioProvider.behaviour()) :: GameState.t()
+  def run_game(name, description, choices, provider) do
+    {game_state, _} = start_game(name, description, provider)
 
     Enum.reduce_while(choices, game_state, fn choice, state ->
       {updated_state, situation} = make_choice(state, choice)

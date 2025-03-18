@@ -6,24 +6,30 @@ defmodule StartupGame.Engine do
   processing player choices, and updating the game state.
   """
 
-  alias StartupGame.Engine.{GameState, Scenario, ScenarioManager}
+  alias StartupGame.Engine.{GameState, Scenario, ScenarioProvider}
 
   @doc """
-  Creates a new game with the given startup name and description.
+  Creates a new game with the given startup name, description, and scenario provider.
 
   ## Examples
 
-      iex> Engine.new_game("TechNova", "AI-powered project management")
-      %GameState{name: "TechNova", description: "AI-powered project management", ...}
+      iex> Engine.new_game("TechNova", "AI-powered project management", StaticScenarioProvider)
+      %GameState{name: "TechNova", description: "AI-powered project management", scenario_provider: StaticScenarioProvider, ...}
+
+      iex> Engine.new_game("TechNova", "AI-powered project management", DynamicScenarioProvider)
+      %GameState{name: "TechNova", description: "AI-powered project management", scenario_provider: DynamicScenarioProvider, ...}
 
   """
-  @spec new_game(String.t(), String.t()) :: GameState.t()
-  def new_game(name, description) do
+  @spec new_game(String.t(), String.t(), ScenarioProvider.behaviour()) :: GameState.t()
+  def new_game(name, description, provider) do
     game_state = GameState.new(name, description)
 
-    # Assign the first scenario
-    scenario_id = ScenarioManager.get_initial_scenario_id()
-    %{game_state | current_scenario: scenario_id}
+    # Store the provider module in the game state
+    game_state = %{game_state | scenario_provider: provider}
+
+    # Get the initial scenario
+    initial_scenario = provider.get_initial_scenario(game_state)
+    %{game_state | current_scenario: initial_scenario.id, current_scenario_data: initial_scenario}
   end
 
   @doc """
@@ -37,11 +43,9 @@ defmodule StartupGame.Engine do
   """
   @spec get_current_situation(GameState.t()) :: %{situation: String.t(), choices: list(map())}
   def get_current_situation(game_state) do
-    scenario = ScenarioManager.get_scenario(game_state.current_scenario)
-
     %{
-      situation: scenario.situation,
-      choices: scenario.choices
+      situation: game_state.current_scenario_data.situation,
+      choices: game_state.current_scenario_data.choices
     }
   end
 
@@ -53,19 +57,24 @@ defmodule StartupGame.Engine do
       iex> Engine.process_choice(game_state, "accept")
       %GameState{...}
 
-  """
-  @spec process_choice(GameState.t(), String.t()) :: GameState.t()
-  def process_choice(game_state, choice_id) do
-    scenario = ScenarioManager.get_scenario(game_state.current_scenario)
+      iex> Engine.process_choice(game_state, "negotiate", "I'd like to offer 10% for the same amount")
+      %GameState{...}
 
-    # Get the outcome for this choice
-    outcome = Map.get(scenario.outcomes, choice_id)
+  """
+  @spec process_choice(GameState.t(), String.t(), String.t()) :: GameState.t()
+  def process_choice(game_state, choice_id, response_text \\ "") do
+    provider = game_state.scenario_provider
+    scenario = game_state.current_scenario_data
+
+    # Generate outcome based on the choice and response
+    outcome = provider.generate_outcome(game_state, scenario, choice_id, response_text)
 
     # Create the round entry
     round = %{
       scenario_id: scenario.id,
       situation: scenario.situation,
-      response: get_choice_text(scenario, choice_id),
+      response:
+        if(response_text == "", do: get_choice_text(scenario, choice_id), else: response_text),
       outcome: outcome.text,
       cash_change: outcome.cash_change,
       burn_rate_change: outcome.burn_rate_change,
@@ -77,14 +86,20 @@ defmodule StartupGame.Engine do
     game_state = update_ownership(game_state, outcome)
     game_state = check_game_end(game_state, outcome)
 
-    # Add the round and get next scenario
+    # Add the round
     game_state = %{game_state | rounds: game_state.rounds ++ [round]}
 
     if game_state.status == :in_progress do
-      next_scenario_id = ScenarioManager.get_next_scenario_id(game_state)
-      %{game_state | current_scenario: next_scenario_id}
+      # Get next scenario
+      next_scenario = provider.get_next_scenario(game_state, scenario.id)
+
+      if next_scenario do
+        %{game_state | current_scenario: next_scenario.id, current_scenario_data: next_scenario}
+      else
+        %{game_state | current_scenario: nil, current_scenario_data: nil, status: :completed}
+      end
     else
-      %{game_state | current_scenario: nil}
+      %{game_state | current_scenario: nil, current_scenario_data: nil}
     end
   end
 

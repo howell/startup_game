@@ -7,6 +7,8 @@ defmodule StartupGame.Engine.GameState do
   game progress.
   """
 
+  alias StartupGame.Engine.{Scenario, ScenarioProvider}
+
   @type ownership_entry :: %{
           entity_name: String.t(),
           percentage: Decimal.t()
@@ -38,7 +40,9 @@ defmodule StartupGame.Engine.GameState do
           exit_value: Decimal.t(),
           ownerships: [ownership_entry()],
           rounds: [round_entry()],
-          current_scenario: String.t() | nil
+          current_scenario: String.t() | nil,
+          current_scenario_data: Scenario.t() | nil,
+          scenario_provider: ScenarioProvider.behaviour() | nil
         }
 
   defstruct name: nil,
@@ -50,7 +54,9 @@ defmodule StartupGame.Engine.GameState do
             exit_value: Decimal.new("0.00"),
             ownerships: [],
             rounds: [],
-            current_scenario: nil
+            current_scenario: nil,
+            current_scenario_data: nil,
+            scenario_provider: nil
 
   @doc """
   Creates a new game state with the given name and description.

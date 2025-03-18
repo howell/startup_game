@@ -4,10 +4,11 @@ defmodule StartupGame.EngineTest do
   alias StartupGame.Engine
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.GameRunner
+  alias StartupGame.Engine.StaticScenarioProvider
 
   describe "simplified engine" do
     test "creates a new game with initial state" do
-      game_state = Engine.new_game("Test Startup", "A test startup")
+      game_state = Engine.new_game("Test Startup", "A test startup", StaticScenarioProvider)
 
       assert game_state.name == "Test Startup"
       assert game_state.description == "A test startup"
@@ -22,7 +23,7 @@ defmodule StartupGame.EngineTest do
     end
 
     test "processes player choices and updates game state" do
-      game_state = Engine.new_game("Test Startup", "A test startup")
+      game_state = Engine.new_game("Test Startup", "A test startup", StaticScenarioProvider)
 
       # Accept angel investment
       updated_state = Engine.process_choice(game_state, "accept")
@@ -33,7 +34,10 @@ defmodule StartupGame.EngineTest do
       # Check that ownership was updated
       assert length(updated_state.ownerships) == 2
       founder = Enum.find(updated_state.ownerships, fn o -> o.entity_name == "Founder" end)
-      investor = Enum.find(updated_state.ownerships, fn o -> o.entity_name == "Angel Investor" end)
+
+      investor =
+        Enum.find(updated_state.ownerships, fn o -> o.entity_name == "Angel Investor" end)
+
       assert Decimal.equal?(founder.percentage, Decimal.new("85.00"))
       assert Decimal.equal?(investor.percentage, Decimal.new("15.00"))
 
@@ -48,11 +52,13 @@ defmodule StartupGame.EngineTest do
 
     test "completes a game with acquisition" do
       # Run a complete game with predefined choices
-      final_state = GameRunner.run_game(
-        "Test Startup",
-        "A test startup",
-        ["accept", "experienced", "settle", "accept"]
-      )
+      final_state =
+        GameRunner.run_game(
+          "Test Startup",
+          "A test startup",
+          ["accept", "experienced", "settle", "accept"],
+          StaticScenarioProvider
+        )
 
       # Check that game was completed with acquisition
       assert final_state.status == :completed
@@ -63,11 +69,13 @@ defmodule StartupGame.EngineTest do
 
     test "fails a game due to running out of money" do
       # Run a game that will fail
-      final_state = GameRunner.run_game(
-        "Test Startup",
-        "A test startup",
-        ["decline", "experienced", "fight"]
-      )
+      final_state =
+        GameRunner.run_game(
+          "Test Startup",
+          "A test startup",
+          ["decline", "experienced", "fight"],
+          StaticScenarioProvider
+        )
 
       # Check that game failed
       assert final_state.status == :failed
@@ -75,7 +83,7 @@ defmodule StartupGame.EngineTest do
 
       # Check that cash is negative or runway is insufficient
       assert Decimal.compare(final_state.cash_on_hand, Decimal.new("0")) == :lt ||
-             Decimal.compare(GameState.calculate_runway(final_state), Decimal.new("1")) == :lt
+               Decimal.compare(GameState.calculate_runway(final_state), Decimal.new("1")) == :lt
     end
   end
 end
