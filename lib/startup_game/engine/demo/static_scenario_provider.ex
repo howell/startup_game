@@ -169,6 +169,19 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     }
   }
 
+  # Helper function to format choices for display
+  defp format_choices_for_display(scenario_id) do
+    choices = Map.get(@scenario_choices, scenario_id)
+
+    choices_text = Enum.with_index(choices)
+      |> Enum.map_join("\n", fn {choice, _index} ->
+        # We don't need the index variable anymore
+        "- #{choice.text} (`(#{String.first(choice.id |> String.upcase())})#{String.slice(choice.id, 1..-1//1)}`)"
+      end)
+
+    "\n\nDo you:\n#{choices_text}"
+  end
+
   # Predefined scenarios
   @scenarios %{
     "angel_investment" => %Scenario{
@@ -199,7 +212,11 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @spec get_initial_scenario(GameState.t()) :: Scenario.t()
   def get_initial_scenario(_game_state) do
     scenario_id = List.first(@scenario_sequence)
-    Map.get(@scenarios, scenario_id)
+    scenario = Map.get(@scenarios, scenario_id)
+
+    # Add choices to the situation text
+    choices_text = format_choices_for_display(scenario_id)
+    %{scenario | situation: scenario.situation <> choices_text}
   end
 
   @impl true
@@ -209,7 +226,15 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
 
     if current_index < length(@scenario_sequence) - 1 do
       next_id = Enum.at(@scenario_sequence, current_index + 1)
-      Map.get(@scenarios, next_id)
+      scenario = Map.get(@scenarios, next_id)
+
+      if scenario do
+        # Add choices to the situation text
+        choices_text = format_choices_for_display(next_id)
+        %{scenario | situation: scenario.situation <> choices_text}
+      else
+        nil
+      end
     else
       # End of game
       nil

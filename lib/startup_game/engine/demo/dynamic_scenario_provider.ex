@@ -82,6 +82,17 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
   # Private helper functions
 
+  # Helper function to format choices for display
+  defp format_choices_for_display(choices) do
+    choices_text = Enum.with_index(choices)
+      |> Enum.map_join("\n", fn {choice, _index} ->
+        # We don't need the index variable anymore
+        "- #{choice.text} (`(#{String.first(choice.id |> String.upcase())})#{String.slice(choice.id, 1..-1//1)}`)"
+      end)
+
+    "\n\nDo you:\n#{choices_text}"
+  end
+
   @spec generate_scenario(GameState.t(), :initial | :next) :: Scenario.t()
   defp generate_scenario(game_state, type) do
     # In a real implementation, this would call an LLM
@@ -89,14 +100,6 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
     case type do
       :initial ->
         scenario_id = "dynamic_#{:rand.uniform(1000)}"
-
-        # Create the scenario
-        scenario = %Scenario{
-          id: scenario_id,
-          type: :funding,
-          situation:
-            "Based on your startup '#{game_state.name}', an angel investor is interested in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
-        }
 
         # Store the choices for this scenario
         choices = [
@@ -107,7 +110,12 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        scenario
+        # Create the scenario with formatted choices
+        %Scenario{
+          id: scenario_id,
+          type: :funding,
+          situation: "Based on your startup '#{game_state.name}', an angel investor is interested in your company." <> format_choices_for_display(choices)
+        }
 
       :next ->
         # Generate based on game history
@@ -208,13 +216,6 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
         # Funding scenario
         scenario_id = "dynamic_funding_#{:rand.uniform(1000)}"
 
-        scenario = %Scenario{
-          id: scenario_id,
-          type: :funding,
-          situation:
-            "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
-        }
-
         # Store the choices for this scenario
         choices = [
           %{id: "accept", text: "Accept their offer"},
@@ -224,18 +225,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        scenario
+        # Create the scenario with formatted choices
+        %Scenario{
+          id: scenario_id,
+          type: :funding,
+          situation: "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company." <> format_choices_for_display(choices)
+        }
 
       1 ->
         # Hiring scenario
         scenario_id = "dynamic_hiring_#{:rand.uniform(1000)}"
-
-        scenario = %Scenario{
-          id: scenario_id,
-          type: :hiring,
-          situation:
-            "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO. Do you want to:\nA) Hire a team of junior developers\nB) Hire an experienced CTO"
-        }
 
         # Store the choices for this scenario
         choices = [
@@ -245,18 +244,16 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        scenario
+        # Create the scenario with formatted choices
+        %Scenario{
+          id: scenario_id,
+          type: :hiring,
+          situation: "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO." <> format_choices_for_display(choices)
+        }
 
       2 ->
         # Product scenario
         scenario_id = "dynamic_product_#{:rand.uniform(1000)}"
-
-        scenario = %Scenario{
-          id: scenario_id,
-          type: :other,
-          situation:
-            "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience. Do you want to:\nA) Focus on adding new features\nB) Focus on improving user experience"
-        }
 
         # Store the choices for this scenario
         choices = [
@@ -266,7 +263,12 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
 
-        scenario
+        # Create the scenario with formatted choices
+        %Scenario{
+          id: scenario_id,
+          type: :other,
+          situation: "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience." <> format_choices_for_display(choices)
+        }
     end
   end
 
