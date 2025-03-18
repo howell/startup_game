@@ -27,8 +27,8 @@ defmodule StartupGame.EngineTest do
       # Accept angel investment
       updated_state = Engine.process_choice(game_state, "accept")
 
-      # Check that cash was updated
-      assert Decimal.equal?(updated_state.cash_on_hand, Decimal.new("110000.00"))
+      # Check that cash was updated (initial $10,000 + $100,000 from investment - $1,000 burn rate)
+      assert Decimal.equal?(updated_state.cash_on_hand, Decimal.new("109000.00"))
 
       # Check that ownership was updated
       assert length(updated_state.ownerships) == 2

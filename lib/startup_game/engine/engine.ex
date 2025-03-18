@@ -117,6 +117,11 @@ defmodule StartupGame.Engine do
     # Update game state
     game_state = update_finances(game_state, outcome)
     game_state = update_ownership(game_state, outcome)
+
+    # Apply burn rate (monthly expenses) after each situation
+    game_state = apply_burn_rate(game_state)
+
+    # Check for game end conditions
     game_state = check_game_end(game_state, outcome)
 
     # Add the round
@@ -154,6 +159,16 @@ defmodule StartupGame.Engine do
     else
       game_state
     end
+  end
+
+  # Apply monthly burn rate to cash on hand.
+  # This function deducts the burn rate from the cash on hand,
+  # simulating monthly expenses that occur after each situation.
+  @spec apply_burn_rate(GameState.t()) :: GameState.t()
+  defp apply_burn_rate(game_state) do
+    # Subtract burn rate from cash on hand
+    new_cash = Decimal.sub(game_state.cash_on_hand, game_state.burn_rate)
+    %{game_state | cash_on_hand: new_cash}
   end
 
   @spec apply_ownership_changes([GameState.ownership_entry()], [GameState.ownership_change()]) ::
