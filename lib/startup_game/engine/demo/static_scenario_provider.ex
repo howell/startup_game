@@ -21,23 +21,23 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   # Choices for each scenario
   @scenario_choices %{
     "angel_investment" => [
-      %{id: "accept", text: "Accept the offer as is"},
-      %{id: "negotiate", text: "Try to negotiate better terms"},
-      %{id: "decline", text: "Decline the offer"}
+      %{id: "accept", text: "Accept the offer as is", selection_keys: ["a", "accept"]},
+      %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+      %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
     ],
     "acquisition_offer" => [
-      %{id: "accept", text: "Accept the acquisition offer"},
-      %{id: "counter", text: "Counter with a higher valuation"},
-      %{id: "decline", text: "Decline and continue building independently"}
+      %{id: "accept", text: "Accept the acquisition offer", selection_keys: ["a", "accept"]},
+      %{id: "counter", text: "Counter with a higher valuation", selection_keys: ["c", "counter"]},
+      %{id: "decline", text: "Decline and continue building independently", selection_keys: ["d", "decline"]}
     ],
     "hiring_decision" => [
-      %{id: "experienced", text: "Hire the experienced developer"},
-      %{id: "junior", text: "Hire the promising junior developer"}
+      %{id: "experienced", text: "Hire the experienced developer", selection_keys: ["e", "experienced"]},
+      %{id: "junior", text: "Hire the promising junior developer", selection_keys: ["j", "junior"]}
     ],
     "lawsuit" => [
-      %{id: "settle", text: "Settle out of court"},
-      %{id: "fight", text: "Fight the lawsuit"},
-      %{id: "license", text: "Offer to license the technology"}
+      %{id: "settle", text: "Settle out of court", selection_keys: ["s", "settle"]},
+      %{id: "fight", text: "Fight the lawsuit", selection_keys: ["f", "fight"]},
+      %{id: "license", text: "Offer to license the technology", selection_keys: ["l", "license"]}
     ]
   }
 

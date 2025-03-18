@@ -61,9 +61,9 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         # Store the choices for this scenario
         choices = [
-          %{id: "accept", text: "Accept their offer"},
-          %{id: "negotiate", text: "Try to negotiate better terms"},
-          %{id: "decline", text: "Decline the offer"}
+          %{id: "accept", text: "Accept their offer", selection_keys: ["a", "accept"]},
+          %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+          %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
         ]
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
@@ -180,9 +180,9 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         # Store the choices for this scenario
         choices = [
-          %{id: "accept", text: "Accept their offer"},
-          %{id: "negotiate", text: "Try to negotiate better terms"},
-          %{id: "decline", text: "Decline the offer"}
+          %{id: "accept", text: "Accept their offer", selection_keys: ["a", "accept"]},
+          %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+          %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
         ]
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
@@ -204,8 +204,8 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         # Store the choices for this scenario
         choices = [
-          %{id: "team", text: "Hire a team of junior developers"},
-          %{id: "cto", text: "Hire an experienced CTO"}
+          %{id: "team", text: "Hire a team of junior developers", selection_keys: ["t", "team"]},
+          %{id: "cto", text: "Hire an experienced CTO", selection_keys: ["c", "cto"]}
         ]
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)
@@ -227,8 +227,8 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         # Store the choices for this scenario
         choices = [
-          %{id: "features", text: "Focus on adding new features"},
-          %{id: "ux", text: "Focus on improving user experience"}
+          %{id: "features", text: "Focus on adding new features", selection_keys: ["f", "features"]},
+          %{id: "ux", text: "Focus on improving user experience", selection_keys: ["u", "ux"]}
         ]
 
         Process.put({__MODULE__, :choices, scenario_id}, choices)

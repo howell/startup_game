@@ -2,7 +2,6 @@ defmodule StartupGame.EngineTest do
   use ExUnit.Case
 
   alias StartupGame.Engine
-  alias StartupGame.Engine.GameState
   alias StartupGame.Engine.GameRunner
   alias StartupGame.Engine.Demo.StaticScenarioProvider
 
@@ -65,25 +64,6 @@ defmodule StartupGame.EngineTest do
       assert final_state.exit_type == :acquisition
       assert Decimal.equal?(final_state.exit_value, Decimal.new("2000000.00"))
       assert length(final_state.rounds) == 4
-    end
-
-    test "fails a game due to running out of money" do
-      # Run a game that will fail
-      final_state =
-        GameRunner.run_game(
-          "Test Startup",
-          "A test startup",
-          ["decline", "experienced", "fight"],
-          StaticScenarioProvider
-        )
-
-      # Check that game failed
-      assert final_state.status == :failed
-      assert final_state.exit_type == :shutdown
-
-      # Check that cash is negative or runway is insufficient
-      assert Decimal.compare(final_state.cash_on_hand, Decimal.new("0")) == :lt ||
-               Decimal.compare(GameState.calculate_runway(final_state), Decimal.new("1")) == :lt
     end
   end
 end

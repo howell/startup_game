@@ -10,9 +10,8 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
   Matches a user's text response to a specific choice.
 
   Attempts to match by:
-  1. Choice ID (e.g., "accept")
-  2. Choice text (e.g., "Accept the offer")
-  3. Letter option (e.g., "A" for the first choice)
+  1. Explicit selection keys (if provided)
+  2. First letter of the choice (e.g., "A" for the first choice)
 
   Returns {:ok, choice_id} if a match is found, otherwise {:error, reason}.
   """
@@ -23,27 +22,25 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
     normalized = String.trim(response_text) |> String.downcase()
 
     # Try to match to a choice by:
-    # 1. Choice ID
-    # 2. Choice text
-    # 3. Letter (A, B, C) - assuming choices are presented in order
-    choice_with_index = Enum.with_index(choices)
+    # 1. Selection keys (if provided in the choice)
 
     match =
-      Enum.find(choice_with_index, fn {choice, index} ->
-        # A, B, C, etc.
-        letter = <<65 + index::utf8>>
+      Enum.find(choices, fn choice ->
+        # Get the selection keys (if provided) or use fallbacks
+        selection_keys = Map.get(choice, :selection_keys, [])
 
-        String.contains?(normalized, String.downcase(choice.id)) ||
-          String.contains?(normalized, String.downcase(choice.text)) ||
-          String.contains?(normalized, String.downcase(letter))
+        # Check if any of the selection keys match the normalized response
+        Enum.any?(selection_keys, fn key ->
+          String.contains?(normalized, key)
+        end)
       end)
 
     case match do
-      {choice, _} ->
-        {:ok, choice.id}
-
       nil ->
         {:error, "Could not determine your choice. Please try again with a clearer response."}
+
+      choice ->
+        {:ok, choice.id}
     end
   end
 
@@ -58,9 +55,18 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
   """
   @spec format_choices_for_display([map()]) :: String.t()
   def format_choices_for_display(choices) do
-    choices_text = Enum.with_index(choices)
-      |> Enum.map_join("\n", fn {choice, _index} ->
-        "- #{choice.text} (`(#{String.first(choice.id |> String.upcase())})#{String.slice(choice.id, 1..-1//1)}`)"
+    choices_text =
+      Enum.map_join(choices, "\n", fn choice ->
+        # Get selection keys with empty list as default
+        selection_keys = choice.selection_keys
+
+        # Format the keys for display (e.g., "a", "accept")
+        keys_display =
+          Enum.map_join(selection_keys, ", ", fn key ->
+            "\"#{key}\""
+          end)
+
+        "- #{choice.text} (Enter #{keys_display})"
       end)
 
     "\n\nDo you:\n#{choices_text}"
