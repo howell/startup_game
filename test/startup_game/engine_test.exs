@@ -4,7 +4,7 @@ defmodule StartupGame.EngineTest do
   alias StartupGame.Engine
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.GameRunner
-  alias StartupGame.Engine.StaticScenarioProvider
+  alias StartupGame.StaticScenarioProvider
 
   describe "simplified engine" do
     test "creates a new game with initial state" do
@@ -44,7 +44,7 @@ defmodule StartupGame.EngineTest do
       # Check that round was recorded
       assert length(updated_state.rounds) == 1
       assert hd(updated_state.rounds).scenario_id == "angel_investment"
-      assert hd(updated_state.rounds).response == "Accept the offer as is"
+      assert hd(updated_state.rounds).response == "accept"
 
       # Check that next scenario was set
       assert updated_state.current_scenario == "hiring_decision"

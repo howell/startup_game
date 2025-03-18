@@ -138,12 +138,6 @@ defmodule StartupGame.Engine.Demo do
   defp display_situation(situation) do
     IO.puts("\nSituation:")
     IO.puts("  #{situation.situation}")
-
-    IO.puts("\nChoices:")
-
-    Enum.each(situation.choices, fn choice ->
-      IO.puts("  #{choice.id}: #{choice.text}")
-    end)
   end
 
   defp display_summary(summary) do

@@ -24,7 +24,9 @@ defmodule StartupGame.Engine.ScenarioProvider do
   @callback get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
 
   @doc """
-  Generates an outcome based on the player's choice and response text.
+  Generates an outcome based on the player's response text.
+  Returns {:ok, outcome} if successful, or {:error, reason} if the response couldn't be interpreted.
   """
-  @callback generate_outcome(GameState.t(), Scenario.t(), String.t(), String.t()) :: map()
+  @callback generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
+              {:ok, Scenario.outcome()} | {:error, String.t()}
 end

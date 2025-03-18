@@ -29,11 +29,48 @@ defmodule StartupGame.DynamicScenarioProvider do
   end
 
   @impl true
-  @spec generate_outcome(GameState.t(), Scenario.t(), String.t(), String.t()) :: map()
-  def generate_outcome(game_state, scenario, choice_id, response_text) do
-    # Generate an outcome based on the player's choice and response text
-    # This would likely call an LLM to evaluate the response
-    generate_dynamic_outcome(game_state, scenario, choice_id, response_text)
+  @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) :: {:ok, Scenario.outcome()} | {:error, String.t()}
+  def generate_outcome(game_state, scenario, response_text) do
+    # Try to match the response to a choice
+    case match_response_to_choice(scenario, response_text) do
+      {:ok, choice_id} ->
+        # Generate an outcome based on the choice and response
+        outcome = generate_dynamic_outcome(game_state, scenario, choice_id, response_text)
+        # Remove the choice_id field from the outcome
+        {:ok, Map.delete(outcome, :choice_id)}
+
+      {:error, reason} ->
+        {:error, reason}
+    end
+  end
+
+  # Helper function to match a response to a choice
+  @spec match_response_to_choice(Scenario.t(), String.t()) :: {:ok, String.t()} | {:error, String.t()}
+  defp match_response_to_choice(scenario, response_text) do
+    # Get the choices for this scenario
+    choices = get_choices_for_scenario(scenario.id)
+
+    # Normalize the response text
+    normalized = String.trim(response_text) |> String.downcase()
+
+    # Try to match to a choice by:
+    # 1. Choice ID
+    # 2. Choice text
+    # 3. Letter (A, B, C) - assuming choices are presented in order
+    choice_with_index = Enum.with_index(choices)
+
+    match = Enum.find(choice_with_index, fn {choice, index} ->
+      letter = <<65 + index::utf8>> # A, B, C, etc.
+
+      String.contains?(normalized, String.downcase(choice.id)) ||
+      String.contains?(normalized, String.downcase(choice.text)) ||
+      String.contains?(normalized, String.downcase(letter))
+    end)
+
+    case match do
+      {choice, _} -> {:ok, choice.id}
+      nil -> {:error, "Could not determine your choice. Please try again with a clearer response."}
+    end
   end
 
   # Private helper functions
@@ -44,17 +81,25 @@ defmodule StartupGame.DynamicScenarioProvider do
     # For now, we'll use a simple placeholder implementation
     case type do
       :initial ->
-        %Scenario{
-          id: "dynamic_#{:rand.uniform(1000)}",
+        scenario_id = "dynamic_#{:rand.uniform(1000)}"
+
+        # Create the scenario
+        scenario = %Scenario{
+          id: scenario_id,
           type: :funding,
-          situation: "Based on your startup '#{game_state.name}', an angel investor is interested...",
-          choices: [
-            %{id: "accept", text: "Accept their offer"},
-            %{id: "negotiate", text: "Try to negotiate better terms"},
-            %{id: "decline", text: "Decline the offer"}
-          ],
-          outcomes: %{} # Outcomes will be generated dynamically
+          situation: "Based on your startup '#{game_state.name}', an angel investor is interested in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
         }
+
+        # Store the choices for this scenario
+        choices = [
+          %{id: "accept", text: "Accept their offer"},
+          %{id: "negotiate", text: "Try to negotiate better terms"},
+          %{id: "decline", text: "Decline the offer"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
+
       :next ->
         # Generate based on game history
         generate_scenario_from_history(game_state)
@@ -112,6 +157,12 @@ defmodule StartupGame.DynamicScenarioProvider do
     end
   end
 
+  # Helper function to get choices for a scenario
+  @spec get_choices_for_scenario(String.t()) :: [map()]
+  def get_choices_for_scenario(scenario_id) do
+    Process.get({__MODULE__, :choices, scenario_id}) || []
+  end
+
   @spec generate_scenario_from_history(GameState.t()) :: Scenario.t()
   defp generate_scenario_from_history(game_state) do
     # Analyze game history to generate an appropriate next scenario
@@ -124,41 +175,59 @@ defmodule StartupGame.DynamicScenarioProvider do
     case rem(round_count, 3) do
       0 ->
         # Funding scenario
-        %Scenario{
-          id: "dynamic_funding_#{:rand.uniform(1000)}",
+        scenario_id = "dynamic_funding_#{:rand.uniform(1000)}"
+
+        scenario = %Scenario{
+          id: scenario_id,
           type: :funding,
-          situation: "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company.",
-          choices: [
-            %{id: "accept", text: "Accept their offer"},
-            %{id: "negotiate", text: "Try to negotiate better terms"},
-            %{id: "decline", text: "Decline the offer"}
-          ],
-          outcomes: %{} # Outcomes will be generated dynamically
+          situation: "A venture capital firm has noticed your startup's progress and is interested in investing $500,000 for a stake in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
         }
+
+        # Store the choices for this scenario
+        choices = [
+          %{id: "accept", text: "Accept their offer"},
+          %{id: "negotiate", text: "Try to negotiate better terms"},
+          %{id: "decline", text: "Decline the offer"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
       1 ->
         # Hiring scenario
-        %Scenario{
-          id: "dynamic_hiring_#{:rand.uniform(1000)}",
+        scenario_id = "dynamic_hiring_#{:rand.uniform(1000)}"
+
+        scenario = %Scenario{
+          id: scenario_id,
           type: :hiring,
-          situation: "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO.",
-          choices: [
-            %{id: "team", text: "Hire a team of junior developers"},
-            %{id: "cto", text: "Hire an experienced CTO"}
-          ],
-          outcomes: %{} # Outcomes will be generated dynamically
+          situation: "Your startup needs to expand. You can either hire a team of junior developers or a single experienced CTO. Do you want to:\nA) Hire a team of junior developers\nB) Hire an experienced CTO"
         }
+
+        # Store the choices for this scenario
+        choices = [
+          %{id: "team", text: "Hire a team of junior developers"},
+          %{id: "cto", text: "Hire an experienced CTO"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
       2 ->
         # Product scenario
-        %Scenario{
-          id: "dynamic_product_#{:rand.uniform(1000)}",
+        scenario_id = "dynamic_product_#{:rand.uniform(1000)}"
+
+        scenario = %Scenario{
+          id: scenario_id,
           type: :other,
-          situation: "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience.",
-          choices: [
-            %{id: "features", text: "Focus on adding new features"},
-            %{id: "ux", text: "Focus on improving user experience"}
-          ],
-          outcomes: %{} # Outcomes will be generated dynamically
+          situation: "Your product is at a crossroads. You can either focus on adding new features or improving the existing user experience. Do you want to:\nA) Focus on adding new features\nB) Focus on improving user experience"
         }
+
+        # Store the choices for this scenario
+        choices = [
+          %{id: "features", text: "Focus on adding new features"},
+          %{id: "ux", text: "Focus on improving user experience"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
     end
   end
 

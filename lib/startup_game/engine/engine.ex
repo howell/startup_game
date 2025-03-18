@@ -33,48 +33,81 @@ defmodule StartupGame.Engine do
   end
 
   @doc """
-  Gets the current scenario description and choices.
+  Gets the current scenario description.
 
   ## Examples
 
       iex> Engine.get_current_situation(game_state)
-      %{situation: "An angel investor offers...", choices: [%{id: "accept", ...}, ...]}
+      %{situation: "An angel investor offers..."}
 
   """
-  @spec get_current_situation(GameState.t()) :: %{situation: String.t(), choices: list(map())}
+  @spec get_current_situation(GameState.t()) :: %{situation: String.t()}
   def get_current_situation(game_state) do
+    scenario = game_state.current_scenario_data
+
     %{
-      situation: game_state.current_scenario_data.situation,
-      choices: game_state.current_scenario_data.choices
+      situation: scenario.situation
     }
   end
 
   @doc """
+  Processes a player's response and advances the game state.
+
+  ## Examples
+
+      iex> Engine.process_response(game_state, "I accept the offer")
+      %GameState{...}
+
+      iex> Engine.process_response(game_state, "I'd like to negotiate better terms")
+      %GameState{...}
+
+  """
+  @spec process_response(GameState.t(), String.t()) :: GameState.t()
+  def process_response(game_state, response_text) do
+    provider = game_state.scenario_provider
+    scenario = game_state.current_scenario_data
+
+    # Clear any previous error message
+    game_state = %{game_state | error_message: nil}
+
+    # Generate outcome based on the response
+    case provider.generate_outcome(game_state, scenario, response_text) do
+      {:ok, outcome} ->
+        # Process the outcome
+        process_outcome(game_state, scenario, outcome, response_text)
+
+      {:error, reason} ->
+        # Add an error to the game state
+        %{game_state | error_message: reason}
+    end
+  end
+
+  # For backward compatibility
+  @doc """
   Processes a player's choice and advances the game state.
+  This function is maintained for backward compatibility.
 
   ## Examples
 
       iex> Engine.process_choice(game_state, "accept")
       %GameState{...}
 
-      iex> Engine.process_choice(game_state, "negotiate", "I'd like to offer 10% for the same amount")
-      %GameState{...}
-
   """
   @spec process_choice(GameState.t(), String.t(), String.t()) :: GameState.t()
   def process_choice(game_state, choice_id, response_text \\ "") do
-    provider = game_state.scenario_provider
-    scenario = game_state.current_scenario_data
+    # Use the choice_id as the response text if no response text is provided
+    actual_response = if response_text == "", do: choice_id, else: response_text
+    process_response(game_state, actual_response)
+  end
 
-    # Generate outcome based on the choice and response
-    outcome = provider.generate_outcome(game_state, scenario, choice_id, response_text)
-
+  # Helper function to process an outcome
+  @spec process_outcome(GameState.t(), Scenario.t(), map(), String.t()) :: GameState.t()
+  defp process_outcome(game_state, scenario, outcome, response_text) do
     # Create the round entry
     round = %{
       scenario_id: scenario.id,
       situation: scenario.situation,
-      response:
-        if(response_text == "", do: get_choice_text(scenario, choice_id), else: response_text),
+      response: response_text,
       outcome: outcome.text,
       cash_change: outcome.cash_change,
       burn_rate_change: outcome.burn_rate_change,
@@ -91,7 +124,7 @@ defmodule StartupGame.Engine do
 
     if game_state.status == :in_progress do
       # Get next scenario
-      next_scenario = provider.get_next_scenario(game_state, scenario.id)
+      next_scenario = game_state.scenario_provider.get_next_scenario(game_state, scenario.id)
 
       if next_scenario do
         %{game_state | current_scenario: next_scenario.id, current_scenario_data: next_scenario}
@@ -104,11 +137,6 @@ defmodule StartupGame.Engine do
   end
 
   # Helper functions
-
-  @spec get_choice_text(Scenario.t(), String.t()) :: String.t()
-  defp get_choice_text(scenario, choice_id) do
-    Enum.find(scenario.choices, fn choice -> choice.id == choice_id end).text
-  end
 
   @spec update_finances(GameState.t(), map()) :: GameState.t()
   defp update_finances(game_state, outcome) do
