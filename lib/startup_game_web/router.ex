@@ -68,6 +68,11 @@ defmodule StartupGameWeb.Router do
       on_mount: [{StartupGameWeb.UserAuth, :ensure_authenticated}] do
       live "/users/settings", UserSettingsLive, :edit
       live "/users/settings/confirm_email/:token", UserSettingsLive, :confirm_email
+
+      # Game routes
+      live "/games", GameLive.Index, :index
+      live "/games/new", GameLive.New, :new
+      live "/games/:id", GameLive.Play, :play
     end
   end
 
