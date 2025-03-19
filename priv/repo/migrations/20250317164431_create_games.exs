@@ -5,7 +5,7 @@ defmodule StartupGame.Repo.Migrations.CreateGames do
     create table(:games, primary_key: false) do
       add :id, :binary_id, primary_key: true
       add :name, :string, null: false
-      add :description, :string, null: false
+      add :description, :text, null: false
       add :status, :string, default: "in_progress", null: false
       add :cash_on_hand, :decimal, null: false
       add :burn_rate, :decimal, null: false
