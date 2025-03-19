@@ -68,9 +68,9 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec load_game(Ecto.UUID.t()) :: game_result
+  @spec load_game(Ecto.UUID.t()) :: game_result()
   def load_game(game_id) do
-    case Games.get_game_with_associations!(game_id) do
+    case Games.get_game_with_associations(game_id) do
       %Games.Game{} = game ->
         rounds = Games.list_game_rounds(game_id)
         ownerships = Games.list_game_ownerships(game_id)
@@ -80,8 +80,8 @@ defmodule StartupGame.GameService do
 
         {:ok, %{game: game, game_state: game_state}}
 
-      error ->
-        {:error, error}
+      nil ->
+        {:error, "Game not found"}
     end
   end
 

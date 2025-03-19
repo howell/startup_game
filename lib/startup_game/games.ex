@@ -96,6 +96,16 @@ defmodule StartupGame.Games do
   end
 
   @doc """
+  Gets a single game with preloaded associations, or `nil` if the Game does not exist.
+  """
+  @spec get_game_with_associations(Ecto.UUID.t()) :: Game.t() | nil
+  def get_game_with_associations(id) do
+    Game
+    |> Repo.get(id)
+    |> Repo.preload([:rounds, :ownerships])
+  end
+
+  @doc """
   Creates a game.
 
   ## Examples
