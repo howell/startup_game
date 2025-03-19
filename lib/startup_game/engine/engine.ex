@@ -82,24 +82,6 @@ defmodule StartupGame.Engine do
     end
   end
 
-  # For backward compatibility
-  @doc """
-  Processes a player's choice and advances the game state.
-  This function is maintained for backward compatibility.
-
-  ## Examples
-
-      iex> Engine.process_choice(game_state, "accept")
-      %GameState{...}
-
-  """
-  @spec process_choice(GameState.t(), String.t(), String.t()) :: GameState.t()
-  def process_choice(game_state, choice_id, response_text \\ "") do
-    # Use the choice_id as the response text if no response text is provided
-    actual_response = if response_text == "", do: choice_id, else: response_text
-    process_response(game_state, actual_response)
-  end
-
   # Helper function to process an outcome
   @spec process_outcome(GameState.t(), Scenario.t(), map(), String.t()) :: GameState.t()
   defp process_outcome(game_state, scenario, outcome, response_text) do

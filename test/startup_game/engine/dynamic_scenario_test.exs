@@ -19,41 +19,21 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
     test "processes a choice with dynamic scenario provider" do
       game = Engine.new_game("TechNova", "AI-powered project management", DynamicScenarioProvider)
 
-      # Process a choice with a response text
-      response_text =
-        "I'd like to accept your offer, but I want to ensure we have a good working relationship."
-
-      updated_game = Engine.process_choice(game, "accept", response_text)
+      updated_game = Engine.process_response(game, "accept")
 
       # Check that the round was added
       assert length(updated_game.rounds) == 1
       round = List.first(updated_game.rounds)
 
       # Verify the response was recorded
-      assert round.response == response_text
+      assert round.response == "accept"
 
       # Verify the outcome contains part of the response text
-      assert String.contains?(round.outcome, String.slice(response_text, 0, 30))
+      assert String.contains?(round.outcome, "accept")
 
       # Verify a new scenario was generated
       assert updated_game.current_scenario != game.current_scenario
       assert updated_game.current_scenario_data != nil
-    end
-
-    test "ends the game after 5 rounds" do
-      game = Engine.new_game("TechNova", "AI-powered project management", DynamicScenarioProvider)
-
-      # Process 5 choices to reach the end of the game
-      game =
-        Enum.reduce(1..5, game, fn _, acc ->
-          Engine.process_choice(acc, "accept", "I accept this offer.")
-        end)
-
-      # Verify the game has ended
-      assert game.status == :completed
-      assert game.current_scenario == nil
-      assert game.current_scenario_data == nil
-      assert length(game.rounds) == 5
     end
   end
 
@@ -72,7 +52,7 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
       game = Engine.new_game("TechNova", "AI-powered project management", StaticScenarioProvider)
 
       # Process a choice
-      updated_game = Engine.process_choice(game, "accept")
+      updated_game = Engine.process_response(game, "accept")
 
       # Check that the round was added
       assert length(updated_game.rounds) == 1

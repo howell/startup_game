@@ -25,7 +25,7 @@ defmodule StartupGame.EngineTest do
       game_state = Engine.new_game("Test Startup", "A test startup", StaticScenarioProvider)
 
       # Accept angel investment
-      updated_state = Engine.process_choice(game_state, "accept")
+      updated_state = Engine.process_response(game_state, "accept")
 
       # Check that cash was updated (initial $10,000 + $100,000 from investment - $1,000 burn rate)
       assert Decimal.equal?(updated_state.cash_on_hand, Decimal.new("109000.00"))
