@@ -14,22 +14,33 @@ defmodule StartupGame.GameService do
   @type game_result :: {:ok, %{game: Games.Game.t(), game_state: GameState.t()}} | {:error, any()}
 
   @doc """
-  Starts a new game and persists it to the database.
+  Creates a new game and persists it to the database without setting an initial scenario.
+  This allows for more flexibility in testing and step-by-step initialization.
 
   ## Examples
 
-      iex> GameService.start_game("TechNova", "AI-powered project management", user)
+      iex> GameService.create_game("TechNova", "AI-powered project management", user)
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec start_game(String.t(), String.t(), User.t(), module()) :: game_result
-  def start_game(
+  @spec create_game(String.t(), String.t(), User.t(), module() | nil) :: game_result
+  def create_game(
         name,
         description,
         %User{} = user,
         provider \\ StartupGame.Engine.Demo.StaticScenarioProvider
       ) do
-    game_state = Engine.new_game(name, description, provider) |> Engine.set_next_scenario()
+    # Create in-memory game state without initial scenario
+    game_state =
+      if provider do
+        Engine.new_game(name, description, provider)
+      else
+        %GameState{
+          name: name,
+          description: description,
+          ownerships: [%{entity_name: "Founder", percentage: Decimal.new("100.00")}]
+        }
+      end
 
     # Persist to database
     case Games.create_new_game(
@@ -42,19 +53,48 @@ defmodule StartupGame.GameService do
            user
          ) do
       {:ok, game} ->
-        # Create the initial round with the first scenario
-        scenario = game_state.current_scenario_data
-
-        {:ok, _} =
-          Games.create_round(%{
-            situation: scenario.situation,
-            game_id: game.id
-          })
-
         {:ok, %{game: game, game_state: game_state}}
 
       {:error, reason} ->
         {:error, reason}
+    end
+  end
+
+  @doc """
+  Starts a game by setting its initial scenario and creating the first round.
+  This should be called after create_game if you want a fully initialized game.
+
+  ## Examples
+
+      iex> GameService.start_game(game_id)
+      {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
+
+  """
+  @spec start_game(Ecto.UUID.t()) :: game_result()
+  def start_game(game_id) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      start_next_round(game, game_state)
+    end
+  end
+
+  @doc """
+  Creates and starts a new game in one operation.
+  This combines create_game and start_game for backwards compatibility.
+
+  ## Examples
+
+      iex> GameService.create_and_start_game("TechNova", "AI-powered project management", user)
+      {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
+  """
+  @spec create_and_start_game(String.t(), String.t(), User.t(), module()) :: game_result
+  def create_and_start_game(
+        name,
+        description,
+        %User{} = user,
+        provider \\ StartupGame.Engine.Demo.StaticScenarioProvider
+      ) do
+    with {:ok, %{game: game}} <- create_game(name, description, user, provider) do
+      start_game(game.id)
     end
   end
 
@@ -93,14 +133,42 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec process_response(Ecto.UUID.t(), String.t()) :: game_result
+  @spec process_response(Ecto.UUID.t(), String.t()) :: game_result()
   def process_response(game_id, response_text) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       # Process the response in the game engine
       updated_game_state = Engine.process_response(game_state, response_text)
 
-      # Persist changes to database
-      save_game_state(game, updated_game_state, response_text)
+      if updated_game_state.error_message do
+        {:error, updated_game_state.error_message}
+      else
+        case save_round_result(game, updated_game_state) do
+          {:ok, %{game: game, game_state: game_state}} ->
+            start_next_round(game, game_state)
+
+          error ->
+            error
+        end
+      end
+    end
+  end
+
+  @spec start_next_round(Games.Game.t(), GameState.t()) :: game_result()
+  def start_next_round(game, game_state) do
+    game_state = Engine.set_next_scenario(game_state)
+
+    scenario = game_state.current_scenario_data
+
+    if scenario do
+      {:ok, _} =
+        Games.create_round(%{
+          situation: scenario.situation,
+          game_id: game.id
+        })
+
+      {:ok, %{game: game, game_state: game_state}}
+    else
+      {:error, "Failed to generate next scenario"}
     end
   end
 
@@ -110,8 +178,28 @@ defmodule StartupGame.GameService do
   @spec build_game_state_from_db(Games.Game.t(), [Games.Round.t()], [Games.Ownership.t()]) ::
           GameState.t()
   defp build_game_state_from_db(game, rounds, ownerships) do
-    # Create the base game state
-    game_state = %GameState{
+    game_rounds = build_rounds_from_db(rounds)
+
+    {current_scenario, current_scenario_data} =
+      case {game.status, game_rounds} do
+        {_, []} ->
+          {nil, nil}
+
+        {:in_progress, _} ->
+          last_round = List.last(game_rounds)
+
+          {last_round.scenario_id,
+           %Engine.Scenario{
+             id: last_round.scenario_id,
+             situation: last_round.situation,
+             type: :other
+           }}
+
+        _other ->
+          {nil, nil}
+      end
+
+    %GameState{
       name: game.name,
       description: game.description,
       cash_on_hand: game.cash_on_hand,
@@ -123,20 +211,11 @@ defmodule StartupGame.GameService do
         Enum.map(ownerships, fn o ->
           %{entity_name: o.entity_name, percentage: o.percentage}
         end),
-      rounds: build_rounds_from_db(rounds),
-      scenario_provider: determine_provider(game)
+      rounds: game_rounds,
+      scenario_provider: determine_provider(game),
+      current_scenario: current_scenario,
+      current_scenario_data: current_scenario_data
     }
-
-    # Set current scenario or mark as completed/failed
-    case game.status do
-      :in_progress ->
-        # Set the next scenario
-        Engine.set_next_scenario(game_state)
-
-      _other ->
-        # Game is already completed or failed
-        game_state
-    end
   end
 
   # Converts database rounds to in-memory rounds format
@@ -165,25 +244,65 @@ defmodule StartupGame.GameService do
     StartupGame.Engine.Demo.StaticScenarioProvider
   end
 
-  # Persists game state changes to the database
-  @spec save_game_state(Games.Game.t(), GameState.t(), String.t()) :: game_result
-  defp save_game_state(game, game_state, response_text) do
-    # Get the latest round (the one just processed)
-    latest_round = List.last(game_state.rounds)
-
+  # Save info from the lastest round to the database
+  @spec save_round_result(Games.Game.t(), GameState.t()) :: game_result()
+  defp save_round_result(game, game_state) do
     Ecto.Multi.new()
-    |> Ecto.Multi.run(:round, fn _repo, _changes ->
-      # Create a new round record
-      Games.create_round(%{
-        situation: latest_round.situation,
-        response: response_text,
-        outcome: latest_round.outcome,
-        cash_change: latest_round.cash_change,
-        burn_rate_change: latest_round.burn_rate_change,
-        game_id: game.id
-      })
+    |> save_last_round(game, game_state)
+    |> update_finances(game, game_state)
+    |> StartupGame.Repo.transaction()
+    |> case do
+      {:ok, %{game: {updated_game, _round}}} ->
+        {:ok, %{game: updated_game, game_state: game_state}}
+
+      {:error, _operation, reason, _changes} ->
+        {:error, reason}
+    end
+  end
+
+  @spec save_last_round(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
+  defp save_last_round(multi, _game, %GameState{rounds: []}), do: multi
+
+  defp save_last_round(multi, game, game_state) do
+    round_record = List.last(game.rounds)
+    last_round = List.last(game_state.rounds)
+
+    Ecto.Multi.run(multi, :round, fn _repo, _changes ->
+      Games.update_round(
+        round_record,
+        %{
+          response: last_round.response,
+          outcome: last_round.outcome,
+          cash_change: last_round.cash_change,
+          burn_rate_change: last_round.burn_rate_change,
+          game_id: game.id
+        }
+      )
     end)
-    |> Ecto.Multi.run(:game, fn _repo, %{round: round} ->
+    |> Ecto.Multi.run(:ownerships, fn _repo, %{round: round} ->
+      process_ownership_changes(
+        last_round.ownership_changes,
+        game,
+        game_state,
+        round
+      )
+    end)
+  end
+
+  defp process_ownership_changes(nil, _game, _game_state, _round), do: {:ok, nil}
+
+  defp process_ownership_changes(_changes, game, game_state, round) do
+    new_ownerships =
+      Enum.map(game_state.ownerships, fn o ->
+        %{entity_name: o.entity_name, percentage: o.percentage}
+      end)
+
+    Games.update_ownership_structure(new_ownerships, game, round)
+  end
+
+  @spec update_finances(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
+  defp update_finances(multi, game, game_state) do
+    Ecto.Multi.run(multi, :game, fn _repo, %{round: round} ->
       # Update game financial state
       Games.update_game(game, %{
         cash_on_hand: game_state.cash_on_hand,
@@ -197,34 +316,5 @@ defmodule StartupGame.GameService do
         error -> error
       end
     end)
-    |> Ecto.Multi.run(:ownerships, fn _repo, %{game: {updated_game, round}} ->
-      process_ownership_changes(
-        latest_round.ownership_changes,
-        game_state,
-        updated_game,
-        round
-      )
-    end)
-    |> StartupGame.Repo.transaction()
-    |> case do
-      {:ok, %{game: {updated_game, _round}}} ->
-        {:ok, %{game: updated_game, game_state: game_state}}
-
-      {:error, _operation, reason, _changes} ->
-        {:error, reason}
-    end
-  end
-
-  defp process_ownership_changes(nil, _current_ownerships, _game, _round), do: {:ok, nil}
-
-  defp process_ownership_changes(_changes, game_state, updated_game, round) do
-    # Convert ownership_changes to database format
-    new_ownerships =
-      Enum.map(game_state.ownerships, fn o ->
-        %{entity_name: o.entity_name, percentage: o.percentage}
-      end)
-
-    # Update ownership records
-    Games.update_ownership_structure(new_ownerships, updated_game, round)
   end
 end

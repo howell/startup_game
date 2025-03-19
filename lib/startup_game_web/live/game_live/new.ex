@@ -9,34 +9,33 @@ defmodule StartupGameWeb.GameLive.New do
     changeset = StartupGame.Games.change_game(%Game{})
 
     {:ok,
-      socket
-      |> assign(:changeset, changeset)
-    }
+     socket
+     |> assign(:changeset, changeset)}
   end
 
   @impl true
   def handle_event("save", %{"game" => game_params}, socket) do
     user = socket.assigns.current_user
 
-    case GameService.start_game(
-      game_params["name"],
-      game_params["description"],
-      user
-    ) do
+    case GameService.create_and_start_game(
+           game_params["name"],
+           game_params["description"],
+           user
+         ) do
       {:ok, %{game: game}} ->
         {:noreply,
-          socket
-          |> put_flash(:info, "Started new venture: #{game.name}")
-          |> redirect(to: ~p"/games/#{game.id}")}
+         socket
+         |> put_flash(:info, "Started new venture: #{game.name}")
+         |> redirect(to: ~p"/games/#{game.id}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, :changeset, changeset)}
 
       {:error, _reason} ->
         {:noreply,
-          socket
-          |> put_flash(:error, "Failed to create game")
-          |> assign(:changeset, StartupGame.Games.change_game(%Game{}))}
+         socket
+         |> put_flash(:error, "Failed to create game")
+         |> assign(:changeset, StartupGame.Games.change_game(%Game{}))}
     end
   end
 
@@ -53,12 +52,7 @@ defmodule StartupGameWeb.GameLive.New do
         </div>
 
         <div>
-          <.input
-            field={f[:description]}
-            type="textarea"
-            label="What does your company do?"
-            required
-          />
+          <.input field={f[:description]} type="textarea" label="What does your company do?" required />
           <div class="text-xs text-gray-500 mt-1">
             Describe your startup idea in a few sentences (e.g., "Uber for dog walking")
           </div>

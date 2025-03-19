@@ -14,7 +14,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "creates a new game with database record", %{user: user} do
       {:ok, %{game: game, game_state: game_state}} =
-        GameService.start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
 
       assert game.name == "Test Startup"
       assert game.description == "Testing"
@@ -24,7 +24,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "initializes with correct default values", %{user: user} do
       {:ok, %{game: game, game_state: game_state}} =
-        GameService.start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
 
       assert Decimal.compare(game.cash_on_hand, Decimal.new("10000.00")) == :eq
       assert Decimal.compare(game.burn_rate, Decimal.new("1000.00")) == :eq
@@ -34,7 +34,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "creates initial round with scenario", %{user: user} do
       {:ok, %{game: game}} =
-        GameService.start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
 
       rounds = Games.list_game_rounds(game.id)
       assert length(rounds) == 1
@@ -46,7 +46,9 @@ defmodule StartupGame.GameServiceTest do
   describe "load_game/1" do
     setup do
       user = AccountsFixtures.user_fixture()
-      {:ok, %{game: game}} = GameService.start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+
+      {:ok, %{game: game}} =
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
 
       %{user: user, game: game}
     end
@@ -74,7 +76,9 @@ defmodule StartupGame.GameServiceTest do
   describe "process_response/2" do
     setup do
       user = AccountsFixtures.user_fixture()
-      {:ok, %{game: game}} = GameService.start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+
+      {:ok, %{game: game}} =
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
 
       %{user: user, game: game}
     end
@@ -87,9 +91,9 @@ defmodule StartupGame.GameServiceTest do
       assert length(rounds) == 2
 
       # Check the most recent round
-      [_first, second] = Enum.sort_by(rounds, & &1.inserted_at)
-      assert second.response == "I'll focus on product development"
-      assert second.outcome != nil
+      [first, _second] = Enum.sort_by(rounds, & &1.inserted_at)
+      assert first.response == "I'll focus on product development"
+      assert first.outcome != nil
     end
 
     test "updates game state after response", %{game: game} do
@@ -100,7 +104,7 @@ defmodule StartupGame.GameServiceTest do
 
       # Game state should be updated (either cash or burn rate might change)
       assert updated_game.cash_on_hand != initial_cash ||
-             updated_game.burn_rate != game.burn_rate
+               updated_game.burn_rate != game.burn_rate
     end
   end
 end

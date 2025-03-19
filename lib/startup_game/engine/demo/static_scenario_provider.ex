@@ -22,17 +22,33 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @scenario_choices %{
     "angel_investment" => [
       %{id: "accept", text: "Accept the offer as is", selection_keys: ["a", "accept"]},
-      %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+      %{
+        id: "negotiate",
+        text: "Try to negotiate better terms",
+        selection_keys: ["n", "negotiate"]
+      },
       %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
     ],
     "acquisition_offer" => [
       %{id: "accept", text: "Accept the acquisition offer", selection_keys: ["a", "accept"]},
       %{id: "counter", text: "Counter with a higher valuation", selection_keys: ["c", "counter"]},
-      %{id: "decline", text: "Decline and continue building independently", selection_keys: ["d", "decline"]}
+      %{
+        id: "decline",
+        text: "Decline and continue building independently",
+        selection_keys: ["d", "decline"]
+      }
     ],
     "hiring_decision" => [
-      %{id: "experienced", text: "Hire the experienced developer", selection_keys: ["e", "experienced"]},
-      %{id: "junior", text: "Hire the promising junior developer", selection_keys: ["j", "junior"]}
+      %{
+        id: "experienced",
+        text: "Hire the experienced developer",
+        selection_keys: ["e", "experienced"]
+      },
+      %{
+        id: "junior",
+        text: "Hire the promising junior developer",
+        selection_keys: ["j", "junior"]
+      }
     ],
     "lawsuit" => [
       %{id: "settle", text: "Settle out of court", selection_keys: ["s", "settle"]},
@@ -228,7 +244,8 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
         if current_index < length(@scenario_sequence) - 1 do
           current_index + 1
         else
-          0  # Loop back to the first scenario
+          # Loop back to the first scenario
+          0
         end
 
       Enum.at(@scenario_sequence, next_index)
@@ -252,14 +269,15 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
   def generate_outcome(_game_state, scenario, response_text) do
+    key = key_for(scenario)
     # Get the choices for this scenario
-    choices = Map.get(@scenario_choices, scenario.id)
+    choices = Map.get(@scenario_choices, key)
 
     # Use the base provider function
     case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
       {:ok, choice_id} ->
         # Get the predefined outcome for this choice
-        outcome = get_outcome_for_choice(scenario.id, choice_id)
+        outcome = get_outcome_for_choice(key, choice_id)
         # Remove the choice_id field from the outcome
         {:ok, Map.delete(outcome, :choice_id)}
 
@@ -268,7 +286,16 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     end
   end
 
-  # This function was moved to BaseScenarioProvider
+  defp key_for(%Scenario{id: id, situation: sit_with_choices}) do
+    if Map.has_key?(@scenarios, id) do
+      id
+    else
+      Enum.find(@scenarios, fn {_, situation} ->
+        String.contains?(sit_with_choices, situation.situation)
+      end)
+      |> elem(0)
+    end
+  end
 
   # Helper function to get an outcome for a choice
   @spec get_outcome_for_choice(String.t(), String.t()) :: map()

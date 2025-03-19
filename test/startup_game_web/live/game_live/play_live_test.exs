@@ -33,7 +33,6 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
   describe "Play LiveView - game display" do
     setup :register_and_log_in_user
 
-    @tag :skip
     test "displays rounds and messages correctly", %{conn: conn, user: user} do
       game = complete_game_fixture(%{}, user)
       rounds = Games.list_game_rounds(game.id)
@@ -54,7 +53,6 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       end
     end
 
-    @tag :skip
     test "displays financial information correctly", %{conn: conn, user: user} do
       game =
         game_fixture(
@@ -154,27 +152,23 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     setup :register_and_log_in_user
 
     test "submitting a response creates a new round", %{conn: conn, user: user} do
-      game = game_fixture(%{}, user)
-      initial_rounds_count = length(Games.list_game_rounds(game.id))
+      game = game_fixture(%{start?: true}, user)
+      assert length(Games.list_game_rounds(game.id)) == 1
 
       {:ok, view, _html} = live(conn, ~p"/games/#{game.id}")
 
-      # Submit a response
       view
-      |> form("form", %{response: "This is my test response"})
+      |> form("form", %{response: "accept"})
       |> render_submit()
 
-      # Check that a new round was created
       updated_rounds = Games.list_game_rounds(game.id)
-      assert length(updated_rounds) == initial_rounds_count + 1
+      assert [first_round, _second_round] = updated_rounds
 
-      # The latest round should have our response
-      latest_round = Enum.max_by(updated_rounds, & &1.inserted_at)
-      assert latest_round.response == "This is my test response"
+      assert first_round.response == "accept"
     end
 
     test "submitting an empty response does nothing", %{conn: conn, user: user} do
-      game = game_fixture(%{}, user)
+      game = game_fixture(%{start?: true}, user)
       initial_rounds_count = length(Games.list_game_rounds(game.id))
 
       {:ok, view, _html} = live(conn, ~p"/games/#{game.id}")
@@ -223,13 +217,13 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
   describe "Play LiveView - helper functions" do
     setup :register_and_log_in_user
 
-    @tag :skip
     test "format_money formats decimal values correctly", %{conn: conn, user: user} do
       game =
         game_fixture(
           %{
             cash_on_hand: Decimal.new("12345.67"),
-            burn_rate: Decimal.new("1234.56")
+            burn_rate: Decimal.new("1234.56"),
+            start?: false
           },
           user
         )
@@ -252,7 +246,6 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "12.3%"
     end
 
-    @tag :skip
     test "format_runway formats decimal values correctly", %{conn: conn, user: user} do
       game =
         game_fixture(

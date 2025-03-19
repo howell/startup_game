@@ -10,31 +10,45 @@ defmodule StartupGame.GamesFixtures do
   alias StartupGame.AccountsFixtures
 
   @doc """
-  Creates a game with default values.
+  Creates a game with default values and initializes it with a scenario.
   """
-  def game_fixture(attrs \\ %{}, user \\ nil) do
+  def game_fixture(attrs \\ %{start?: true}, user \\ nil) do
     user = user || AccountsFixtures.user_fixture()
 
     {:ok, %{game: game}} =
-      GameService.start_game(
+      GameService.create_game(
         attrs[:name] || "Test Startup",
         attrs[:description] || "A test startup company",
         user,
         attrs[:provider] || StaticScenarioProvider
       )
 
-    # If specific financial values were provided, update the game
-    game = if attrs[:cash_on_hand] || attrs[:burn_rate] do
-      {:ok, updated_game} = Games.update_game(game, %{
-        cash_on_hand: attrs[:cash_on_hand] || game.cash_on_hand,
-        burn_rate: attrs[:burn_rate] || game.burn_rate
-      })
+    game
+    |> maybe_set_finances(attrs)
+    |> maybe_start_game(attrs)
+  end
+
+  defp maybe_set_finances(game, attrs) do
+    if attrs[:cash_on_hand] || attrs[:burn_rate] do
+      {:ok, updated_game} =
+        Games.update_game(game, %{
+          cash_on_hand: attrs[:cash_on_hand] || game.cash_on_hand,
+          burn_rate: attrs[:burn_rate] || game.burn_rate
+        })
+
       updated_game
     else
       game
     end
+  end
 
-    game
+  defp maybe_start_game(game, attrs) do
+    if attrs[:start?] do
+      {:ok, %{game: updated_game}} = GameService.start_game(game.id)
+      updated_game
+    else
+      game
+    end
   end
 
   @doc """
@@ -79,10 +93,14 @@ defmodule StartupGame.GamesFixtures do
   Creates a round for a game.
   """
   def round_fixture(game, attrs \\ %{}) do
-    attrs = Map.merge(%{
-      situation: "Test situation",
-      game_id: game.id
-    }, attrs)
+    attrs =
+      Map.merge(
+        %{
+          situation: "Test situation",
+          game_id: game.id
+        },
+        attrs
+      )
 
     {:ok, round} = Games.create_round(attrs)
     round
@@ -92,11 +110,15 @@ defmodule StartupGame.GamesFixtures do
   Creates an ownership for a game.
   """
   def ownership_fixture(game, attrs \\ %{}) do
-    attrs = Map.merge(%{
-      entity_name: "Test Entity",
-      percentage: Decimal.new("25.0"),
-      game_id: game.id
-    }, attrs)
+    attrs =
+      Map.merge(
+        %{
+          entity_name: "Test Entity",
+          percentage: Decimal.new("25.0"),
+          game_id: game.id
+        },
+        attrs
+      )
 
     {:ok, ownership} = Games.create_ownership(attrs)
     ownership
@@ -106,14 +128,18 @@ defmodule StartupGame.GamesFixtures do
   Creates an ownership change for a game and round.
   """
   def ownership_change_fixture(game, round, attrs \\ %{}) do
-    attrs = Map.merge(%{
-      entity_name: "Test Entity",
-      previous_percentage: Decimal.new("20.0"),
-      new_percentage: Decimal.new("25.0"),
-      change_type: :investment,
-      game_id: game.id,
-      round_id: round.id
-    }, attrs)
+    attrs =
+      Map.merge(
+        %{
+          entity_name: "Test Entity",
+          previous_percentage: Decimal.new("20.0"),
+          new_percentage: Decimal.new("25.0"),
+          change_type: :investment,
+          game_id: game.id,
+          round_id: round.id
+        },
+        attrs
+      )
 
     {:ok, ownership_change} = Games.create_ownership_change(attrs)
     ownership_change
@@ -124,26 +150,28 @@ defmodule StartupGame.GamesFixtures do
   """
   def complete_game_fixture(attrs \\ %{}, user \\ nil) do
     user = user || AccountsFixtures.user_fixture()
-    game = game_fixture(attrs, user)
+    game = game_fixture(Map.update(attrs, :start?, false, & &1), user)
 
     # Create additional ownerships
     ownership_fixture(game, %{entity_name: "Investor A", percentage: Decimal.new("15.0")})
     ownership_fixture(game, %{entity_name: "Investor B", percentage: Decimal.new("10.0")})
 
     # Create additional rounds
-    round1 = round_fixture(game, %{
-      situation: "First scenario",
-      response: "First response",
-      outcome: "First outcome"
-    })
+    round1 =
+      round_fixture(game, %{
+        situation: "First scenario",
+        response: "First response",
+        outcome: "First outcome"
+      })
 
-    round2 = round_fixture(game, %{
-      situation: "Second scenario",
-      response: "Second response",
-      outcome: "Second outcome",
-      cash_change: Decimal.new("5000.00"),
-      burn_rate_change: Decimal.new("500.00")
-    })
+    round2 =
+      round_fixture(game, %{
+        situation: "Second scenario",
+        response: "Second response",
+        outcome: "Second outcome",
+        cash_change: Decimal.new("5000.00"),
+        burn_rate_change: Decimal.new("500.00")
+      })
 
     # Create ownership changes
     ownership_change_fixture(game, round1, %{

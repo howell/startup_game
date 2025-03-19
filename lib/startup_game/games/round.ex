@@ -12,18 +12,19 @@ defmodule StartupGame.Games.Round do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-    id: Ecto.UUID.t(),
-    situation: String.t(),
-    response: String.t() | nil,
-    outcome: String.t() | nil,
-    cash_change: Decimal.t(),
-    burn_rate_change: Decimal.t(),
-    game_id: Ecto.UUID.t(),
-    game: StartupGame.Games.Game.t() | Ecto.Association.NotLoaded.t(),
-    ownership_changes: [StartupGame.Games.OwnershipChange.t()] | Ecto.Association.NotLoaded.t(),
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: Ecto.UUID.t(),
+          situation: String.t(),
+          response: String.t() | nil,
+          outcome: String.t() | nil,
+          cash_change: Decimal.t(),
+          burn_rate_change: Decimal.t(),
+          game_id: Ecto.UUID.t(),
+          game: StartupGame.Games.Game.t() | Ecto.Association.NotLoaded.t(),
+          ownership_changes:
+            [StartupGame.Games.OwnershipChange.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
 
   schema "rounds" do
     field :situation, :string
