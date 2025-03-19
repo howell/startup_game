@@ -13,15 +13,14 @@ defmodule StartupGame.Engine.ScenarioProvider do
   @type behaviour() :: module()
 
   @doc """
-  Returns the initial scenario for a new game.
-  """
-  @callback get_initial_scenario(GameState.t()) :: Scenario.t()
-
-  @doc """
   Returns the next scenario based on the current game state and scenario ID.
+  If current_scenario_id is nil, returns the first scenario for the game.
   Returns nil if there are no more scenarios or the game should end.
+  Arguments:
+    - game_state: The current game state
+    - current_scenario_id: The ID of the current scenario, or nil if no scenario has been played yet.
   """
-  @callback get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
+  @callback get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
 
   @doc """
   Generates an outcome based on the player's response text.

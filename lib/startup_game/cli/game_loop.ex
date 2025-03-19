@@ -24,14 +24,9 @@ defmodule StartupGame.CLI.GameLoop do
   """
   @spec run(StartupGame.Engine.GameState.t(), map()) :: StartupGame.Engine.GameState.t()
   def run(game_state, initial_situation) do
-    # Display initial game state
     Utils.display_game_state(game_state)
 
-    # Start with the initial situation
-    situation = initial_situation
-
-    # Run the game loop
-    game_loop(game_state, situation)
+    game_loop(game_state, initial_situation)
   end
 
   # Core game loop that processes scenarios and responses

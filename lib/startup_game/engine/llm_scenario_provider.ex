@@ -13,65 +13,64 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   alias StartupGame.Engine.Scenario
 
   @impl true
-  @spec get_initial_scenario(GameState.t()) :: Scenario.t()
-  def get_initial_scenario(game_state) do
-    # In a real implementation, this would call an LLM API
-    # with the game state to generate a tailored initial scenario
-
-    # For now, we'll use a placeholder implementation
-    scenario_id = "llm_initial_#{:rand.uniform(1000)}"
-
-    # Create the scenario
-    scenario = %Scenario{
-      id: scenario_id,
-      type: :funding,
-      situation:
-        "Based on your startup '#{game_state.name}' in #{game_state.description}, " <>
-          "an investor has approached you with interest in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
-    }
-
-    # Store the choices for this scenario
-    choices = [
-      %{id: "accept", text: "Accept their offer"},
-      %{id: "negotiate", text: "Try to negotiate better terms"},
-      %{id: "decline", text: "Decline the offer"}
-    ]
-    Process.put({__MODULE__, :choices, scenario_id}, choices)
-
-    scenario
-  end
-
-  @impl true
-  @spec get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
-  def get_next_scenario(game_state, _current_scenario_id) do
-    # In a real implementation, this would analyze the game history
-    # and use an LLM to generate a contextually appropriate next scenario
-
+  @spec get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
+  def get_next_scenario(game_state, current_scenario_id) do
     # Check if the game should end
     if should_end_game?(game_state) do
       nil
     else
-      # For now, we'll use a placeholder implementation
-      round_count = length(game_state.rounds)
-      scenario_id = "llm_scenario_#{round_count}_#{:rand.uniform(1000)}"
+      # If this is the initial scenario (current_scenario_id is nil)
+      if is_nil(current_scenario_id) do
+        # In a real implementation, this would call an LLM API
+        # with the game state to generate a tailored initial scenario
 
-      # Create the scenario
-      scenario = %Scenario{
-        id: scenario_id,
-        type: :other,
-        situation:
-          "After your previous decision, a new challenge has emerged for #{game_state.name}. Do you want to:\nA) Option A\nB) Option B\nC) Option C"
-      }
+        # For now, we'll use a placeholder implementation
+        scenario_id = "llm_initial_#{:rand.uniform(1000)}"
 
-      # Store the choices for this scenario
-      choices = [
-        %{id: "option_a", text: "Option A"},
-        %{id: "option_b", text: "Option B"},
-        %{id: "option_c", text: "Option C"}
-      ]
-      Process.put({__MODULE__, :choices, scenario_id}, choices)
+        # Create the scenario
+        scenario = %Scenario{
+          id: scenario_id,
+          type: :funding,
+          situation:
+            "Based on your startup '#{game_state.name}' in #{game_state.description}, " <>
+              "an investor has approached you with interest in your company. Do you want to:\nA) Accept their offer\nB) Try to negotiate better terms\nC) Decline the offer"
+        }
 
-      scenario
+        # Store the choices for this scenario
+        choices = [
+          %{id: "accept", text: "Accept their offer"},
+          %{id: "negotiate", text: "Try to negotiate better terms"},
+          %{id: "decline", text: "Decline the offer"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
+      else
+        # In a real implementation, this would analyze the game history
+        # and use an LLM to generate a contextually appropriate next scenario
+
+        # For now, we'll use a placeholder implementation
+        round_count = length(game_state.rounds)
+        scenario_id = "llm_scenario_#{round_count}_#{:rand.uniform(1000)}"
+
+        # Create the scenario
+        scenario = %Scenario{
+          id: scenario_id,
+          type: :other,
+          situation:
+            "After your previous decision, a new challenge has emerged for #{game_state.name}. Do you want to:\nA) Option A\nB) Option B\nC) Option C"
+        }
+
+        # Store the choices for this scenario
+        choices = [
+          %{id: "option_a", text: "Option A"},
+          %{id: "option_b", text: "Option B"},
+          %{id: "option_c", text: "Option C"}
+        ]
+        Process.put({__MODULE__, :choices, scenario_id}, choices)
+
+        scenario
+      end
     end
   end
 

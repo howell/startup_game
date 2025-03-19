@@ -10,6 +10,8 @@ defmodule StartupGame.Engine do
 
   @doc """
   Creates a new game with the given startup name, description, and scenario provider.
+  Does not set the initial scenario - use set_next_scenario/1 after creating the game
+  to set the first scenario.
 
   ## Examples
 
@@ -25,11 +27,32 @@ defmodule StartupGame.Engine do
     game_state = GameState.new(name, description)
 
     # Store the provider module in the game state
-    game_state = %{game_state | scenario_provider: provider}
+    %{game_state | scenario_provider: provider}
+  end
 
-    # Get the initial scenario
-    initial_scenario = provider.get_initial_scenario(game_state)
-    %{game_state | current_scenario: initial_scenario.id, current_scenario_data: initial_scenario}
+  @doc """
+  Sets the next scenario for the game state.
+  If the current scenario is nil, sets the first scenario.
+  Returns the game state with the updated scenario.
+
+  ## Examples
+
+      iex> game_state = Engine.new_game("TechNova", "AI-powered project management", StaticScenarioProvider)
+      iex> Engine.set_next_scenario(game_state)
+      %GameState{current_scenario: "angel_investment", ...}
+
+  """
+  @spec set_next_scenario(GameState.t()) :: GameState.t()
+  def set_next_scenario(game_state) do
+    provider = game_state.scenario_provider
+    current_scenario_id = game_state.current_scenario
+    next_scenario = provider.get_next_scenario(game_state, current_scenario_id)
+
+    if next_scenario do
+      %{game_state | current_scenario: next_scenario.id, current_scenario_data: next_scenario}
+    else
+      %{game_state | current_scenario: nil, current_scenario_data: nil, status: :completed}
+    end
   end
 
   @doc """

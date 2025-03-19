@@ -7,7 +7,11 @@ defmodule StartupGame.EngineTest do
 
   describe "simplified engine" do
     test "creates a new game with initial state" do
+      # Create game without scenario
       game_state = Engine.new_game("Test Startup", "A test startup", StaticScenarioProvider)
+
+      # Set the initial scenario
+      game_state = Engine.set_next_scenario(game_state)
 
       assert game_state.name == "Test Startup"
       assert game_state.description == "A test startup"
@@ -22,7 +26,11 @@ defmodule StartupGame.EngineTest do
     end
 
     test "processes player choices and updates game state" do
+      # Create game without scenario
       game_state = Engine.new_game("Test Startup", "A test startup", StaticScenarioProvider)
+
+      # Set the initial scenario
+      game_state = Engine.set_next_scenario(game_state)
 
       # Accept angel investment
       updated_state = Engine.process_response(game_state, "accept")

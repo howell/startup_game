@@ -6,7 +6,11 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
 
   describe "dynamic scenario provider" do
     test "creates a game with dynamic scenario provider" do
+      # Create game without initial scenario
       game = Engine.new_game("TechNova", "AI-powered project management", DynamicScenarioProvider)
+
+      # Set the initial scenario
+      game = Engine.set_next_scenario(game)
 
       assert game.name == "TechNova"
       assert game.description == "AI-powered project management"
@@ -17,7 +21,11 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
     end
 
     test "processes a choice with dynamic scenario provider" do
+      # Create game without initial scenario
       game = Engine.new_game("TechNova", "AI-powered project management", DynamicScenarioProvider)
+
+      # Set the initial scenario
+      game = Engine.set_next_scenario(game)
 
       updated_game = Engine.process_response(game, "accept")
 
@@ -39,7 +47,11 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
 
   describe "static scenario provider" do
     test "creates a game with static scenario provider" do
+      # Create game without initial scenario
       game = Engine.new_game("TechNova", "AI-powered project management", StaticScenarioProvider)
+
+      # Set the initial scenario
+      game = Engine.set_next_scenario(game)
 
       assert game.name == "TechNova"
       assert game.description == "AI-powered project management"
@@ -49,7 +61,11 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
     end
 
     test "processes a choice with static scenario provider" do
+      # Create game without initial scenario
       game = Engine.new_game("TechNova", "AI-powered project management", StaticScenarioProvider)
+
+      # Set the initial scenario
+      game = Engine.set_next_scenario(game)
 
       # Process a choice
       updated_game = Engine.process_response(game, "accept")

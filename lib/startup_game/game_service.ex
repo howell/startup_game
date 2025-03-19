@@ -29,8 +29,7 @@ defmodule StartupGame.GameService do
         %User{} = user,
         provider \\ StartupGame.Engine.Demo.StaticScenarioProvider
       ) do
-    # Create in-memory game state
-    game_state = Engine.new_game(name, description, provider)
+    game_state = Engine.new_game(name, description, provider) |> Engine.set_next_scenario()
 
     # Persist to database
     case Games.create_new_game(
@@ -131,17 +130,8 @@ defmodule StartupGame.GameService do
     # Set current scenario or mark as completed/failed
     case game.status do
       :in_progress ->
-        # Initialize provider and set current scenario
-        provider = game_state.scenario_provider
-
-        # Initialize with the appropriate scenario
-        initial_scenario = provider.get_initial_scenario(game_state)
-
-        %{
-          game_state
-          | current_scenario: initial_scenario.id,
-            current_scenario_data: initial_scenario
-        }
+        # Set the next scenario
+        Engine.set_next_scenario(game_state)
 
       _other ->
         # Game is already completed or failed

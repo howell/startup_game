@@ -23,7 +23,8 @@ defmodule StartupGame.Engine.GameRunner do
   @spec start_game(String.t(), String.t(), ScenarioProvider.behaviour()) ::
           {GameState.t(), %{situation: String.t()}}
   def start_game(name, description, provider) do
-    game_state = Engine.new_game(name, description, provider)
+    game_state = Engine.new_game(name, description, provider) |> Engine.set_next_scenario()
+
     situation = Engine.get_current_situation(game_state)
 
     {game_state, situation}

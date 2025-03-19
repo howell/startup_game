@@ -199,27 +199,31 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   }
 
   @impl true
-  @spec get_initial_scenario(GameState.t()) :: Scenario.t()
-  def get_initial_scenario(_game_state) do
-    scenario_id = List.first(@scenario_sequence)
-    scenario = Map.get(@scenarios, scenario_id)
-    choices = Map.get(@scenario_choices, scenario_id)
-
-    # Use the base provider function
-    BaseScenarioProvider.add_choices_to_scenario(scenario, choices)
-  end
-
-  @impl true
-  @spec get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
+  @spec get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
   def get_next_scenario(game_state, current_scenario_id) do
-    # Only return nil if the game has reached an end state
-    # Otherwise, loop through scenarios
+    # Return nil if the game has ended
     if game_state.status != :in_progress do
       nil
     else
+      # Get the appropriate scenario ID
+      next_id = get_next_scenario_id(current_scenario_id)
+
+      # Fetch and prepare the scenario
+      create_scenario_with_choices(next_id)
+    end
+  end
+
+  # Helper to determine the next scenario ID based on the current one
+  @spec get_next_scenario_id(String.t() | nil) :: String.t()
+  defp get_next_scenario_id(current_scenario_id) do
+    # For initial scenario
+    if is_nil(current_scenario_id) do
+      List.first(@scenario_sequence)
+    else
+      # Otherwise, find the next in sequence
       current_index = Enum.find_index(@scenario_sequence, fn id -> id == current_scenario_id end)
 
-      # Calculate the next index, looping back to the beginning if necessary
+      # Calculate the next index, looping if necessary
       next_index =
         if current_index < length(@scenario_sequence) - 1 do
           current_index + 1
@@ -227,15 +231,20 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
           0  # Loop back to the first scenario
         end
 
-      next_id = Enum.at(@scenario_sequence, next_index)
-      scenario = Map.get(@scenarios, next_id)
+      Enum.at(@scenario_sequence, next_index)
+    end
+  end
 
-      if scenario do
-        choices = Map.get(@scenario_choices, next_id)
-        BaseScenarioProvider.add_choices_to_scenario(scenario, choices)
-      else
-        nil
-      end
+  # Helper to create a scenario with its choices
+  @spec create_scenario_with_choices(String.t()) :: Scenario.t() | nil
+  defp create_scenario_with_choices(scenario_id) do
+    scenario = Map.get(@scenarios, scenario_id)
+
+    if scenario do
+      choices = Map.get(@scenario_choices, scenario_id)
+      BaseScenarioProvider.add_choices_to_scenario(scenario, choices)
+    else
+      nil
     end
   end
 

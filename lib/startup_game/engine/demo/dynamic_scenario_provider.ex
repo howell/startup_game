@@ -11,21 +11,19 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
   alias StartupGame.Engine.Demo.BaseScenarioProvider
 
   @impl true
-  @spec get_initial_scenario(GameState.t()) :: Scenario.t()
-  def get_initial_scenario(game_state) do
-    # Generate an initial scenario based on the startup description
-    generate_scenario(game_state, :initial)
-  end
-
-  @impl true
-  @spec get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
-  def get_next_scenario(game_state, _current_scenario_id) do
+  @spec get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
+  def get_next_scenario(game_state, current_scenario_id) do
     # Check if the game should end
     if should_end_game?(game_state) do
       nil
     else
-      # Generate a new scenario based on game history
-      generate_scenario(game_state, :next)
+      if is_nil(current_scenario_id) do
+        # Generate an initial scenario based on the startup description
+        generate_scenario(game_state, :initial)
+      else
+        # Generate a new scenario based on game history
+        generate_scenario(game_state, :next)
+      end
     end
   end
 

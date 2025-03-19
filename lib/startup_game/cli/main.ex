@@ -78,16 +78,15 @@ defmodule StartupGame.CLI.Main do
         }) :: {Engine.GameState.t(), map()}
   defp start_new_game(settings) do
     # Create a new game state with the selected provider
-    game_state = Engine.new_game(
-      settings.name,
-      settings.description,
-      settings.provider
-    )
+    game_state =
+      Engine.new_game(
+        settings.name,
+        settings.description,
+        settings.provider
+      )
+      |> Map.put(:cash_on_hand, settings.cash_on_hand)
+      |> Engine.set_next_scenario()
 
-    # Override the default cash on hand
-    game_state = %{game_state | cash_on_hand: settings.cash_on_hand}
-
-    # Get the initial situation
     situation = Engine.get_current_situation(game_state)
 
     {game_state, situation}
