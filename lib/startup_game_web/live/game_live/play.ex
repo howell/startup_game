@@ -8,7 +8,8 @@ defmodule StartupGameWeb.GameLive.Play do
   def mount(%{"id" => id}, _session, socket) do
     case GameService.load_game(id) do
       {:ok, %{game: game, game_state: game_state}} ->
-        socket = socket
+        socket =
+          socket
           |> assign(:game, game)
           |> assign(:game_state, game_state)
           |> assign(:game_id, id)
@@ -20,9 +21,9 @@ defmodule StartupGameWeb.GameLive.Play do
 
       {:error, _reason} ->
         {:ok,
-          socket
-          |> put_flash(:error, "Game not found")
-          |> redirect(to: ~p"/games")}
+         socket
+         |> put_flash(:error, "Game not found")
+         |> redirect(to: ~p"/games")}
     end
   end
 
@@ -32,7 +33,8 @@ defmodule StartupGameWeb.GameLive.Play do
 
     case GameService.process_response(game_id, response) do
       {:ok, %{game: updated_game, game_state: updated_state}} ->
-        socket = socket
+        socket =
+          socket
           |> assign(:game, updated_game)
           |> assign(:game_state, updated_state)
           |> assign(:response, "")
@@ -44,8 +46,8 @@ defmodule StartupGameWeb.GameLive.Play do
 
       {:error, reason} ->
         {:noreply,
-          socket
-          |> put_flash(:error, "Error processing response: #{inspect(reason)}")}
+         socket
+         |> put_flash(:error, "Error processing response: #{inspect(reason)}")}
     end
   end
 
@@ -55,28 +57,23 @@ defmodule StartupGameWeb.GameLive.Play do
     {:noreply, socket}
   end
 
-  @impl true
-  def handle_event("update_response", %{"response" => response}, socket) do
-    {:noreply, assign(socket, :response, response)}
-  end
-
   # Helper functions for formatting display values
   defp format_money(value) do
     value
     |> Decimal.to_float()
-    |> :erlang.float_to_binary([decimals: 2])
+    |> :erlang.float_to_binary(decimals: 2)
   end
 
   defp format_percentage(value) do
     value
     |> Decimal.to_float()
-    |> :erlang.float_to_binary([decimals: 1])
+    |> :erlang.float_to_binary(decimals: 1)
   end
 
   defp format_runway(value) do
     value
     |> Decimal.to_float()
-    |> :erlang.float_to_binary([decimals: 1])
+    |> :erlang.float_to_binary(decimals: 1)
   end
 
   defp game_end_status(%{status: :completed, exit_type: :acquisition}), do: "Acquired!"
@@ -86,12 +83,15 @@ defmodule StartupGameWeb.GameLive.Play do
   defp game_end_message(%{status: :completed, exit_type: :acquisition, exit_value: value}) do
     "Congratulations! Your company was acquired for $#{format_money(value)}."
   end
+
   defp game_end_message(%{status: :completed, exit_type: :ipo, exit_value: value}) do
     "Congratulations! Your company went public with a valuation of $#{format_money(value)}."
   end
+
   defp game_end_message(%{status: :failed, exit_type: :shutdown}) do
     "Unfortunately, your startup ran out of money and had to shut down."
   end
+
   defp game_end_message(_game) do
     "Your startup journey has ended."
   end

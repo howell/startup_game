@@ -3,11 +3,14 @@
     <!-- Chat area -->
     <div class="flex-grow order-2 md:order-1">
       <div class="bg-white rounded-lg shadow-md p-4 mb-4">
-        <h1 class="text-2xl font-bold"><%= @game.name %></h1>
-        <p class="text-gray-600"><%= @game.description %></p>
+        <h1 class="text-2xl font-bold">{@game.name}</h1>
+        <p class="text-gray-600">{@game.description}</p>
       </div>
-      
-      <div class="bg-white rounded-lg shadow-md p-4 mb-4 h-[60vh] overflow-y-auto" id="chat-messages">
+
+      <div
+        class="bg-white rounded-lg shadow-md p-4 mb-4 h-[60vh] overflow-y-auto"
+        id="chat-messages"
+      >
         <!-- Message history -->
         <div class="space-y-6">
           <%= for round <- @rounds do %>
@@ -18,23 +21,23 @@
               </div>
               <div class="flex-1">
                 <p class="bg-blue-100 p-3 rounded-lg rounded-tl-none">
-                  <%= round.situation %>
+                  {round.situation}
                 </p>
                 <p class="text-xs text-gray-500 mt-1">
-                  <%= Calendar.strftime(round.inserted_at, "%I:%M %p · %b %d") %>
+                  {Calendar.strftime(round.inserted_at, "%I:%M %p · %b %d")}
                 </p>
               </div>
             </div>
             
-            <!-- User response (if it exists) -->
+<!-- User response (if it exists) -->
             <%= if round.response do %>
               <div class="flex items-start gap-3 justify-end">
                 <div class="flex-1 text-right">
                   <p class="bg-green-100 p-3 rounded-lg rounded-tr-none inline-block text-left">
-                    <%= round.response %>
+                    {round.response}
                   </p>
                   <p class="text-xs text-gray-500 mt-1">
-                    <%= Calendar.strftime(round.updated_at, "%I:%M %p · %b %d") %>
+                    {Calendar.strftime(round.updated_at, "%I:%M %p · %b %d")}
                   </p>
                 </div>
                 <div class="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center">
@@ -43,7 +46,7 @@
               </div>
             <% end %>
             
-            <!-- Outcome (if it exists) -->
+<!-- Outcome (if it exists) -->
             <%= if round.outcome do %>
               <div class="flex items-start gap-3">
                 <div class="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center">
@@ -51,10 +54,10 @@
                 </div>
                 <div class="flex-1">
                   <p class="bg-gray-100 p-3 rounded-lg rounded-tl-none">
-                    <%= round.outcome %>
+                    {round.outcome}
                   </p>
                   <p class="text-xs text-gray-500 mt-1">
-                    <%= Calendar.strftime(round.updated_at, "%I:%M %p · %b %d") %>
+                    {Calendar.strftime(round.updated_at, "%I:%M %p · %b %d")}
                   </p>
                 </div>
               </div>
@@ -63,7 +66,7 @@
         </div>
       </div>
       
-      <!-- Input area -->
+<!-- Input area -->
       <%= if @game.status == :in_progress do %>
         <div class="bg-white rounded-lg shadow-md p-4">
           <form phx-submit="submit_response">
@@ -72,11 +75,13 @@
               placeholder="How do you want to respond?"
               class="w-full p-3 border rounded-md mb-3"
               rows="3"
-              phx-keyup="update_response"
               value={@response}
               required
             ></textarea>
-            <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full">
+            <button
+              type="submit"
+              class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+            >
               Send Response
             </button>
           </form>
@@ -84,67 +89,74 @@
       <% else %>
         <div class="bg-white rounded-lg shadow-md p-4 text-center">
           <p class="text-xl font-semibold mb-3">
-            Game <%= game_end_status(@game) %>
+            Game {game_end_status(@game)}
           </p>
           <p class="text-gray-600 mb-4">
-            <%= game_end_message(@game) %>
+            {game_end_message(@game)}
           </p>
-          <.link navigate={~p"/games"} class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded">
+          <.link
+            navigate={~p"/games"}
+            class="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+          >
             Back to Games
           </.link>
         </div>
       <% end %>
     </div>
     
-    <!-- Status panel -->
+<!-- Status panel -->
     <div class="w-full md:w-80 order-1 md:order-2">
       <div class="bg-white rounded-lg shadow-md p-4 mb-4">
         <h2 class="text-lg font-semibold mb-3">Company Finances</h2>
-        
+
         <div class="space-y-4">
           <div>
             <p class="text-sm text-gray-500">Cash on Hand</p>
             <p class="text-2xl font-bold">
-              $<%= format_money(@game.cash_on_hand) %>
+              ${format_money(@game.cash_on_hand)}
             </p>
           </div>
-          
+
           <div>
             <p class="text-sm text-gray-500">Monthly Burn Rate</p>
             <p class="text-xl font-semibold">
-              $<%= format_money(@game.burn_rate) %>/month
+              ${format_money(@game.burn_rate)}/month
             </p>
           </div>
-          
+
           <div>
             <p class="text-sm text-gray-500">Runway</p>
             <p class="text-xl font-semibold">
-              <%= format_runway(Games.calculate_runway(@game)) %> months
+              {format_runway(Games.calculate_runway(@game))} months
             </p>
           </div>
-          
+
           <%= if @game.exit_type in [:acquisition, :ipo] do %>
             <div>
               <p class="text-sm text-gray-500">Exit Value</p>
               <p class="text-2xl font-bold text-green-600">
-                $<%= format_money(@game.exit_value) %>
+                ${format_money(@game.exit_value)}
               </p>
             </div>
           <% end %>
         </div>
       </div>
-      
+
       <div class="bg-white rounded-lg shadow-md p-4">
         <h2 class="text-lg font-semibold mb-3">Ownership Structure</h2>
-        
+
         <div class="space-y-2">
           <%= for ownership <- @ownerships do %>
             <div class="flex justify-between items-center">
-              <span><%= ownership.entity_name %></span>
-              <span class="font-semibold"><%= format_percentage(ownership.percentage) %>%</span>
+              <span>{ownership.entity_name}</span>
+              <span class="font-semibold">{format_percentage(ownership.percentage)}%</span>
             </div>
             <div class="w-full bg-gray-200 rounded-full h-2">
-              <div class="bg-blue-600 h-2 rounded-full" style={"width: #{Decimal.to_float(ownership.percentage)}%"}></div>
+              <div
+                class="bg-blue-600 h-2 rounded-full"
+                style={"width: #{Decimal.to_float(ownership.percentage)}%"}
+              >
+              </div>
             </div>
           <% end %>
         </div>
