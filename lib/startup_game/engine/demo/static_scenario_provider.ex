@@ -211,11 +211,23 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
 
   @impl true
   @spec get_next_scenario(GameState.t(), String.t()) :: Scenario.t() | nil
-  def get_next_scenario(_game_state, current_scenario_id) do
-    current_index = Enum.find_index(@scenario_sequence, fn id -> id == current_scenario_id end)
+  def get_next_scenario(game_state, current_scenario_id) do
+    # Only return nil if the game has reached an end state
+    # Otherwise, loop through scenarios
+    if game_state.status != :in_progress do
+      nil
+    else
+      current_index = Enum.find_index(@scenario_sequence, fn id -> id == current_scenario_id end)
 
-    if current_index < length(@scenario_sequence) - 1 do
-      next_id = Enum.at(@scenario_sequence, current_index + 1)
+      # Calculate the next index, looping back to the beginning if necessary
+      next_index =
+        if current_index < length(@scenario_sequence) - 1 do
+          current_index + 1
+        else
+          0  # Loop back to the first scenario
+        end
+
+      next_id = Enum.at(@scenario_sequence, next_index)
       scenario = Map.get(@scenarios, next_id)
 
       if scenario do
@@ -224,9 +236,6 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
       else
         nil
       end
-    else
-      # End of game
-      nil
     end
   end
 
