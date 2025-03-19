@@ -134,25 +134,32 @@ defmodule StartupGame.Games do
   """
   def create_new_game(attrs, %User{} = user) do
     # Set default values for a new game
-    attrs = Map.merge(%{
-      cash_on_hand: 10_000.0,  # Starting with $10,000
-      burn_rate: 1_000.0,      # $1,000 per month burn rate
-      status: :in_progress,
-      is_public: false,
-      is_leaderboard_eligible: false,
-      exit_value: 0,
-      exit_type: :none,
-      user_id: user.id
-    }, attrs)
+    attrs =
+      Map.merge(
+        %{
+          # Starting with $10,000
+          cash_on_hand: 10_000.0,
+          # $1,000 per month burn rate
+          burn_rate: 1_000.0,
+          status: :in_progress,
+          is_public: false,
+          is_leaderboard_eligible: false,
+          exit_value: 0,
+          exit_type: :none,
+          user_id: user.id
+        },
+        attrs
+      )
 
     Repo.transaction(fn ->
       with {:ok, game} <- create_game(attrs),
            # Create initial ownership record (founder owns 100%)
-           {:ok, _ownership} <- create_ownership(%{
-             entity_name: "Founder",
-             percentage: 100.0,
-             game_id: game.id
-           }) do
+           {:ok, _ownership} <-
+             create_ownership(%{
+               entity_name: "Founder",
+               percentage: 100.0,
+               game_id: game.id
+             }) do
         game
       else
         {:error, changeset} -> Repo.rollback(changeset)
@@ -293,10 +300,17 @@ defmodule StartupGame.Games do
     game_status = determine_game_status(new_cash, runway)
 
     # Update the game with new values
-    {:ok, updated_game} = update_game(game, Map.merge(%{
-      cash_on_hand: new_cash,
-      burn_rate: new_burn_rate
-    }, game_status))
+    {:ok, updated_game} =
+      update_game(
+        game,
+        Map.merge(
+          %{
+            cash_on_hand: new_cash,
+            burn_rate: new_burn_rate
+          },
+          game_status
+        )
+      )
 
     %{round: round, game: updated_game}
   end
@@ -306,7 +320,8 @@ defmodule StartupGame.Games do
     if Decimal.compare(burn_rate, Decimal.new(0)) == :gt do
       Decimal.div(cash, burn_rate)
     else
-      Decimal.new(999) # Infinite runway if burn rate is 0 or negative
+      # Infinite runway if burn rate is 0 or negative
+      Decimal.new(999)
     end
   end
 
@@ -315,10 +330,13 @@ defmodule StartupGame.Games do
     cond do
       Decimal.compare(cash, Decimal.new(0)) == :lt ->
         %{status: :failed, exit_type: :shutdown}
+
       Decimal.compare(runway, Decimal.new(1)) == :lt ->
         %{status: :failed, exit_type: :shutdown}
+
       true ->
-        %{} # No change to status
+        # No change to status
+        %{}
     end
   end
 
@@ -573,6 +591,7 @@ defmodule StartupGame.Games do
       case Map.get(current_by_entity, entity_name) do
         nil ->
           create_new_entity_ownership(entity_name, percentage, game, round)
+
         existing ->
           update_existing_entity_ownership(existing, percentage, game, round)
       end
@@ -581,20 +600,22 @@ defmodule StartupGame.Games do
 
   # Helper function to create a new entity ownership
   defp create_new_entity_ownership(entity_name, percentage, game, round) do
-    {:ok, ownership} = create_ownership(%{
-      entity_name: entity_name,
-      percentage: percentage,
-      game_id: game.id
-    })
+    {:ok, ownership} =
+      create_ownership(%{
+        entity_name: entity_name,
+        percentage: percentage,
+        game_id: game.id
+      })
 
-    {:ok, _change} = create_ownership_change(%{
-      entity_name: entity_name,
-      previous_percentage: 0,
-      new_percentage: percentage,
-      change_type: :initial,
-      game_id: game.id,
-      round_id: round.id
-    })
+    {:ok, _change} =
+      create_ownership_change(%{
+        entity_name: entity_name,
+        previous_percentage: 0,
+        new_percentage: percentage,
+        change_type: :initial,
+        game_id: game.id,
+        round_id: round.id
+      })
 
     ownership
   end
@@ -604,20 +625,22 @@ defmodule StartupGame.Games do
     if Decimal.compare(existing.percentage, percentage) != :eq do
       {:ok, ownership} = update_ownership(existing, %{percentage: percentage})
 
-      change_type = if Decimal.compare(existing.percentage, percentage) == :lt do
-        :investment
-      else
-        :dilution
-      end
+      change_type =
+        if Decimal.compare(existing.percentage, percentage) == :lt do
+          :investment
+        else
+          :dilution
+        end
 
-      {:ok, _change} = create_ownership_change(%{
-        entity_name: existing.entity_name,
-        previous_percentage: existing.percentage,
-        new_percentage: percentage,
-        change_type: change_type,
-        game_id: game.id,
-        round_id: round.id
-      })
+      {:ok, _change} =
+        create_ownership_change(%{
+          entity_name: existing.entity_name,
+          previous_percentage: existing.percentage,
+          new_percentage: percentage,
+          change_type: change_type,
+          game_id: game.id,
+          round_id: round.id
+        })
 
       ownership
     else
@@ -629,14 +652,15 @@ defmodule StartupGame.Games do
   defp remove_missing_entities(current_ownerships, new_entity_names, game, round) do
     Enum.each(current_ownerships, fn ownership ->
       unless Enum.member?(new_entity_names, ownership.entity_name) do
-        {:ok, _change} = create_ownership_change(%{
-          entity_name: ownership.entity_name,
-          previous_percentage: ownership.percentage,
-          new_percentage: 0,
-          change_type: :exit,
-          game_id: game.id,
-          round_id: round.id
-        })
+        {:ok, _change} =
+          create_ownership_change(%{
+            entity_name: ownership.entity_name,
+            previous_percentage: ownership.percentage,
+            new_percentage: 0,
+            change_type: :exit,
+            game_id: game.id,
+            round_id: round.id
+          })
 
         {:ok, _} = delete_ownership(ownership)
       end
@@ -705,7 +729,8 @@ defmodule StartupGame.Games do
     if Decimal.compare(game.burn_rate, Decimal.new(0)) == :gt do
       Decimal.div(game.cash_on_hand, game.burn_rate)
     else
-      Decimal.new(999) # Infinite runway if burn rate is 0 or negative
+      # Infinite runway if burn rate is 0 or negative
+      Decimal.new(999)
     end
   end
 
@@ -718,7 +743,8 @@ defmodule StartupGame.Games do
       {:ok, %Game{}}
 
   """
-  def complete_game(%Game{} = game, exit_type, exit_value) when exit_type in [:acquisition, :ipo] do
+  def complete_game(%Game{} = game, exit_type, exit_value)
+      when exit_type in [:acquisition, :ipo] do
     update_game(game, %{
       status: :completed,
       exit_type: exit_type,
