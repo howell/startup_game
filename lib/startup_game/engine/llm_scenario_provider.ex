@@ -172,8 +172,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
 
         {:ok, scenario}
 
-      {:error, _} ->
-        {:error, "Failed to parse LLM response as JSON"}
+      {:error, err} ->
+        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
     end
   rescue
     e ->
@@ -225,8 +225,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
 
         {:ok, outcome}
 
-      {:error, _} ->
-        {:error, "Failed to parse LLM response as JSON"}
+      {:error, err} ->
+        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
     end
   rescue
     e ->
