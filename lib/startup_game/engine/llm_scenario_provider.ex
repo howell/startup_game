@@ -100,10 +100,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
           scenario
 
         {:error, reason} ->
-          # Log the error and return a fallback scenario
-          require Logger
-          Logger.error("Failed to generate LLM scenario: #{reason}")
-          generate_fallback_scenario(game_state, current_scenario_id)
+          raise "Failed to generate LLM scenario: #{reason}"
       end
     end
   end
@@ -118,10 +115,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
         {:ok, outcome}
 
       {:error, reason} ->
-        # Log the error and return a fallback outcome
-        require Logger
-        Logger.error("Failed to generate LLM outcome: #{reason}")
-        generate_fallback_outcome(game_state, scenario, response_text)
+        raise "Failed to generate LLM outcome: #{reason}"
     end
   end
 
@@ -384,110 +378,4 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   defp parse_exit_value(_, "none"), do: nil
   defp parse_exit_value(nil, _), do: Decimal.new("0")
   defp parse_exit_value(value, _), do: parse_decimal(value)
-
-  # Fallback functions for when the LLM fails
-
-  @spec generate_fallback_scenario(GameState.t(), String.t() | nil) :: Scenario.t()
-  defp generate_fallback_scenario(game_state, current_scenario_id) do
-    if is_nil(current_scenario_id) do
-      # Initial scenario
-      %Scenario{
-        id: "fallback_initial_#{:rand.uniform(1000)}",
-        type: :funding,
-        situation:
-          "Based on your startup '#{game_state.name}' in #{game_state.description}, " <>
-            "an investor has approached you with interest in your company. What do you want to do?"
-      }
-    else
-      # Generate based on round count
-      round_count = length(game_state.rounds)
-
-      case rem(round_count, 3) do
-        0 ->
-          %Scenario{
-            id: "fallback_funding_#{:rand.uniform(1000)}",
-            type: :funding,
-            situation:
-              "A venture capital firm has noticed your startup's progress and is interested in investing. What's your approach?"
-          }
-
-        1 ->
-          %Scenario{
-            id: "fallback_hiring_#{:rand.uniform(1000)}",
-            type: :hiring,
-            situation:
-              "Your startup needs to expand its team. How do you want to approach hiring?"
-          }
-
-        2 ->
-          %Scenario{
-            id: "fallback_product_#{:rand.uniform(1000)}",
-            type: :other,
-            situation:
-              "Your product is at a crossroads. What's your strategy for the next development phase?"
-          }
-      end
-    end
-  end
-
-  @spec generate_fallback_outcome(GameState.t(), Scenario.t(), String.t()) ::
-          {:ok, map()} | {:error, String.t()}
-  defp generate_fallback_outcome(_game_state, scenario, response_text) do
-    # Create a simple outcome based on the scenario type
-    outcome =
-      case scenario.type do
-        :funding ->
-          %{
-            text:
-              "Based on your response: '#{String.slice(response_text, 0, 50)}...', you secured some funding.",
-            cash_change: Decimal.new("50000.00"),
-            burn_rate_change: Decimal.new("1000.00"),
-            ownership_changes: [
-              %{
-                entity_name: "Founder",
-                previous_percentage: Decimal.new("100.00"),
-                new_percentage: Decimal.new("90.00")
-              },
-              %{
-                entity_name: "Investor",
-                previous_percentage: Decimal.new("0.00"),
-                new_percentage: Decimal.new("10.00")
-              }
-            ],
-            exit_type: :none
-          }
-
-        :acquisition ->
-          %{
-            text:
-              "Based on your response: '#{String.slice(response_text, 0, 50)}...', you considered the acquisition offer.",
-            cash_change: Decimal.new("0.00"),
-            burn_rate_change: Decimal.new("0.00"),
-            ownership_changes: nil,
-            exit_type: :none
-          }
-
-        :hiring ->
-          %{
-            text:
-              "Based on your response: '#{String.slice(response_text, 0, 50)}...', you made some hiring decisions.",
-            cash_change: Decimal.new("-10000.00"),
-            burn_rate_change: Decimal.new("5000.00"),
-            ownership_changes: nil,
-            exit_type: :none
-          }
-
-        _ ->
-          %{
-            text:
-              "Based on your response: '#{String.slice(response_text, 0, 50)}...', you made a strategic decision.",
-            cash_change: Decimal.new("0.00"),
-            burn_rate_change: Decimal.new("0.00"),
-            ownership_changes: nil,
-            exit_type: :none
-          }
-      end
-
-    {:ok, outcome}
-  end
 end
