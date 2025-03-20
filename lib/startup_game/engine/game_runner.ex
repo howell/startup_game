@@ -74,6 +74,7 @@ defmodule StartupGame.Engine.GameRunner do
       situation = Map.put(situation, :error, updated_state.error_message)
       {updated_state, situation}
     else
+      updated_state = Engine.set_next_scenario(updated_state)
       # Process normally
       if updated_state.status == :in_progress && updated_state.current_scenario do
         situation = Engine.get_current_situation(updated_state)

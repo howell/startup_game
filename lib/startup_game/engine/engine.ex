@@ -43,7 +43,7 @@ defmodule StartupGame.Engine do
 
   """
   @spec set_next_scenario(GameState.t()) :: GameState.t()
-  def set_next_scenario(game_state) do
+  def set_next_scenario(%GameState{status: :in_progress} = game_state) do
     provider = game_state.scenario_provider
     current_scenario_id = game_state.current_scenario
     next_scenario = provider.get_next_scenario(game_state, current_scenario_id)
@@ -54,6 +54,8 @@ defmodule StartupGame.Engine do
       %{game_state | current_scenario: nil, current_scenario_data: nil, status: :completed}
     end
   end
+
+  def set_next_scenario(game_state), do: game_state
 
   @doc """
   Gets the current scenario description.

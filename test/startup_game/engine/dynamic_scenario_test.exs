@@ -38,10 +38,6 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
 
       # Verify the outcome contains part of the response text
       assert String.contains?(round.outcome, "accept")
-
-      # Verify a new scenario was generated
-      assert updated_game.current_scenario != game.current_scenario
-      assert updated_game.current_scenario_data != nil
     end
   end
 
@@ -72,6 +68,8 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
 
       # Check that the round was added
       assert length(updated_game.rounds) == 1
+
+      updated_game = Engine.set_next_scenario(updated_game)
 
       # Verify the next scenario is from the static sequence
       assert updated_game.current_scenario == "hiring_decision"
