@@ -92,7 +92,7 @@ defmodule StartupGame.Games do
   def get_game_with_associations!(id) do
     Game
     |> Repo.get!(id)
-    |> Repo.preload([:rounds, :ownerships])
+    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
   end
 
   @doc """
@@ -102,7 +102,7 @@ defmodule StartupGame.Games do
   def get_game_with_associations(id) do
     Game
     |> Repo.get(id)
-    |> Repo.preload([:rounds, :ownerships])
+    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
   end
 
   @doc """
