@@ -121,11 +121,11 @@ end
 
 # Configure LangChain with Anthropic for all environments
 if config_env() == :prod do
-  config :langchain, :anthropic,
-    api_key: System.get_env("ANTHROPIC_API_KEY"),
+  config :langchain,
+    anthropic_key: System.get_env("ANTHROPIC_API_KEY"),
     model: "claude-3-opus-20240229"
 else
-  config :langchain, :anthropic,
-    api_key: Dotenv.Env.get(Dotenv.load(), "ANTHROPIC_API_KEY"),
+  config :langchain,
+    anthropic_key: Dotenv.Env.get(Dotenv.load(), "ANTHROPIC_API_KEY"),
     model: "claude-3-opus-20240229"
 end
