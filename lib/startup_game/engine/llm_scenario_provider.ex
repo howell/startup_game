@@ -42,6 +42,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     "type": "One of: funding, acquisition, hiring, legal, other",
     "situation": "The full scenario text to present to the player"
   }
+  IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
+  For example: "This is line one.\\nThis is line two."
 
   The situation should describe the scenario in detail and end with an open-ended question
   about what the player wants to do, without providing explicit options.
@@ -82,6 +84,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     "exit_type": "none" or "acquisition" or "ipo" or "shutdown",
     "exit_value": number (only if exit_type is not "none")
   }
+  IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
+  For example: "This is line one.\\nThis is line two."
 
   If there are no ownership changes, set "ownership_changes" to null.
   If there is no exit event, set "exit_type" to "none" and omit "exit_value".
