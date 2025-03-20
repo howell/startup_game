@@ -25,7 +25,7 @@ defmodule StartupGameWeb.GameLive.Index do
   defp format_money(value) do
     value
     |> Decimal.to_float()
-    |> :erlang.float_to_binary([decimals: 2])
+    |> :erlang.float_to_binary(decimals: 2)
   end
 
   defp format_status(:in_progress), do: "In Progress"

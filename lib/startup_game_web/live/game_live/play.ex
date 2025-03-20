@@ -3,6 +3,7 @@ defmodule StartupGameWeb.GameLive.Play do
 
   alias StartupGame.GameService
   alias StartupGame.Games
+  alias StartupGame.Games.Round
 
   @impl true
   def mount(%{"id" => id}, _session, socket) do
@@ -16,6 +17,7 @@ defmodule StartupGameWeb.GameLive.Play do
           |> assign(:response, "")
           |> assign(:rounds, Games.list_game_rounds(id))
           |> assign(:ownerships, Games.list_game_ownerships(id))
+          |> assign(:creation_stage, :playing)
 
         {:ok, socket, temporary_assigns: [rounds: []]}
 
@@ -28,7 +30,105 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
-  def handle_event("submit_response", %{"response" => response}, socket) when response != "" do
+  def mount(_params, _session, socket) do
+    # New game case - setup for creation process
+    socket =
+      socket
+      |> assign(:creation_stage, :name_input)
+      |> assign(:temp_name, nil)
+      |> assign(:temp_description, nil)
+      |> assign(:game_id, nil)
+      |> assign(:response, "")
+      |> assign(:rounds, [
+        %Round{
+          id: "temp_name_prompt",
+          situation: "What would you like to name your company?",
+          inserted_at: DateTime.utc_now(),
+          updated_at: DateTime.utc_now()
+        }
+      ])
+      |> assign(:ownerships, [])
+
+    {:ok, socket, temporary_assigns: [rounds: []]}
+  end
+
+  @impl true
+  def handle_event(
+        "submit_response",
+        %{"response" => response},
+        %{assigns: %{creation_stage: :name_input}} = socket
+      )
+      when response != "" do
+    # Store the company name and transition to description input
+    socket =
+      socket
+      |> assign(:temp_name, response)
+      |> assign(:creation_stage, :description_input)
+      |> assign(:response, "")
+      |> assign(:rounds, [
+        %Round{
+          id: "temp_name_prompt",
+          situation: "What would you like to name your company?",
+          response: response,
+          inserted_at: DateTime.utc_now(),
+          updated_at: DateTime.utc_now()
+        },
+        %Round{
+          id: "temp_description_prompt",
+          situation: "Please provide a brief description of what #{response} does:",
+          inserted_at: DateTime.utc_now(),
+          updated_at: DateTime.utc_now()
+        }
+      ])
+
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event(
+        "submit_response",
+        %{"response" => response},
+        %{assigns: %{creation_stage: :description_input}} = socket
+      )
+      when response != "" do
+    # Create the game with the collected name and description
+    user = socket.assigns.current_user
+    name = socket.assigns.temp_name
+
+    case GameService.create_and_start_game(name, response, user) do
+      {:ok, %{game: game, game_state: game_state}} ->
+        socket =
+          socket
+          |> assign(:game, game)
+          |> assign(:game_state, game_state)
+          |> assign(:game_id, game.id)
+          |> assign(:creation_stage, :playing)
+          |> assign(:response, "")
+          |> assign(:rounds, Games.list_game_rounds(game.id))
+          |> assign(:ownerships, Games.list_game_ownerships(game.id))
+          |> put_flash(:info, "Started new venture: #{game.name}")
+
+        {:noreply, socket}
+
+      {:error, %Ecto.Changeset{} = _changeset} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to create game: Invalid input")}
+
+      {:error, reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Failed to create game: #{inspect(reason)}")}
+    end
+  end
+
+  @impl true
+  def handle_event(
+        "submit_response",
+        %{"response" => response},
+        %{assigns: %{creation_stage: :playing}} = socket
+      )
+      when response != "" do
     game_id = socket.assigns.game_id
 
     case GameService.process_response(game_id, response) do

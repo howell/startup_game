@@ -72,6 +72,7 @@ defmodule StartupGameWeb.Router do
       # Game routes
       live "/games", GameLive.Index, :index
       live "/games/new", GameLive.New, :new
+      live "/games/play", GameLive.Play, :new
       live "/games/:id", GameLive.Play, :play
     end
   end
