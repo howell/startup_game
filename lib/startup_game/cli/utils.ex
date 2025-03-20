@@ -3,9 +3,9 @@ defmodule StartupGame.CLI.Utils do
   Utilities for handling input and output in the command-line interface.
   """
 
-  alias StartupGame.Engine.GameState
+  alias StartupGame.Engine.LLMScenarioProvider
+  alias StartupGame.Engine.{GameState, GameRunner, LLMScenarioProvider}
   alias StartupGame.Engine.Demo.{StaticScenarioProvider, DynamicScenarioProvider}
-  alias StartupGame.Engine.GameRunner
 
   @doc """
   Displays the welcome message for the CLI.
@@ -167,6 +167,7 @@ defmodule StartupGame.CLI.Utils do
     IO.puts("\nSelect a scenario provider:")
     IO.puts("1. Static Scenario Provider (fixed scenarios)")
     IO.puts("2. Dynamic Scenario Provider (varying scenarios)")
+    IO.puts("3. LLM Scenario Provider")
 
     case IO.gets("> ") |> String.trim() do
       "1" ->
@@ -174,6 +175,9 @@ defmodule StartupGame.CLI.Utils do
 
       "2" ->
         DynamicScenarioProvider
+
+      "3" ->
+        LLMScenarioProvider
 
       _ ->
         IO.puts("Invalid selection. Please try again.")
