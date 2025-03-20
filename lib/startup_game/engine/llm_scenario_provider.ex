@@ -36,7 +36,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   - Ownership structure
   - Previous scenarios and decisions (game history)
 
-  Your response must be in valid JSON format with these fields:
+  Your response must be a single JSON object in valid JSON format with these fields:
   {
     "id": "A unique identifier for this scenario",
     "type": "One of: funding, acquisition, hiring, legal, other",
@@ -69,7 +69,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   - The player's response/decision
   - Current financial state and ownership
 
-  Your response must be in valid JSON format with these fields:
+  Your response must be a single JSON object in valid JSON format with these fields:
   {
     "text": "Detailed outcome description",
     "cash_change": number (can be positive or negative),
