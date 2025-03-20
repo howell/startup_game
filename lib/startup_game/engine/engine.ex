@@ -119,31 +119,12 @@ defmodule StartupGame.Engine do
       ownership_changes: outcome.ownership_changes
     }
 
-    # Update game state
-    game_state = update_finances(game_state, outcome)
-    game_state = update_ownership(game_state, outcome)
-
-    # Apply burn rate (monthly expenses) after each situation
-    game_state = apply_burn_rate(game_state)
-
-    # Check for game end conditions
-    game_state = check_game_end(game_state, outcome)
-
-    # Add the round
-    game_state = %{game_state | rounds: game_state.rounds ++ [round]}
-
-    if game_state.status == :in_progress do
-      # Get next scenario
-      next_scenario = game_state.scenario_provider.get_next_scenario(game_state, scenario.id)
-
-      if next_scenario do
-        %{game_state | current_scenario: next_scenario.id, current_scenario_data: next_scenario}
-      else
-        %{game_state | current_scenario: nil, current_scenario_data: nil, status: :completed}
-      end
-    else
-      %{game_state | current_scenario: nil, current_scenario_data: nil}
-    end
+    game_state
+    |> update_finances(outcome)
+    |> update_ownership(outcome)
+    |> apply_burn_rate()
+    |> check_game_end(outcome)
+    |> Map.put(:rounds, game_state.rounds ++ [round])
   end
 
   # Helper functions
