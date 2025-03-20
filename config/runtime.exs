@@ -126,6 +126,6 @@ if config_env() == :prod do
     model: "claude-3-opus-20240229"
 else
   config :langchain, :anthropic,
-    api_key: DotEnv.Env.get(Dotenv.load(), "ANTHROPIC_API_KEY"),
+    api_key: Dotenv.Env.get(Dotenv.load(), "ANTHROPIC_API_KEY"),
     model: "claude-3-opus-20240229"
 end
