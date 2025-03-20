@@ -14,7 +14,8 @@ config :startup_game, StartupGame.Repo,
   hostname: "localhost",
   database: "startup_game_test#{System.get_env("MIX_TEST_PARTITION")}",
   pool: Ecto.Adapters.SQL.Sandbox,
-  pool_size: System.schedulers_online() * 2
+  pool_size: System.schedulers_online() * 2,
+  ownership_timeout: 600_000
 
 # We don't run a server during test. If one is required,
 # you can enable the server option below.
