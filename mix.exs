@@ -60,8 +60,10 @@ defmodule StartupGame.MixProject do
       {:jason, "~> 1.2"},
       {:dns_cluster, "~> 0.1.1"},
       {:bandit, "~> 1.2"},
+      {:langchain, "~> 0.3"},
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
-      {:credo, "~> 1.7", only: [:dev, :test], runtime: false}
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:dotenv, "~> 3.0", only: [:dev, :test]}
     ]
   end
 

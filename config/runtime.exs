@@ -31,7 +31,10 @@ if config_env() == :prod do
   maybe_ipv6 = if System.get_env("ECTO_IPV6") in ~w(true 1), do: [:inet6], else: []
 
   config :startup_game, StartupGame.Repo,
-    ssl: [verify: :verify_peer, cacertfile: Application.app_dir(:startup_game, "priv/certs/rds-ca.pem")],
+    ssl: [
+      verify: :verify_peer,
+      cacertfile: Application.app_dir(:startup_game, "priv/certs/rds-ca.pem")
+    ],
     url: database_url,
     pool_size: String.to_integer(System.get_env("POOL_SIZE") || "10"),
     socket_options: maybe_ipv6
@@ -114,4 +117,15 @@ if config_env() == :prod do
   #     config :swoosh, :api_client, Swoosh.ApiClient.Hackney
   #
   # See https://hexdocs.pm/swoosh/Swoosh.html#module-installation for details.
+end
+
+# Configure LangChain with Anthropic for all environments
+if config_env() == :prod do
+  config :langchain, :anthropic,
+    api_key: System.get_env("ANTHROPIC_API_KEY"),
+    model: "claude-3-opus-20240229"
+else
+  config :langchain, :anthropic,
+    api_key: DotEnv.Env.get(Dotenv.load(), "ANTHROPIC_API_KEY"),
+    model: "claude-3-opus-20240229"
 end
