@@ -95,15 +95,19 @@ defmodule StartupGame.Engine do
     # Clear any previous error message
     game_state = %{game_state | error_message: nil}
 
-    # Generate outcome based on the response
-    case provider.generate_outcome(game_state, scenario, response_text) do
-      {:ok, outcome} ->
-        # Process the outcome
-        process_outcome(game_state, scenario, outcome, response_text)
+    if scenario do
+      # Generate outcome based on the response
+      case provider.generate_outcome(game_state, scenario, response_text) do
+        {:ok, outcome} ->
+          # Process the outcome
+          process_outcome(game_state, scenario, outcome, response_text)
 
-      {:error, reason} ->
-        # Add an error to the game state
-        %{game_state | error_message: reason}
+        {:error, reason} ->
+          # Add an error to the game state
+          %{game_state | error_message: reason}
+      end
+    else
+      %{game_state | error_message: "No scenario available"}
     end
   end
 

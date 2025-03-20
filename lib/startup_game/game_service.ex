@@ -111,11 +111,10 @@ defmodule StartupGame.GameService do
   def load_game(game_id) do
     case Games.get_game_with_associations(game_id) do
       %Games.Game{} = game ->
-        rounds = Games.list_game_rounds(game_id)
         ownerships = Games.list_game_ownerships(game_id)
 
         # Recreate in-memory game state from database records
-        game_state = build_game_state_from_db(game, rounds, ownerships)
+        game_state = build_game_state_from_db(game, ownerships)
 
         {:ok, %{game: game, game_state: game_state}}
 
@@ -135,21 +134,23 @@ defmodule StartupGame.GameService do
   """
   @spec process_response(Ecto.UUID.t(), String.t()) :: game_result()
   def process_response(game_id, response_text) do
-    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      # Process the response in the game engine
-      updated_game_state = Engine.process_response(game_state, response_text)
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id),
+         %Engine.GameState{error_message: nil} = updated_game_state <-
+           Engine.process_response(game_state, response_text),
+         {:ok, %{game: updated_game, game_state: final_state}} <-
+           save_round_result(game, updated_game_state) do
+      handle_progress(updated_game, final_state)
+    else
+      %Engine.GameState{error_message: msg} -> {:error, msg}
+      error -> error
+    end
+  end
 
-      if updated_game_state.error_message do
-        {:error, updated_game_state.error_message}
-      else
-        case save_round_result(game, updated_game_state) do
-          {:ok, %{game: game, game_state: game_state}} ->
-            start_next_round(game, game_state)
-
-          error ->
-            error
-        end
-      end
+  defp handle_progress(game, game_state) do
+    if game_state.status == :in_progress do
+      start_next_round(game, game_state)
+    else
+      {:ok, %{game: game, game_state: game_state}}
     end
   end
 
@@ -160,13 +161,13 @@ defmodule StartupGame.GameService do
     scenario = game_state.current_scenario_data
 
     if scenario do
-      {:ok, _} =
+      {:ok, round} =
         Games.create_round(%{
           situation: scenario.situation,
           game_id: game.id
         })
 
-      {:ok, %{game: game, game_state: game_state}}
+      {:ok, %{game: %Games.Game{game | rounds: game.rounds ++ [round]}, game_state: game_state}}
     else
       {:error, "Failed to generate next scenario"}
     end
@@ -175,29 +176,11 @@ defmodule StartupGame.GameService do
   # Private functions
 
   # Builds in-memory game state from database records
-  @spec build_game_state_from_db(Games.Game.t(), [Games.Round.t()], [Games.Ownership.t()]) ::
+  @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()]) ::
           GameState.t()
-  defp build_game_state_from_db(game, rounds, ownerships) do
-    game_rounds = build_rounds_from_db(rounds)
-
-    {current_scenario, current_scenario_data} =
-      case {game.status, game_rounds} do
-        {_, []} ->
-          {nil, nil}
-
-        {:in_progress, _} ->
-          last_round = List.last(game_rounds)
-
-          {last_round.scenario_id,
-           %Engine.Scenario{
-             id: last_round.scenario_id,
-             situation: last_round.situation,
-             type: :other
-           }}
-
-        _other ->
-          {nil, nil}
-      end
+  defp build_game_state_from_db(game, ownerships) do
+    {current_scenario, current_scenario_data, previous_rounds} =
+      determine_current_and_previous_rounds(game)
 
     %GameState{
       name: game.name,
@@ -211,11 +194,39 @@ defmodule StartupGame.GameService do
         Enum.map(ownerships, fn o ->
           %{entity_name: o.entity_name, percentage: o.percentage}
         end),
-      rounds: game_rounds,
+      rounds: previous_rounds,
       scenario_provider: determine_provider(game),
       current_scenario: current_scenario,
       current_scenario_data: current_scenario_data
     }
+  end
+
+  @doc """
+  Since the DB stores the current round as the last entry in the rounds list,
+  we need to separate it from the previous rounds and determine the current scenario.
+  """
+  @spec determine_current_and_previous_rounds(Games.Game.t()) ::
+          {String.t() | nil, Engine.Scenario.t() | nil, [GameState.round_entry()]}
+  def determine_current_and_previous_rounds(game) do
+    game_rounds = build_rounds_from_db(game.rounds)
+
+    case {game.status, game_rounds} do
+      {_, []} ->
+        {nil, nil, game_rounds}
+
+      {:in_progress, _} ->
+        last_round = List.last(game_rounds)
+
+        {last_round.scenario_id,
+         %Engine.Scenario{
+           id: last_round.scenario_id,
+           situation: last_round.situation,
+           type: :other
+         }, List.delete_at(game_rounds, -1)}
+
+      _other ->
+        {nil, nil, game_rounds}
+    end
   end
 
   # Converts database rounds to in-memory rounds format
@@ -246,17 +257,33 @@ defmodule StartupGame.GameService do
 
   # Save info from the lastest round to the database
   @spec save_round_result(Games.Game.t(), GameState.t()) :: game_result()
-  defp save_round_result(game, game_state) do
+  def save_round_result(game, game_state) do
     Ecto.Multi.new()
     |> save_last_round(game, game_state)
     |> update_finances(game, game_state)
     |> StartupGame.Repo.transaction()
     |> case do
-      {:ok, %{game: {updated_game, _round}}} ->
-        {:ok, %{game: updated_game, game_state: game_state}}
+      {:ok, %{game: {updated_game, round}}} ->
+        {:ok,
+         %{
+           game: replace_game_round(updated_game, round),
+           game_state: game_state
+         }}
 
       {:error, _operation, reason, _changes} ->
         {:error, reason}
+    end
+  end
+
+  @spec replace_game_round(Games.Game.t(), GameState.round_entry()) :: Games.Game.t()
+  defp replace_game_round(game, round) do
+    Enum.find_index(game.rounds, fn r -> r.id == round.id end)
+    |> case do
+      nil ->
+        game
+
+      index ->
+        %{game | rounds: List.replace_at(game.rounds, index, round)}
     end
   end
 

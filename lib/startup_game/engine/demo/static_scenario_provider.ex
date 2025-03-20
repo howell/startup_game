@@ -222,7 +222,7 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
       nil
     else
       # Get the appropriate scenario ID
-      next_id = get_next_scenario_id(current_scenario_id)
+      next_id = get_next_scenario_id(game_state, current_scenario_id)
 
       # Fetch and prepare the scenario
       create_scenario_with_choices(next_id)
@@ -230,14 +230,15 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   end
 
   # Helper to determine the next scenario ID based on the current one
-  @spec get_next_scenario_id(String.t() | nil) :: String.t()
-  defp get_next_scenario_id(current_scenario_id) do
+  @spec get_next_scenario_id(GameState.t(), String.t() | nil) :: String.t()
+  defp get_next_scenario_id(game_state, current_scenario_id) do
     # For initial scenario
     if is_nil(current_scenario_id) do
       List.first(@scenario_sequence)
     else
       # Otherwise, find the next in sequence
-      current_index = Enum.find_index(@scenario_sequence, fn id -> id == current_scenario_id end)
+      key = key_for(game_state.current_scenario_data)
+      current_index = Enum.find_index(@scenario_sequence, fn id -> id == key end)
 
       # Calculate the next index, looping if necessary
       next_index =
