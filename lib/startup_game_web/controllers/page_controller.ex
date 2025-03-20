@@ -2,8 +2,7 @@ defmodule StartupGameWeb.PageController do
   use StartupGameWeb, :controller
 
   def home(conn, _params) do
-    # The home page is often custom made,
-    # so skip the default app layout.
-    render(conn, :home, layout: false)
+    # Use the app layout for consistency with the rest of the application
+    render(conn, :home)
   end
 end
