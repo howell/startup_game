@@ -1,0 +1,55 @@
+defmodule StartupGame.Engine.LLM.JSONResponseParser do
+  @moduledoc """
+  Parser for JSON responses from LLMs.
+
+  This module implements the ResponseParser behavior and handles parsing
+  JSON responses into the expected scenario and outcome formats.
+  """
+
+  @behaviour StartupGame.Engine.LLM.ResponseParser
+
+  alias StartupGame.Engine.Scenario
+  alias StartupGame.Engine.LLM.BaseScenarioProvider
+
+  @impl true
+  def parse_scenario(content) do
+    case Jason.decode(content) do
+      {:ok, scenario_data} ->
+        # Create a Scenario struct from the parsed data
+        scenario = %Scenario{
+          id: Map.get(scenario_data, "id", "llm_scenario_#{:rand.uniform(1000)}"),
+          type: BaseScenarioProvider.parse_scenario_type(Map.get(scenario_data, "type", "other")),
+          situation: Map.get(scenario_data, "situation", "")
+        }
+
+        {:ok, scenario}
+
+      {:error, err} ->
+        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
+    end
+  end
+
+  @impl true
+  def parse_outcome(content) do
+    case Jason.decode(content) do
+      {:ok, outcome_data} ->
+        # Convert the outcome data to the expected format
+        outcome = %{
+          text: Map.get(outcome_data, "text", ""),
+          cash_change: BaseScenarioProvider.parse_decimal(Map.get(outcome_data, "cash_change", 0)),
+          burn_rate_change: BaseScenarioProvider.parse_decimal(Map.get(outcome_data, "burn_rate_change", 0)),
+          ownership_changes: BaseScenarioProvider.parse_ownership_changes(Map.get(outcome_data, "ownership_changes")),
+          exit_type: BaseScenarioProvider.parse_exit_type(Map.get(outcome_data, "exit_type", "none")),
+          exit_value: BaseScenarioProvider.parse_exit_value(
+            Map.get(outcome_data, "exit_value"),
+            Map.get(outcome_data, "exit_type", "none")
+          )
+        }
+
+        {:ok, outcome}
+
+      {:error, err} ->
+        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
+    end
+  end
+end

@@ -7,379 +7,96 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   contextually appropriate scenarios and outcomes based on the game state.
   """
 
-  @behaviour StartupGame.Engine.ScenarioProvider
+  use StartupGame.Engine.LLM.BaseScenarioProvider
 
-  alias StartupGame.Engine.GameState
-  alias StartupGame.Engine.Scenario
-  alias LangChain.ChatModels.ChatAnthropic
-  alias LangChain.Message
-  alias LangChain.Chains.LLMChain
-
-  # Define the system prompts for scenario and outcome generation
-  @scenario_system_prompt """
-  You are an AI assistant helping to generate scenarios for a startup simulation game.
-  In this game, players run a fictional startup and make decisions that affect their company's success.
-
-  Your task is to generate realistic, engaging scenarios that a startup founder might face.
-  These should be challenging situations that require thoughtful decisions.
-
-  The scenarios you create should:
-  1. Be relevant to the startup's description and current state
-  2. Present realistic challenges that startups commonly face
-  3. Have meaningful consequences for different possible decisions
-  4. Be engaging and thought-provoking
-  5. Vary in type (funding, hiring, product, legal, market changes, etc.)
-
-  You will receive information about:
-  - The startup's name and description
-  - Current financial state (cash, burn rate, runway)
-  - Ownership structure
-  - Previous scenarios and decisions (game history)
-
-  Your response must be a single JSON object in valid JSON format with these fields:
-  {
-    "id": "A unique identifier for this scenario",
-    "type": "One of: funding, acquisition, hiring, legal, other",
-    "situation": "The full scenario text to present to the player"
-  }
-  IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
-  For example: "This is line one.\\nThis is line two."
-
-  The situation should describe the scenario in detail and end with an open-ended question
-  about what the player wants to do, without providing explicit options.
-  """
-
-  @outcome_system_prompt """
-  You are an AI assistant helping to generate outcomes for a startup simulation game.
-  In this game, players run a fictional startup and make decisions that affect their company's success.
-
-  Your task is to generate realistic outcomes based on the player's response to a scenario.
-  These outcomes should have logical consequences for the startup's finances and ownership.
-
-  The outcomes you create should:
-  1. Be a logical result of the player's specific decision
-  2. Have realistic financial impacts (cash changes, burn rate changes)
-  3. Sometimes affect company ownership when appropriate
-  4. Occasionally lead to major events like acquisition, IPO, or shutdown
-  5. Be detailed and explain the consequences of the decision
-
-  You will receive information about:
-  - The startup's name and description
-  - The current scenario the player faced
-  - The player's response/decision
-  - Current financial state and ownership
-
-  Your response must be a single JSON object in valid JSON format with these fields:
-  {
-    "text": "Detailed outcome description",
-    "cash_change": number (can be positive or negative),
-    "burn_rate_change": number (can be positive or negative),
-    "ownership_changes": [
-      {
-        "entity_name": "Entity name",
-        "previous_percentage": previous ownership percentage (number),
-        "new_percentage": new ownership percentage (number)
-      }
-    ],
-    "exit_type": "none" or "acquisition" or "ipo" or "shutdown",
-    "exit_value": number (only if exit_type is not "none")
-  }
-  IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
-  For example: "This is line one.\\nThis is line two."
-
-  If there are no ownership changes, set "ownership_changes" to null.
-  If there is no exit event, set "exit_type" to "none" and omit "exit_value".
-  """
-
-  @impl true
-  @spec get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
-  def get_next_scenario(game_state, current_scenario_id) do
-    # Check if the game should end
-    if should_end_game?(game_state) do
-      nil
-    else
-      # Generate a scenario using the LLM
-      case generate_llm_scenario(game_state, current_scenario_id) do
-        {:ok, scenario} ->
-          scenario
-
-        {:error, reason} ->
-          raise "Failed to generate LLM scenario: #{reason}"
-      end
-    end
+  @impl StartupGame.Engine.LLM.ScenarioProviderCallback
+  def llm_adapter do
+    StartupGame.Engine.LLM.AnthropicAdapter
   end
 
-  @impl true
-  @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
-          {:ok, Scenario.outcome()} | {:error, String.t()}
-  def generate_outcome(game_state, scenario, response_text) do
-    # Generate an outcome using the LLM
-    case generate_llm_outcome(game_state, scenario, response_text) do
-      {:ok, outcome} ->
-        {:ok, outcome}
-
-      {:error, reason} ->
-        raise "Failed to generate LLM outcome: #{reason}"
-    end
+  @impl StartupGame.Engine.LLM.ScenarioProviderCallback
+  def llm_options do
+    %{model: "claude-3-opus-20240229"}
   end
 
-  # Private helper functions
+  @impl StartupGame.Engine.LLM.ScenarioProviderCallback
+  def scenario_system_prompt do
+    """
+    You are an AI assistant helping to generate scenarios for a startup simulation game.
+    In this game, players run a fictional startup and make decisions that affect their company's success.
 
-  @spec should_end_game?(GameState.t()) :: boolean()
-  defp should_end_game?(game_state) do
-    # End the game if:
-    # - Cash is too low
-    # - Runway is less than 1 month
-    # - We've played too many rounds (as a safety)
-    # - The game has already exited
-    length(game_state.rounds) >= 15 or
-      Decimal.compare(game_state.cash_on_hand, Decimal.new("0")) == :lt or
-      Decimal.compare(GameState.calculate_runway(game_state), Decimal.new("1")) == :lt or
-      game_state.exit_type != :none
+    Your task is to generate realistic, engaging scenarios that a startup founder might face.
+    These should be challenging situations that require thoughtful decisions.
+
+    The scenarios you create should:
+    1. Be relevant to the startup's description and current state
+    2. Present realistic challenges that startups commonly face
+    3. Have meaningful consequences for different possible decisions
+    4. Be engaging and thought-provoking
+    5. Vary in type (funding, hiring, product, legal, market changes, etc.)
+
+    You will receive information about:
+    - The startup's name and description
+    - Current financial state (cash, burn rate, runway)
+    - Ownership structure
+    - Previous scenarios and decisions (game history)
+
+    Your response must be a single JSON object in valid JSON format with these fields:
+    {
+      "id": "A unique identifier for this scenario",
+      "type": "One of: funding, acquisition, hiring, legal, other",
+      "situation": "The full scenario text to present to the player"
+    }
+    IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
+    For example: "This is line one.\\nThis is line two."
+
+    The situation should describe the scenario in detail and end with an open-ended question
+    about what the player wants to do, without providing explicit options.
+    """
   end
 
-  @spec generate_llm_scenario(GameState.t(), String.t() | nil) ::
-          {:ok, Scenario.t()} | {:error, String.t()}
-  defp generate_llm_scenario(game_state, current_scenario_id) do
-    # Create the user prompt with game state information
-    user_prompt = create_scenario_prompt(game_state, current_scenario_id)
+  @impl StartupGame.Engine.LLM.ScenarioProviderCallback
+  def outcome_system_prompt do
+    """
+    You are an AI assistant helping to generate outcomes for a startup simulation game.
+    In this game, players run a fictional startup and make decisions that affect their company's success.
 
-    # Create a new ChatAnthropic model instance
-    anthropic =
-      ChatAnthropic.new!(%{
-        model: "claude-3-opus-20240229",
-        stream: false
-      })
+    Your task is to generate realistic outcomes based on the player's response to a scenario.
+    These outcomes should have logical consequences for the startup's finances and ownership.
 
-    # Create an LLMChain with the model
-    {:ok, chain} =
-      %{llm: anthropic}
-      |> LLMChain.new!()
-      |> LLMChain.add_messages([
-        Message.new_system!(@scenario_system_prompt),
-        Message.new_user!(user_prompt)
-      ])
-      |> LLMChain.run()
+    The outcomes you create should:
+    1. Be a logical result of the player's specific decision
+    2. Have realistic financial impacts (cash changes, burn rate changes)
+    3. Sometimes affect company ownership when appropriate
+    4. Occasionally lead to major events like acquisition, IPO, or shutdown
+    5. Be detailed and explain the consequences of the decision
 
-    # Get the response content
-    content = chain.last_message.content
+    You will receive information about:
+    - The startup's name and description
+    - The current scenario the player faced
+    - The player's response/decision
+    - Current financial state and ownership
 
-    # Parse the JSON response
-    case Jason.decode(content) do
-      {:ok, scenario_data} ->
-        # Create a Scenario struct from the parsed data
-        scenario = %Scenario{
-          id: Map.get(scenario_data, "id", "llm_scenario_#{:rand.uniform(1000)}"),
-          type: parse_scenario_type(Map.get(scenario_data, "type", "other")),
-          situation: Map.get(scenario_data, "situation", "")
+    Your response must be a single JSON object in valid JSON format with these fields:
+    {
+      "text": "Detailed outcome description",
+      "cash_change": number (can be positive or negative),
+      "burn_rate_change": number (can be positive or negative),
+      "ownership_changes": [
+        {
+          "entity_name": "Entity name",
+          "previous_percentage": previous ownership percentage (number),
+          "new_percentage": new ownership percentage (number)
         }
+      ],
+      "exit_type": "none" or "acquisition" or "ipo" or "shutdown",
+      "exit_value": number (only if exit_type is not "none")
+    }
+    IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
+    For example: "This is line one.\\nThis is line two."
 
-        {:ok, scenario}
-
-      {:error, err} ->
-        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
-    end
-  rescue
-    e ->
-      {:error, "LLM API error: #{inspect(e)}"}
-  end
-
-  @spec generate_llm_outcome(GameState.t(), Scenario.t(), String.t()) ::
-          {:ok, map()} | {:error, String.t()}
-  defp generate_llm_outcome(game_state, scenario, response_text) do
-    # Create the user prompt with game state, scenario, and response information
-    user_prompt = create_outcome_prompt(game_state, scenario, response_text)
-
-    # Create a new ChatAnthropic model instance
-    anthropic =
-      ChatAnthropic.new!(%{
-        model: "claude-3-opus-20240229",
-        stream: false
-      })
-
-    # Create an LLMChain with the model
-    {:ok, chain} =
-      %{llm: anthropic}
-      |> LLMChain.new!()
-      |> LLMChain.add_messages([
-        Message.new_system!(@outcome_system_prompt),
-        Message.new_user!(user_prompt)
-      ])
-      |> LLMChain.run()
-
-    # Get the response content
-    content = chain.last_message.content
-
-    # Parse the JSON response
-    case Jason.decode(content) do
-      {:ok, outcome_data} ->
-        # Convert the outcome data to the expected format
-        outcome = %{
-          text: Map.get(outcome_data, "text", ""),
-          cash_change: parse_decimal(Map.get(outcome_data, "cash_change", 0)),
-          burn_rate_change: parse_decimal(Map.get(outcome_data, "burn_rate_change", 0)),
-          ownership_changes: parse_ownership_changes(Map.get(outcome_data, "ownership_changes")),
-          exit_type: parse_exit_type(Map.get(outcome_data, "exit_type", "none")),
-          exit_value:
-            parse_exit_value(
-              Map.get(outcome_data, "exit_value"),
-              Map.get(outcome_data, "exit_type", "none")
-            )
-        }
-
-        {:ok, outcome}
-
-      {:error, err} ->
-        {:error, "Failed to parse LLM response as JSON: #{Exception.message(err)}"}
-    end
-  rescue
-    e ->
-      {:error, "LLM API error: #{inspect(e)}"}
-  end
-
-  @spec create_scenario_prompt(GameState.t(), String.t() | nil) :: String.t()
-  defp create_scenario_prompt(game_state, current_scenario_id) do
-    # Format the game history
-    history = format_game_history(game_state)
-
-    # Format the ownership structure
-    ownership = format_ownership_structure(game_state.ownerships)
-
-    # Calculate the runway
-    runway = GameState.calculate_runway(game_state)
-
-    # Create the prompt
-    """
-    Generate a scenario for a startup simulation game.
-
-    Startup: "#{game_state.name}" in #{game_state.description}
-
-    Current state:
-    - Cash on hand: $#{game_state.cash_on_hand}
-    - Burn rate: $#{game_state.burn_rate} per month
-    - Runway: #{runway} months
-    - Ownership: #{ownership}
-
-    #{if is_nil(current_scenario_id), do: "This is the first scenario for this startup.", else: ""}
-
-    Game history:
-    #{history}
-
-    Generate a challenging, realistic scenario that this startup might face.
-    The scenario should be detailed and end with an open-ended question about what the player wants to do.
+    If there are no ownership changes, set "ownership_changes" to null.
+    If there is no exit event, set "exit_type" to "none" and omit "exit_value".
     """
   end
-
-  @spec create_outcome_prompt(GameState.t(), Scenario.t(), String.t()) :: String.t()
-  defp create_outcome_prompt(game_state, scenario, response_text) do
-    # Format the ownership structure
-    ownership = format_ownership_structure(game_state.ownerships)
-
-    # Calculate the runway
-    runway = GameState.calculate_runway(game_state)
-
-    # Create the prompt
-    """
-    Generate an outcome for a startup simulation game based on the player's decision.
-
-    Startup: "#{game_state.name}" in #{game_state.description}
-
-    Current state:
-    - Cash on hand: $#{game_state.cash_on_hand}
-    - Burn rate: $#{game_state.burn_rate} per month
-    - Runway: #{runway} months
-    - Ownership: #{ownership}
-
-    Scenario presented to the player:
-    #{scenario.situation}
-
-    Player's response:
-    #{response_text}
-
-    Generate a realistic outcome based on the player's decision.
-    Include appropriate financial impacts (cash and burn rate changes) and ownership changes if relevant.
-    """
-  end
-
-  @spec format_game_history(GameState.t()) :: String.t()
-  defp format_game_history(%GameState{rounds: []}), do: "Founded"
-
-  defp format_game_history(game_state) do
-    game_state.rounds
-    |> Enum.with_index(1)
-    |> Enum.map_join("\n\n", fn {round, index} ->
-      financial_impact = if round.cash_change, do: "$#{round.cash_change}", else: "None"
-
-      """
-      Round #{index}:
-      Situation: #{round.situation}
-      Response: #{round.response || "No response"}
-      Outcome: #{round.outcome || "No outcome"}
-      Financial impact: #{financial_impact}
-      """
-    end)
-  end
-
-  @spec format_ownership_structure([GameState.ownership_entry()]) :: String.t()
-  defp format_ownership_structure(ownerships) do
-    ownerships
-    |> Enum.map_join(", ", fn %{entity_name: name, percentage: percentage} ->
-      "#{name}: #{percentage}%"
-    end)
-  end
-
-  @spec parse_scenario_type(String.t()) :: :funding | :acquisition | :hiring | :legal | :other
-  defp parse_scenario_type(type_str) do
-    case String.downcase(type_str) do
-      "funding" -> :funding
-      "acquisition" -> :acquisition
-      "hiring" -> :hiring
-      "legal" -> :legal
-      _ -> :other
-    end
-  end
-
-  @spec parse_decimal(number() | String.t()) :: Decimal.t()
-  defp parse_decimal(value) when is_integer(value) or is_float(value) do
-    Decimal.from_float(value / 1)
-  end
-
-  defp parse_decimal(value) when is_binary(value) do
-    case Decimal.parse(value) do
-      {decimal, _} -> decimal
-      _ -> Decimal.new("0")
-    end
-  end
-
-  defp parse_decimal(_), do: Decimal.new("0")
-
-  @spec parse_ownership_changes(nil | [map()]) :: [GameState.ownership_change()] | nil
-  defp parse_ownership_changes(nil), do: nil
-
-  defp parse_ownership_changes(changes) when is_list(changes) do
-    Enum.map(changes, fn change ->
-      %{
-        entity_name: Map.get(change, "entity_name", "Unknown"),
-        previous_percentage: parse_decimal(Map.get(change, "previous_percentage", 0)),
-        new_percentage: parse_decimal(Map.get(change, "new_percentage", 0))
-      }
-    end)
-  end
-
-  defp parse_ownership_changes(_), do: nil
-
-  @spec parse_exit_type(String.t()) :: :none | :acquisition | :ipo | :shutdown
-  defp parse_exit_type(type_str) do
-    case String.downcase(type_str) do
-      "acquisition" -> :acquisition
-      "ipo" -> :ipo
-      "shutdown" -> :shutdown
-      _ -> :none
-    end
-  end
-
-  @spec parse_exit_value(number() | String.t() | nil, String.t()) :: Decimal.t() | nil
-  defp parse_exit_value(_, "none"), do: nil
-  defp parse_exit_value(nil, _), do: Decimal.new("0")
-  defp parse_exit_value(value, _), do: parse_decimal(value)
 end
