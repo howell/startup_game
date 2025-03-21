@@ -17,7 +17,7 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:temp_description, nil)
       |> assign(:game_id, nil)
       |> assign(:response, "")
-      |> assign(:provider_preference, StartupGame.Engine.LLMScenarioProvider)
+      |> assign(:provider_preference, default_provider_preference())
       |> assign(:rounds, [
         %Round{
           id: "temp_name_prompt",
@@ -29,6 +29,15 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:ownerships, [])
 
     {:ok, socket, temporary_assigns: [rounds: []]}
+  end
+
+  @spec default_provider_preference() ::
+          StartupGame.Engine.Demo.StaticScenarioProvider | StartupGame.Engine.LLMScenarioProvider
+  def default_provider_preference() do
+    case Application.fetch_env(:startup_game, :env) do
+      {:ok, :prod} -> StartupGame.Engine.LLMScenarioProvider
+      _ -> StartupGame.Engine.Demo.StaticScenarioProvider
+    end
   end
 
   @impl true
