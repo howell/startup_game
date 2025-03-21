@@ -28,7 +28,7 @@ defmodule StartupGame.GameService do
         name,
         description,
         %User{} = user,
-        provider \\ StartupGame.Engine.Demo.StaticScenarioProvider
+        provider \\ StartupGame.Engine.LLMScenarioProvider
       ) do
     # Create in-memory game state without initial scenario
     game_state =
@@ -91,7 +91,7 @@ defmodule StartupGame.GameService do
         name,
         description,
         %User{} = user,
-        provider \\ StartupGame.Engine.Demo.StaticScenarioProvider
+        provider \\ StartupGame.Engine.LLMScenarioProvider
       ) do
     with {:ok, %{game: game}} <- create_game(name, description, user, provider) do
       start_game(game.id)
