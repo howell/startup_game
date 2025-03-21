@@ -11,6 +11,8 @@ defmodule StartupGame.Engine.LLM.AnthropicAdapter do
   alias LangChain.Message
   alias LangChain.Chains.LLMChain
 
+  require Logger
+
   @impl true
   def generate_completion(system_prompt, user_prompt, opts) do
     # Get the model name from options or use a default
@@ -34,6 +36,7 @@ defmodule StartupGame.Engine.LLM.AnthropicAdapter do
         ])
         |> LLMChain.run()
 
+      Logger.debug("LLM Response:\n#{chain.last_message.content}")
       # Return just the content
       {:ok, chain.last_message.content}
     rescue
