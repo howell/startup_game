@@ -50,6 +50,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
     For example: "This is line one.\\nThis is line two."
 
+    IMPORTANT: Your response should be a single JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
+
     The situation should describe the scenario in detail and end with an open-ended question
     about what the player wants to do, without providing explicit options.
     """
@@ -94,6 +96,8 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     }
     IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
     For example: "This is line one.\\nThis is line two."
+
+    IMPORTANT: Your response should be a single JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
 
     If there are no ownership changes, set "ownership_changes" to null.
     If there is no exit event, set "exit_type" to "none" and omit "exit_value".
