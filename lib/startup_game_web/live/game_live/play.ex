@@ -17,7 +17,7 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:temp_description, nil)
       |> assign(:game_id, nil)
       |> assign(:response, "")
-      |> assign(:provider_preference, "StartupGame.Engine.LLMScenarioProvider")
+      |> assign(:provider_preference, StartupGame.Engine.LLMScenarioProvider)
       |> assign(:rounds, [
         %Round{
           id: "temp_name_prompt",
@@ -144,7 +144,7 @@ defmodule StartupGameWeb.GameLive.Play do
            name,
            response,
            user,
-           String.to_existing_atom(provider)
+           provider
          ) do
       {:ok, %{game: game, game_state: game_state}} ->
         socket =
@@ -211,6 +211,8 @@ defmodule StartupGameWeb.GameLive.Play do
   @impl true
   def handle_event("set_provider", %{"provider" => provider}, socket) do
     # For game creation, just store the preference in the socket
+    provider = String.to_existing_atom(provider)
+
     {:noreply,
      socket
      |> assign(:provider_preference, provider)
@@ -241,7 +243,7 @@ defmodule StartupGameWeb.GameLive.Play do
     |> assign(:temp_description, nil)
     |> assign(:game_id, nil)
     |> assign(:response, "")
-    |> assign(:provider_preference, "StartupGame.Engine.LLMScenarioProvider")
+    |> assign(:provider_preference, StartupGame.Engine.LLMScenarioProvider)
     |> assign(:rounds, [
       %Round{
         id: "temp_name_prompt",

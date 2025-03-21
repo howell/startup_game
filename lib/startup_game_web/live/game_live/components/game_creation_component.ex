@@ -14,7 +14,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :temp_name, :string, default: nil
   attr :rounds, :list, required: true
   attr :response, :string, default: ""
-  attr :provider_preference, :string, default: "StartupGame.Engine.LLMScenarioProvider"
+  attr :provider_preference, :atom, required: true
 
   def game_creation(assigns) do
     ~H"""

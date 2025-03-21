@@ -259,22 +259,14 @@ defmodule StartupGame.GameService do
   # Determines which scenario provider to use
   @spec determine_provider(Games.Game.t()) :: module()
   defp determine_provider(game) do
-    case Application.get_env(:startup_game, :env, Mix.env()) do
-      :prod ->
-        # In production, always use LLMScenarioProvider
+    case game.provider_preference do
+      nil ->
+        # Default to LLMScenarioProvider if no preference is set
         StartupGame.Engine.LLMScenarioProvider
 
-      _ ->
-        # In development, check if a provider preference is stored for this game
-        case game.provider_preference do
-          nil ->
-            # Default to LLMScenarioProvider if no preference is set
-            StartupGame.Engine.LLMScenarioProvider
-
-          provider when is_binary(provider) ->
-            # Convert the string to a module atom
-            String.to_existing_atom(provider)
-        end
+      provider when is_binary(provider) ->
+        # Convert the string to a module atom
+        String.to_existing_atom(provider)
     end
   end
 
