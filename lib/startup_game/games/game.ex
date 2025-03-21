@@ -22,6 +22,7 @@ defmodule StartupGame.Games.Game do
     is_leaderboard_eligible: boolean(),
     exit_value: Decimal.t(),
     exit_type: :none | :acquisition | :ipo | :shutdown,
+    provider_preference: String.t() | nil,
     user_id: Ecto.UUID.t(),
     user: StartupGame.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
     rounds: [StartupGame.Games.Round.t()] | Ecto.Association.NotLoaded.t(),
@@ -41,6 +42,7 @@ defmodule StartupGame.Games.Game do
     field :is_leaderboard_eligible, :boolean, default: false
     field :exit_value, :decimal, default: 0
     field :exit_type, Ecto.Enum, values: [:none, :acquisition, :ipo, :shutdown], default: :none
+    field :provider_preference, :string
 
     belongs_to :user, StartupGame.Accounts.User
     has_many :rounds, StartupGame.Games.Round
@@ -53,7 +55,7 @@ defmodule StartupGame.Games.Game do
   @doc false
   def changeset(game, attrs) do
     game
-    |> cast(attrs, [:name, :description, :status, :cash_on_hand, :burn_rate, :is_public, :is_leaderboard_eligible, :exit_value, :exit_type, :user_id])
+    |> cast(attrs, [:name, :description, :status, :cash_on_hand, :burn_rate, :is_public, :is_leaderboard_eligible, :exit_value, :exit_type, :user_id, :provider_preference])
     |> validate_required([:name, :description, :cash_on_hand, :burn_rate, :user_id])
   end
 end

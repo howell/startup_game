@@ -186,6 +186,20 @@ defmodule StartupGame.Games do
   end
 
   @doc """
+  Updates a game's scenario provider preference.
+
+  ## Examples
+
+      iex> update_provider_preference(game, "StartupGame.Engine.LLMScenarioProvider")
+      {:ok, %Game{}}
+
+  """
+  @spec update_provider_preference(Game.t(), String.t()) :: {:ok, Game.t()} | {:error, Ecto.Changeset.t()}
+  def update_provider_preference(%Game{} = game, provider) when is_binary(provider) do
+    update_game(game, %{provider_preference: provider})
+  end
+
+  @doc """
   Deletes a game.
 
   ## Examples
