@@ -4,34 +4,12 @@ defmodule StartupGameWeb.GameLive.Play do
   alias StartupGame.GameService
   alias StartupGame.Games
   alias StartupGame.Games.Round
-
-  @impl true
-  def mount(%{"id" => id}, _session, socket) do
-    case GameService.load_game(id) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        socket =
-          socket
-          |> assign(:game, game)
-          |> assign(:game_state, game_state)
-          |> assign(:game_id, id)
-          |> assign(:response, "")
-          |> assign(:rounds, Games.list_game_rounds(id))
-          |> assign(:ownerships, Games.list_game_ownerships(id))
-          |> assign(:creation_stage, :playing)
-
-        {:ok, socket, temporary_assigns: [rounds: []]}
-
-      {:error, _reason} ->
-        {:ok,
-         socket
-         |> put_flash(:error, "Game not found")
-         |> redirect(to: ~p"/games")}
-    end
-  end
+  alias StartupGameWeb.GameLive.Components.GameCreationComponent
+  alias StartupGameWeb.GameLive.Components.GamePlayComponent
 
   @impl true
   def mount(_params, _session, socket) do
-    # New game case - setup for creation process
+    # Initial mount - will be refined by handle_params
     socket =
       socket
       |> assign(:creation_stage, :name_input)
@@ -50,6 +28,70 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:ownerships, [])
 
     {:ok, socket, temporary_assigns: [rounds: []]}
+  end
+
+  @impl true
+  def handle_params(%{"id" => id}, _uri, socket) do
+    # Handle route with ID parameter
+    case GameService.load_game(id) do
+      {:ok, %{game: game, game_state: game_state}} ->
+        socket =
+          socket
+          |> assign(:game, game)
+          |> assign(:game_state, game_state)
+          |> assign(:game_id, id)
+          |> assign(:response, "")
+          |> assign(:rounds, Games.list_game_rounds(id))
+          |> assign(:ownerships, Games.list_game_ownerships(id))
+          |> assign(:creation_stage, :playing)
+
+        {:noreply, socket}
+
+      {:error, _reason} ->
+        {:noreply,
+         socket
+         |> put_flash(:error, "Game not found")
+         |> redirect(to: ~p"/games")}
+    end
+  end
+
+  @impl true
+  def handle_params(%{"game_id" => game_id}, _uri, socket) when game_id != "" do
+    # Handle URL with game_id query parameter
+    case GameService.load_game(game_id) do
+      {:ok, %{game: game, game_state: game_state}} ->
+        socket =
+          socket
+          |> assign(:game, game)
+          |> assign(:game_state, game_state)
+          |> assign(:game_id, game_id)
+          |> assign(:response, "")
+          |> assign(:rounds, Games.list_game_rounds(game_id))
+          |> assign(:ownerships, Games.list_game_ownerships(game_id))
+          |> assign(:creation_stage, :playing)
+
+        {:noreply, socket}
+
+      {:error, _reason} ->
+        # If game not found, reset to name input state
+        {:noreply,
+         socket
+         |> put_flash(:error, "Game not found")
+         |> reset_to_name_input()}
+    end
+  end
+
+  @impl true
+  def handle_params(_params, _uri, socket) do
+    # No game_id parameter or empty parameter
+    # If we already have a game loaded (i.e., not in name/description input stage),
+    # keep that state; otherwise, stay in name input stage
+    if socket.assigns.creation_stage in [:name_input, :description_input] or socket.assigns.game_id == nil do
+      {:noreply, socket}
+    else
+      # We have a game but no game_id in URL - keep the game
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -108,7 +150,8 @@ defmodule StartupGameWeb.GameLive.Play do
           |> assign(:ownerships, Games.list_game_ownerships(game.id))
           |> put_flash(:info, "Started new venture: #{game.name}")
 
-        {:noreply, socket}
+        # Update the URL to include the game ID without a full page navigation
+        {:noreply, push_patch(socket, to: ~p"/games/play?game_id=#{game.id}", replace: true)}
 
       {:error, %Ecto.Changeset{} = _changeset} ->
         {:noreply,
@@ -157,42 +200,47 @@ defmodule StartupGameWeb.GameLive.Play do
     {:noreply, socket}
   end
 
-  # Helper functions for formatting display values
-  defp format_money(value) do
-    value
-    |> Decimal.to_float()
-    |> :erlang.float_to_binary(decimals: 2)
+  # Helper to reset to name input state
+  defp reset_to_name_input(socket) do
+    socket
+    |> assign(:creation_stage, :name_input)
+    |> assign(:temp_name, nil)
+    |> assign(:temp_description, nil)
+    |> assign(:game_id, nil)
+    |> assign(:response, "")
+    |> assign(:rounds, [
+      %Round{
+        id: "temp_name_prompt",
+        situation: "What would you like to name your company?",
+        inserted_at: DateTime.utc_now(),
+        updated_at: DateTime.utc_now()
+      }
+    ])
+    |> assign(:ownerships, [])
   end
 
-  defp format_percentage(value) do
-    value
-    |> Decimal.to_float()
-    |> :erlang.float_to_binary(decimals: 1)
-  end
-
-  defp format_runway(value) do
-    value
-    |> Decimal.to_float()
-    |> :erlang.float_to_binary(decimals: 1)
-  end
-
-  defp game_end_status(%{status: :completed, exit_type: :acquisition}), do: "Acquired!"
-  defp game_end_status(%{status: :completed, exit_type: :ipo}), do: "IPO Successful!"
-  defp game_end_status(%{status: :failed}), do: "Failed"
-
-  defp game_end_message(%{status: :completed, exit_type: :acquisition, exit_value: value}) do
-    "Congratulations! Your company was acquired for $#{format_money(value)}."
-  end
-
-  defp game_end_message(%{status: :completed, exit_type: :ipo, exit_value: value}) do
-    "Congratulations! Your company went public with a valuation of $#{format_money(value)}."
-  end
-
-  defp game_end_message(%{status: :failed, exit_type: :shutdown}) do
-    "Unfortunately, your startup ran out of money and had to shut down."
-  end
-
-  defp game_end_message(_game) do
-    "Your startup journey has ended."
+  @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="container mx-auto p-4 max-w-6xl">
+      <%= case @creation_stage do %>
+        <% stage when stage in [:name_input, :description_input] -> %>
+          <GameCreationComponent.game_creation
+            creation_stage={@creation_stage}
+            temp_name={@temp_name}
+            rounds={@rounds}
+            response={@response}
+          />
+        <% :playing -> %>
+          <GamePlayComponent.game_play
+            game={@game}
+            game_state={@game_state}
+            rounds={@rounds}
+            ownerships={@ownerships}
+            response={@response}
+          />
+      <% end %>
+    </div>
+    """
   end
 end
