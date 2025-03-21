@@ -57,32 +57,6 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
-  def handle_params(%{"game_id" => game_id}, _uri, socket) when game_id != "" do
-    # Handle URL with game_id query parameter
-    case GameService.load_game(game_id) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        socket =
-          socket
-          |> assign(:game, game)
-          |> assign(:game_state, game_state)
-          |> assign(:game_id, game_id)
-          |> assign(:response, "")
-          |> assign(:rounds, Games.list_game_rounds(game_id))
-          |> assign(:ownerships, Games.list_game_ownerships(game_id))
-          |> assign(:creation_stage, :playing)
-
-        {:noreply, socket}
-
-      {:error, _reason} ->
-        # If game not found, reset to name input state
-        {:noreply,
-         socket
-         |> put_flash(:error, "Game not found")
-         |> reset_to_name_input()}
-    end
-  end
-
-  @impl true
   def handle_params(_params, _uri, socket) do
     # No game_id parameter or empty parameter
     # If we already have a game loaded (i.e., not in name/description input stage),
