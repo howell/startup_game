@@ -3,7 +3,11 @@
 <div class="bg-white">
   <!-- Hero section -->
   <div class="relative overflow-hidden">
-    <div class="absolute inset-y-0 w-full h-full bg-gradient-to-r from-blue-50 to-indigo-50" aria-hidden="true"></div>
+    <div
+      class="absolute inset-y-0 w-full h-full bg-gradient-to-r from-blue-50 to-indigo-50"
+      aria-hidden="true"
+    >
+    </div>
     <div class="relative pt-6 pb-16 sm:pb-24">
       <main class="mt-16 sm:mt-24">
         <div class="mx-auto max-w-7xl">
@@ -21,7 +25,7 @@
                   <%= if @current_user do %>
                     <div class="space-y-4 sm:flex sm:space-y-0 sm:space-x-4">
                       <.link
-                        navigate={~p"/games/new"}
+                        navigate={~p"/games/play"}
                         class="inline-flex w-full items-center justify-center rounded-md border border-transparent bg-blue-600 px-5 py-3 text-base font-medium text-white hover:bg-blue-700 sm:w-auto"
                       >
                         Start New Venture
@@ -58,21 +62,48 @@
                   <div class="relative">
                     <div class="relative h-80 overflow-hidden rounded-lg">
                       <!-- Illustration of startup/business concept -->
-                      <svg class="absolute inset-0 h-full w-full text-gray-200" fill="currentColor" viewBox="0 0 600 400">
+                      <svg
+                        class="absolute inset-0 h-full w-full text-gray-200"
+                        fill="currentColor"
+                        viewBox="0 0 600 400"
+                      >
                         <!-- Simple graphic representation of business growth -->
                         <path d="M0 350h600v50H0z" />
-                        <path d="M50 250l100 50 150-100 150 50 100-50v150H50z" fill="white" stroke="#d1d5db" stroke-width="2" />
-                        <path d="M50 250l100 50 150-100 150 50 100-50" fill="none" stroke="#3b82f6" stroke-width="4" stroke-linecap="round" stroke-linejoin="round" />
+                        <path
+                          d="M50 250l100 50 150-100 150 50 100-50v150H50z"
+                          fill="white"
+                          stroke="#d1d5db"
+                          stroke-width="2"
+                        />
+                        <path
+                          d="M50 250l100 50 150-100 150 50 100-50"
+                          fill="none"
+                          stroke="#3b82f6"
+                          stroke-width="4"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                        />
                         <circle cx="50" cy="250" r="6" fill="#3b82f6" />
                         <circle cx="150" cy="300" r="6" fill="#3b82f6" />
                         <circle cx="300" cy="200" r="6" fill="#3b82f6" />
                         <circle cx="450" cy="250" r="6" fill="#3b82f6" />
                         <circle cx="550" cy="200" r="6" fill="#3b82f6" />
                         <!-- Building/company icon -->
-                        <rect x="200" y="150" width="200" height="100" rx="2" fill="#1e40af" opacity="0.1" />
+                        <rect
+                          x="200"
+                          y="150"
+                          width="200"
+                          height="100"
+                          rx="2"
+                          fill="#1e40af"
+                          opacity="0.1"
+                        />
                         <path d="M275 120v30M325 120v30" stroke="#1e40af" stroke-width="2" />
                         <path d="M250 150h100v100H250z" fill="#1e40af" opacity="0.2" />
-                        <path d="M270 180h20v20h-20zM310 180h20v20h-20zM270 220h20v20h-20zM310 220h20v20h-20z" fill="white" />
+                        <path
+                          d="M270 180h20v20h-20zM310 180h20v20h-20zM270 220h20v20h-20zM310 220h20v20h-20z"
+                          fill="white"
+                        />
                       </svg>
                     </div>
                   </div>
@@ -84,12 +115,14 @@
       </main>
     </div>
   </div>
-
-  <!-- How it works section -->
+  
+<!-- How it works section -->
   <div class="bg-white py-16 sm:py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="lg:text-center">
-        <h2 class="text-base font-semibold uppercase tracking-wide text-blue-600">How It Works</h2>
+        <h2 class="text-base font-semibold uppercase tracking-wide text-blue-600">
+          How It Works
+        </h2>
         <p class="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
           Build Your Startup Empire
         </p>
@@ -112,21 +145,23 @@
               Name your company and define your business idea. Every startup begins with a vision.
             </dd>
           </div>
-
-          <!-- Step 2 -->
+          
+<!-- Step 2 -->
           <div class="relative">
             <dt>
               <div class="absolute flex h-12 w-12 items-center justify-center rounded-md bg-blue-600 text-white">
                 <span class="text-lg font-bold">2</span>
               </div>
-              <p class="ml-16 text-lg font-medium leading-6 text-gray-900">Make Critical Decisions</p>
+              <p class="ml-16 text-lg font-medium leading-6 text-gray-900">
+                Make Critical Decisions
+              </p>
             </dt>
             <dd class="mt-2 ml-16 text-base text-gray-500">
               Respond to business scenarios presented by your co-founder. Each decision shapes your company's future.
             </dd>
           </div>
-
-          <!-- Step 3 -->
+          
+<!-- Step 3 -->
           <div class="relative">
             <dt>
               <div class="absolute flex h-12 w-12 items-center justify-center rounded-md bg-blue-600 text-white">
@@ -142,8 +177,8 @@
       </div>
     </div>
   </div>
-
-  <!-- Features section -->
+  
+<!-- Features section -->
   <div class="bg-gray-50 py-16 sm:py-24">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="lg:text-center">
@@ -159,8 +194,18 @@
           <div class="flex flex-col bg-white overflow-hidden shadow rounded-lg">
             <div class="px-6 py-8 h-full flex-1">
               <div class="flex items-center">
-                <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                <svg
+                  class="h-8 w-8 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
                 </svg>
                 <h3 class="ml-3 text-lg font-medium text-gray-900">Financial Tracking</h3>
               </div>
@@ -169,13 +214,23 @@
               </p>
             </div>
           </div>
-
-          <!-- Feature 2 -->
+          
+<!-- Feature 2 -->
           <div class="flex flex-col bg-white overflow-hidden shadow rounded-lg">
             <div class="px-6 py-8 h-full flex-1">
               <div class="flex items-center">
-                <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  class="h-8 w-8 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
                 <h3 class="ml-3 text-lg font-medium text-gray-900">Scenario-Based Gameplay</h3>
               </div>
@@ -184,13 +239,23 @@
               </p>
             </div>
           </div>
-
-          <!-- Feature 3 -->
+          
+<!-- Feature 3 -->
           <div class="flex flex-col bg-white overflow-hidden shadow rounded-lg">
             <div class="px-6 py-8 h-full flex-1">
               <div class="flex items-center">
-                <svg class="h-8 w-8 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                <svg
+                  class="h-8 w-8 text-blue-600"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                >
+                  <path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M16 8v8m-4-5v5m-4-2v2m-2 4h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                  />
                 </svg>
                 <h3 class="ml-3 text-lg font-medium text-gray-900">Ownership Management</h3>
               </div>
@@ -203,8 +268,8 @@
       </div>
     </div>
   </div>
-
-  <!-- CTA Section -->
+  
+<!-- CTA Section -->
   <div class="bg-white">
     <div class="mx-auto max-w-7xl py-12 px-4 sm:px-6 lg:py-16 lg:px-8 lg:flex lg:items-center lg:justify-between">
       <h2 class="text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
@@ -215,7 +280,7 @@
         <%= if @current_user do %>
           <div class="inline-flex rounded-md shadow">
             <.link
-              navigate={~p"/games/new"}
+              navigate={~p"/games/play"}
               class="inline-flex items-center justify-center px-5 py-3 border border-transparent text-base font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
             >
               Launch Your Startup

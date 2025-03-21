@@ -26,7 +26,7 @@ defmodule StartupGameWeb.GameLive.New do
         {:noreply,
          socket
          |> put_flash(:info, "Started new venture: #{game.name}")
-         |> redirect(to: ~p"/games/#{game.id}")}
+         |> redirect(to: ~p"/games/play/#{game.id}")}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign(socket, :changeset, changeset)}

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="csrf-token" content={get_csrf_token()} />
     <.live_title suffix=" · Startup Game">
-      <%= assigns[:page_title] || "StartupGame" %>
+      {assigns[:page_title] || "StartupGame"}
     </.live_title>
     <link phx-track-static rel="stylesheet" href={~p"/assets/app.css"} />
     <script defer phx-track-static type="text/javascript" src={~p"/assets/app.js"}>
@@ -19,16 +19,39 @@
           <!-- Logo and brand -->
           <div class="flex items-center">
             <a href="/" class="flex items-center">
-              <svg class="h-8 w-8 text-blue-600" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              <svg
+                class="h-8 w-8 text-blue-600"
+                viewBox="0 0 24 24"
+                fill="none"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path
+                  d="M12 2L2 7L12 12L22 7L12 2Z"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M2 17L12 22L22 17"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
+                <path
+                  d="M2 12L12 17L22 12"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                />
               </svg>
               <span class="ml-2 text-xl font-bold text-gray-900">Startup Game</span>
             </a>
           </div>
           
-          <!-- Main Navigation Links (only show if user is logged in) -->
+<!-- Main Navigation Links (only show if user is logged in) -->
           <%= if @current_user do %>
             <div class="hidden md:flex md:items-center md:space-x-6">
               <.link
@@ -44,7 +67,7 @@
                 My Games
               </.link>
               <.link
-                navigate={~p"/games/new"}
+                navigate={~p"/games/play"}
                 class="text-gray-700 hover:text-blue-600 px-3 py-2 text-sm font-medium"
               >
                 New Game
@@ -52,7 +75,7 @@
             </div>
           <% end %>
           
-          <!-- User menu -->
+<!-- User menu -->
           <div class="flex items-center">
             <%= if @current_user do %>
               <div class="relative ml-3">
@@ -93,17 +116,31 @@
             <% end %>
           </div>
           
-          <!-- Mobile menu button -->
+<!-- Mobile menu button -->
           <div class="md:hidden">
-            <button type="button" class="mobile-menu-button rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600">
-              <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" aria-hidden="true">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
+            <button
+              type="button"
+              class="mobile-menu-button rounded-md p-2 text-gray-500 hover:bg-gray-100 hover:text-gray-600"
+            >
+              <svg
+                class="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke-width="1.5"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5"
+                />
               </svg>
             </button>
           </div>
         </div>
         
-        <!-- Mobile menu, hidden by default -->
+<!-- Mobile menu, hidden by default -->
         <div class="mobile-menu hidden md:hidden">
           <div class="space-y-1 px-2 pb-3 pt-2">
             <%= if @current_user do %>
@@ -120,7 +157,7 @@
                 My Games
               </.link>
               <.link
-                navigate={~p"/games/new"}
+                navigate={~p"/games/play"}
                 class="block rounded-md px-3 py-2 text-base font-medium text-gray-700 hover:bg-gray-50 hover:text-blue-600"
               >
                 New Game
@@ -131,13 +168,13 @@
       </nav>
     </header>
     
-    <!-- Page content -->
+<!-- Page content -->
     <main>
-      <%= @inner_content %>
+      {@inner_content}
     </main>
   </body>
   
-  <!-- Add a simple script to handle mobile menu toggle -->
+<!-- Add a simple script to handle mobile menu toggle -->
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const button = document.querySelector('.mobile-menu-button');

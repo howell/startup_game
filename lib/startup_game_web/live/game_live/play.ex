@@ -151,7 +151,7 @@ defmodule StartupGameWeb.GameLive.Play do
           |> put_flash(:info, "Started new venture: #{game.name}")
 
         # Update the URL to include the game ID without a full page navigation
-        {:noreply, push_patch(socket, to: ~p"/games/play?game_id=#{game.id}", replace: true)}
+        {:noreply, push_patch(socket, to: ~p"/games/play/#{game.id}", replace: true)}
 
       {:error, %Ecto.Changeset{} = _changeset} ->
         {:noreply,
