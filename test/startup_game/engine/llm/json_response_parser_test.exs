@@ -98,7 +98,6 @@ defmodule StartupGame.Engine.LLM.JSONResponseParserTest do
       Let me know if you need any clarification!
       """
 
-      IO.puts("\n\nStarting Failing Test")
       assert {:ok, scenario} = JSONResponseParser.parse_scenario(json)
       assert %Scenario{} = scenario
       assert scenario.id == "test_scenario_789"
