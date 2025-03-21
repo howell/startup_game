@@ -19,3 +19,6 @@ config :logger, level: :info
 
 # Runtime production configuration, including reading
 # of environment variables, is done on config/runtime.exs.
+
+# Set the environment to prod
+config :startup_game, env: :prod

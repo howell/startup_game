@@ -5,6 +5,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   use StartupGameWeb, :html
   alias StartupGameWeb.GameLive.Components.Shared.ChatHistory
   alias StartupGameWeb.GameLive.Components.Shared.ResponseForm
+  alias StartupGameWeb.GameLive.Components.Shared.ProviderSelector
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
   alias StartupGame.Games
 
@@ -38,10 +39,10 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
         <% else %>
           <div class="bg-white rounded-lg shadow-md p-4 text-center">
             <p class="text-xl font-semibold mb-3">
-              Game <%= GameFormatters.game_end_status(@game) %>
+              Game {GameFormatters.game_end_status(@game)}
             </p>
             <p class="text-gray-600 mb-4">
-              <%= GameFormatters.game_end_message(@game) %>
+              {GameFormatters.game_end_message(@game)}
             </p>
             <.link
               navigate={~p"/games"}
@@ -52,8 +53,8 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           </div>
         <% end %>
       </div>
-
-      <!-- Status panel -->
+      
+    <!-- Status panel -->
       <div class="w-full md:w-80 order-1 md:order-2">
         <div class="bg-white rounded-lg shadow-md p-4 mb-4">
           <h2 class="text-lg font-semibold mb-3">Company Finances</h2>
@@ -62,21 +63,21 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
             <div>
               <p class="text-sm text-gray-500">Cash on Hand</p>
               <p class="text-2xl font-bold">
-                $<%= GameFormatters.format_money(@game.cash_on_hand) %>
+                ${GameFormatters.format_money(@game.cash_on_hand)}
               </p>
             </div>
 
             <div>
               <p class="text-sm text-gray-500">Monthly Burn Rate</p>
               <p class="text-xl font-semibold">
-                $<%= GameFormatters.format_money(@game.burn_rate) %>/month
+                ${GameFormatters.format_money(@game.burn_rate)}/month
               </p>
             </div>
 
             <div>
               <p class="text-sm text-gray-500">Runway</p>
               <p class="text-xl font-semibold">
-                <%= GameFormatters.format_runway(Games.calculate_runway(@game)) %> months
+                {GameFormatters.format_runway(Games.calculate_runway(@game))} months
               </p>
             </div>
 
@@ -84,12 +85,14 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
               <div>
                 <p class="text-sm text-gray-500">Exit Value</p>
                 <p class="text-2xl font-bold text-green-600">
-                  $<%= GameFormatters.format_money(@game.exit_value) %>
+                  ${GameFormatters.format_money(@game.exit_value)}
                 </p>
               </div>
             <% end %>
           </div>
         </div>
+
+        <ProviderSelector.provider_selector game={@game} />
 
         <div class="bg-white rounded-lg shadow-md p-4">
           <h2 class="text-lg font-semibold mb-3">Ownership Structure</h2>
@@ -97,8 +100,10 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           <div class="space-y-2">
             <%= for ownership <- @ownerships do %>
               <div class="flex justify-between items-center">
-                <span><%= ownership.entity_name %></span>
-                <span class="font-semibold"><%= GameFormatters.format_percentage(ownership.percentage) %>%</span>
+                <span>{ownership.entity_name}</span>
+                <span class="font-semibold">
+                  {GameFormatters.format_percentage(ownership.percentage)}%
+                </span>
               </div>
               <div class="w-full bg-gray-200 rounded-full h-2">
                 <div

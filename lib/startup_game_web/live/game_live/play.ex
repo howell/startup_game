@@ -17,6 +17,7 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:temp_description, nil)
       |> assign(:game_id, nil)
       |> assign(:response, "")
+      |> assign(:provider_preference, "StartupGame.Engine.LLMScenarioProvider")
       |> assign(:rounds, [
         %Round{
           id: "temp_name_prompt",
@@ -86,7 +87,8 @@ defmodule StartupGameWeb.GameLive.Play do
     # No game_id parameter or empty parameter
     # If we already have a game loaded (i.e., not in name/description input stage),
     # keep that state; otherwise, stay in name input stage
-    if socket.assigns.creation_stage in [:name_input, :description_input] or socket.assigns.game_id == nil do
+    if socket.assigns.creation_stage in [:name_input, :description_input] or
+         socket.assigns.game_id == nil do
       {:noreply, socket}
     else
       # We have a game but no game_id in URL - keep the game
@@ -136,8 +138,14 @@ defmodule StartupGameWeb.GameLive.Play do
     # Create the game with the collected name and description
     user = socket.assigns.current_user
     name = socket.assigns.temp_name
+    provider = socket.assigns.provider_preference
 
-    case GameService.create_and_start_game(name, response, user) do
+    case GameService.create_and_start_game(
+           name,
+           response,
+           user,
+           String.to_existing_atom(provider)
+         ) do
       {:ok, %{game: game, game_state: game_state}} ->
         socket =
           socket
@@ -200,6 +208,31 @@ defmodule StartupGameWeb.GameLive.Play do
     {:noreply, socket}
   end
 
+  @impl true
+  def handle_event("set_provider", %{"provider" => provider}, socket) do
+    # For game creation, just store the preference in the socket
+    {:noreply,
+     socket
+     |> assign(:provider_preference, provider)
+     |> put_flash(:info, "Scenario provider set to #{provider}")}
+  end
+
+  @impl true
+  def handle_event("change_provider", %{"provider" => provider}, socket) do
+    game = socket.assigns.game
+
+    case StartupGame.Games.update_provider_preference(game, provider) do
+      {:ok, updated_game} ->
+        {:noreply,
+         socket
+         |> assign(:game, updated_game)
+         |> put_flash(:info, "Scenario provider updated to #{provider}")}
+
+      {:error, _reason} ->
+        {:noreply, socket |> put_flash(:error, "Failed to update scenario provider")}
+    end
+  end
+
   # Helper to reset to name input state
   defp reset_to_name_input(socket) do
     socket
@@ -208,6 +241,7 @@ defmodule StartupGameWeb.GameLive.Play do
     |> assign(:temp_description, nil)
     |> assign(:game_id, nil)
     |> assign(:response, "")
+    |> assign(:provider_preference, "StartupGame.Engine.LLMScenarioProvider")
     |> assign(:rounds, [
       %Round{
         id: "temp_name_prompt",
@@ -230,6 +264,7 @@ defmodule StartupGameWeb.GameLive.Play do
             temp_name={@temp_name}
             rounds={@rounds}
             response={@response}
+            provider_preference={@provider_preference}
           />
         <% :playing -> %>
           <GamePlayComponent.game_play

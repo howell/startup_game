@@ -42,13 +42,22 @@ defmodule StartupGame.GameService do
         }
       end
 
+    # Store provider preference as string
+    provider_preference =
+      if provider do
+        Atom.to_string(provider)
+      else
+        nil
+      end
+
     # Persist to database
     case Games.create_new_game(
            %{
              name: name,
              description: description,
              cash_on_hand: game_state.cash_on_hand,
-             burn_rate: game_state.burn_rate
+             burn_rate: game_state.burn_rate,
+             provider_preference: provider_preference
            },
            user
          ) do
@@ -249,10 +258,24 @@ defmodule StartupGame.GameService do
 
   # Determines which scenario provider to use
   @spec determine_provider(Games.Game.t()) :: module()
-  defp determine_provider(_game) do
-    # Logic to determine which provider to use
-    # Could be stored in the database or determined by game type
-    StartupGame.Engine.Demo.StaticScenarioProvider
+  defp determine_provider(game) do
+    case Application.get_env(:startup_game, :env, Mix.env()) do
+      :prod ->
+        # In production, always use LLMScenarioProvider
+        StartupGame.Engine.LLMScenarioProvider
+
+      _ ->
+        # In development, check if a provider preference is stored for this game
+        case game.provider_preference do
+          nil ->
+            # Default to LLMScenarioProvider if no preference is set
+            StartupGame.Engine.LLMScenarioProvider
+
+          provider when is_binary(provider) ->
+            # Convert the string to a module atom
+            String.to_existing_atom(provider)
+        end
+    end
   end
 
   # Save info from the lastest round to the database

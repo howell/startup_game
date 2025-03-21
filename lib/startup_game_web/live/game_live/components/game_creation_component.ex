@@ -5,6 +5,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   use StartupGameWeb, :html
   alias StartupGameWeb.GameLive.Components.Shared.ChatHistory
   alias StartupGameWeb.GameLive.Components.Shared.ResponseForm
+  alias StartupGameWeb.GameLive.Components.Shared.ProviderSelector
 
   @doc """
   Renders the game creation interface for collecting company name and description.
@@ -13,6 +14,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :temp_name, :string, default: nil
   attr :rounds, :list, required: true
   attr :response, :string, default: ""
+  attr :provider_preference, :string, default: "StartupGame.Engine.LLMScenarioProvider"
 
   def game_creation(assigns) do
     ~H"""
@@ -40,8 +42,8 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
           value={@response}
         />
       </div>
-
-      <!-- Info panel -->
+      
+    <!-- Info panel -->
       <div class="w-full md:w-80 order-1 md:order-2">
         <div class="bg-white rounded-lg shadow-md p-4 mb-4">
           <h2 class="text-lg font-semibold mb-3">Getting Started</h2>
@@ -50,11 +52,16 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
               <%= if @creation_stage == :name_input do %>
                 First, let's give your startup a name. What would you like to call your company?
               <% else %>
-                Now, tell us what <%= @temp_name %> does. Provide a brief description of your startup's mission and product.
+                Now, tell us what {@temp_name} does. Provide a brief description of your startup's mission and product.
               <% end %>
             </p>
           </div>
         </div>
+
+        <ProviderSelector.provider_selector
+          provider_preference={@provider_preference}
+          creation_mode={true}
+        />
 
         <div class="bg-white rounded-lg shadow-md p-4">
           <h2 class="text-lg font-semibold mb-3">Startup Journey</h2>
