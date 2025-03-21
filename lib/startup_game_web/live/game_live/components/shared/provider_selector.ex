@@ -28,11 +28,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ProviderSelector do
       }
     ]
 
-  require Logger
-
   def provider_selector(assigns) do
-    Logger.debug("Provider Selector assigns: #{inspect(assigns)}")
-
     ~H"""
     <%= if Application.get_env(:startup_game, :env, Mix.env()) != :prod do %>
       <div class="bg-white rounded-lg shadow-md p-4 mb-4">
