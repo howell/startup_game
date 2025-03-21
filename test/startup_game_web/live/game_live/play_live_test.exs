@@ -30,6 +30,65 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     end
   end
 
+  describe "Play LiveView - game creation" do
+    setup :register_and_log_in_user
+
+    test "submitting a company name transitions to description input", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/games/play")
+
+      # Initial state should be name input
+      assert render(view) =~ "What would you like to name your company?"
+      refute render(view) =~ "Please provide a brief description"
+
+      # Submit a company name
+      view
+      |> form("form[phx-submit='submit_response']", %{response: "Test Company"})
+      |> render_submit()
+
+      # Should transition to description input
+      assert render(view) =~ "Please provide a brief description of what Test Company does"
+      assert render(view) =~ "Test Company"
+    end
+
+    test "submitting a company description creates a new game", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/games/play")
+
+      # Submit company name
+      view
+      |> form("form[phx-submit='submit_response']", %{response: "Test Company"})
+      |> render_submit()
+
+      # Submit company description
+      rendered =
+        view
+        |> form("form[phx-submit='submit_response']", %{response: "A test company description"})
+        |> render_submit()
+
+      path = assert_patch(view)
+      assert path =~ ~r|games/play/.*|
+      # Should create a game and show success message
+      assert rendered =~ "Started new venture: Test Company"
+    end
+
+    test "can set provider preference during game creation", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/games/play")
+
+      # Check that provider selector is shown
+      assert render(view) =~ "Scenario Provider"
+
+      # Change the provider
+      view
+      |> form("form[phx-submit='set_provider']", %{
+        provider: "Elixir.StartupGame.Engine.Demo.StaticScenarioProvider"
+      })
+      |> render_submit()
+
+      # Should show confirmation message
+      assert render(view) =~
+               "Scenario provider set to Elixir.StartupGame.Engine.Demo.StaticScenarioProvider"
+    end
+  end
+
   describe "Play LiveView - game display" do
     setup :register_and_log_in_user
 
