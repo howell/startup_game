@@ -209,26 +209,6 @@ defmodule StartupGameWeb.GameLive.Play do
     end
   end
 
-  # Helper to reset to name input state
-  defp reset_to_name_input(socket) do
-    socket
-    |> assign(:creation_stage, :name_input)
-    |> assign(:temp_name, nil)
-    |> assign(:temp_description, nil)
-    |> assign(:game_id, nil)
-    |> assign(:response, "")
-    |> assign(:provider_preference, StartupGame.Engine.LLMScenarioProvider)
-    |> assign(:rounds, [
-      %Round{
-        id: "temp_name_prompt",
-        situation: "What would you like to name your company?",
-        inserted_at: DateTime.utc_now(),
-        updated_at: DateTime.utc_now()
-      }
-    ])
-    |> assign(:ownerships, [])
-  end
-
   @impl true
   def render(assigns) do
     ~H"""
