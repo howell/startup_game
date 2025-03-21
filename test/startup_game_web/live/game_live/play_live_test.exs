@@ -12,7 +12,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     test "renders game information when game exists", %{conn: conn, user: user} do
       game = game_fixture(%{name: "Test Game", description: "Test Description"}, user)
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Test Game"
       assert html =~ "Test Description"
@@ -26,7 +26,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       non_existent_id = "00000000-0000-0000-0000-000000000000"
 
       assert {:error, {:redirect, %{to: "/games", flash: %{"error" => "Game not found"}}}} =
-               live(conn, ~p"/games/#{non_existent_id}")
+               live(conn, ~p"/games/play/#{non_existent_id}")
     end
   end
 
@@ -37,7 +37,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       game = complete_game_fixture(%{}, user)
       rounds = Games.list_game_rounds(game.id)
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Check that all rounds are displayed
       for round <- rounds do
@@ -63,7 +63,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
           user
         )
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Cash on hand
       assert html =~ "$50000.00"
@@ -78,7 +78,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       ownership_fixture(game, %{entity_name: "Founder", percentage: Decimal.new("70.0")})
       ownership_fixture(game, %{entity_name: "Investor", percentage: Decimal.new("30.0")})
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Founder"
       assert html =~ "70.0%"
@@ -93,7 +93,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     test "shows input form for in-progress games", %{conn: conn, user: user} do
       game = game_fixture(%{status: :in_progress}, user)
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "How do you want to respond?"
       assert html =~ "Send Response"
@@ -110,7 +110,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
           user
         )
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Game Acquired!"
       assert html =~ "Congratulations! Your company was acquired for $2000000.00"
@@ -130,7 +130,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
           user
         )
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Game IPO Successful!"
       assert html =~ "Congratulations! Your company went public with a valuation of $5000000.00"
@@ -140,7 +140,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     test "shows failure end screen", %{conn: conn, user: user} do
       game = game_fixture_with_status(:failed, %{exit_type: :shutdown}, user)
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Game Failed"
       assert html =~ "Unfortunately, your startup ran out of money and had to shut down"
@@ -155,10 +155,10 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       game = game_fixture(%{start?: true}, user)
       assert length(Games.list_game_rounds(game.id)) == 1
 
-      {:ok, view, _html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       view
-      |> form("form", %{response: "accept"})
+      |> form("form[phx-submit='submit_response']", %{response: "accept"})
       |> render_submit()
 
       updated_rounds = Games.list_game_rounds(game.id)
@@ -171,11 +171,11 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       game = game_fixture(%{start?: true}, user)
       initial_rounds_count = length(Games.list_game_rounds(game.id))
 
-      {:ok, view, _html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Submit an empty response
       view
-      |> form("form", %{response: ""})
+      |> form("form[phx-submit='submit_response']", %{response: ""})
       |> render_submit()
 
       # Check that no new round was created
@@ -199,11 +199,11 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     #     {:error, expect_error_message}
     #   end)
     #
-    #   {:ok, view, _html} = live(conn, ~p"/games/#{game.id}")
+    #   {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
     #
     #   # Submit a response
     #   rendered = view
-    #   |> form("form", %{response: "This should cause an error"})
+    #   |> form("form[phx-submit='submit_response']", %{response: "This should cause an error"})
     #   |> render_submit()
     #
     #   # Check for error flash
@@ -228,7 +228,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
           user
         )
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Cash on hand
       assert html =~ "$12345.67"
@@ -240,7 +240,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       game = game_fixture(%{}, user)
       ownership_fixture(game, %{entity_name: "Test Entity", percentage: Decimal.new("12.34")})
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Percentage with one decimal place
       assert html =~ "12.3%"
@@ -256,7 +256,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
           user
         )
 
-      {:ok, _view, html} = live(conn, ~p"/games/#{game.id}")
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Runway (10000/3333.33 ≈ 3.0)
       assert html =~ "3.0"
