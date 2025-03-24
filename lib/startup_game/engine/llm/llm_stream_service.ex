@@ -85,9 +85,12 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
       Map.put(state, stream_id, %{
         game_id: game_id,
         stream_type: :scenario,
-        partial_content: "",       # Full content (includes JSON)
-        display_content: "",       # Only narrative part (for display)
-        in_json_part: false,       # Whether we're in the JSON part
+        # Full content (includes JSON)
+        partial_content: "",
+        # Only narrative part (for display)
+        display_content: "",
+        # Whether we're in the JSON part
+        in_json_part: false,
         scenario: nil,
         response_text: nil
       })
@@ -114,9 +117,12 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
       Map.put(state, stream_id, %{
         game_id: game_id,
         stream_type: :outcome,
-        partial_content: "",       # Full content (includes JSON)
-        display_content: "",       # Only narrative part (for display)
-        in_json_part: false,       # Whether we're in the JSON part
+        # Full content (includes JSON)
+        partial_content: "",
+        # Only narrative part (for display)
+        display_content: "",
+        # Whether we're in the JSON part
+        in_json_part: false,
         scenario: scenario,
         response_text: response_text
       })
@@ -158,56 +164,13 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
         {:noreply, state}
 
       stream_state ->
-        # Update the partial content (full content for JSON parsing)
-        updated_content = stream_state.partial_content <> delta_content
-
-        # Process which part this belongs to
-        {display_content, in_json_part} = process_delta_parts(
-          stream_state.display_content,
-          delta_content,
-          stream_state.in_json_part
-        )
-
-        # Update the stream state
-        updated_stream = %{
-          stream_state |
-          partial_content: updated_content,
-          display_content: display_content,
-          in_json_part: in_json_part
-        }
-
-        # Broadcast the delta (only narrative part changes)
-        cond do
-          !stream_state.in_json_part && !in_json_part ->
-            # Still in narrative part, broadcast the delta
-            StartupGameWeb.Endpoint.broadcast(
-              "llm_stream:#{stream_state.game_id}",
-              "llm_delta",
-              {:llm_delta, stream_id, delta_content, display_content}
-            )
-
-          !stream_state.in_json_part && in_json_part ->
-            # We just crossed into JSON part, broadcast one last update with just the narrative part
-            narrative_part = String.split(delta_content, "---JSON DATA---", parts: 2) |> hd()
-
-            if narrative_part != "" do
-              StartupGameWeb.Endpoint.broadcast(
-                "llm_stream:#{stream_state.game_id}",
-                "llm_delta",
-                {:llm_delta, stream_id, narrative_part, display_content}
-              )
-            end
-
-          true ->
-            # Already in JSON part, don't broadcast
-            :ok
-        end
-
-        # Update the state
-        {:noreply, Map.put(state, stream_id, updated_stream)}
+        # Process the delta and update state
+        updated_state = process_stream_delta(state, stream_id, stream_state, delta_content)
+        {:noreply, updated_state}
     end
   end
 
+  # Handle stream completion
   @impl true
   def handle_cast({:stream_complete, stream_id, full_content}, state) do
     # Retrieve the current stream state
@@ -233,6 +196,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     end
   end
 
+  # Handle stream errors
   @impl true
   def handle_cast({:stream_error, stream_id, error}, state) do
     # Retrieve the current stream state
@@ -252,6 +216,75 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
         # Remove this stream from state
         {:noreply, Map.delete(state, stream_id)}
+    end
+  end
+
+  # Process a stream delta and update the state
+  defp process_stream_delta(state, stream_id, stream_state, delta_content) do
+    # Update the partial content (full content for JSON parsing)
+    updated_content = stream_state.partial_content <> delta_content
+
+    # Process which part this belongs to
+    {display_content, in_json_part} =
+      process_delta_parts(
+        stream_state.display_content,
+        delta_content,
+        stream_state.in_json_part
+      )
+
+    # Update the stream state
+    updated_stream = %{
+      stream_state
+      | partial_content: updated_content,
+        display_content: display_content,
+        in_json_part: in_json_part
+    }
+
+    # Broadcast the delta if needed
+    broadcast_delta_if_needed(
+      stream_state,
+      stream_id,
+      delta_content,
+      display_content,
+      in_json_part
+    )
+
+    # Update the state
+    Map.put(state, stream_id, updated_stream)
+  end
+
+  # Broadcast delta based on which part we're in
+  defp broadcast_delta_if_needed(
+         stream_state,
+         stream_id,
+         delta_content,
+         display_content,
+         in_json_part
+       ) do
+    cond do
+      !stream_state.in_json_part && !in_json_part ->
+        # Still in narrative part, broadcast the delta
+        StartupGameWeb.Endpoint.broadcast(
+          "llm_stream:#{stream_state.game_id}",
+          "llm_delta",
+          {:llm_delta, stream_id, delta_content, display_content}
+        )
+
+      !stream_state.in_json_part && in_json_part ->
+        # We just crossed into JSON part, broadcast one last update with just the narrative part
+        narrative_part = String.split(delta_content, "---JSON DATA---", parts: 2) |> hd()
+
+        if narrative_part != "" do
+          StartupGameWeb.Endpoint.broadcast(
+            "llm_stream:#{stream_state.game_id}",
+            "llm_delta",
+            {:llm_delta, stream_id, narrative_part, display_content}
+          )
+        end
+
+      true ->
+        # Already in JSON part, don't broadcast
+        :ok
     end
   end
 

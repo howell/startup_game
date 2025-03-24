@@ -97,11 +97,11 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
 
       # Clean up mocks
       # :meck.unload(StartupGame.Engine.LLM.AnthropicAdapter)
-      :meck.unload(jsonresponseparser)
+      :meck.unload(JSONResponseParser)
     end
 
-    # @tag :skip
-    # @tag :external_api
+    @tag :skip
+    @tag :external_api
     test "integration test with real API (skipped by default)", %{game_id: game_id} do
       # This test actually hits the Anthropic API and should be skipped by default
       # To run this test, use: mix test --include external_api

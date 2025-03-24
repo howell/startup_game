@@ -33,22 +33,24 @@ defmodule StartupGame.Engine.LLM.MockAdapter do
     {:error, "Streaming not supported by the mock adapter"}
   end
 
-  # Generate a mock scenario response
+  # Generate a mock scenario response in two-part format
   defp generate_scenario_response do
     """
+    Your startup has been approached by a venture capital firm interested in investing $2 million for a 15% stake. They're impressed with your product but concerned about your current burn rate. How do you respond to their offer?
+    ---JSON DATA---
     {
       "id": "mock_scenario_123",
-      "type": "funding",
-      "situation": "Your startup has been approached by a venture capital firm interested in investing $2 million for a 15% stake. They're impressed with your product but concerned about your current burn rate. How do you respond to their offer?"
+      "type": "funding"
     }
     """
   end
 
-  # Generate a mock outcome response
+  # Generate a mock outcome response in two-part format
   defp generate_outcome_response do
     """
+    You successfully negotiate with the VC firm. After several meetings and due diligence, they agree to invest $2.5 million for a 12% stake, valuing your company at $20.8 million. This cash infusion will extend your runway by 18 months and allow you to hire key engineering talent.
+    ---JSON DATA---
     {
-      "text": "You successfully negotiate with the VC firm. After several meetings and due diligence, they agree to invest $2.5 million for a 12% stake, valuing your company at $20.8 million. This cash infusion will extend your runway by 18 months and allow you to hire key engineering talent.",
       "cash_change": 2500000,
       "burn_rate_change": 50000,
       "ownership_changes": [

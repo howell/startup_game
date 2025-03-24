@@ -8,11 +8,14 @@ defmodule StartupGame.Engine.LLM.MockAdapterTest do
       {:ok, response} = MockAdapter.generate_completion("system prompt", "user prompt", %{})
       assert is_binary(response)
 
-      # Parse the response to verify it's valid JSON
-      {:ok, parsed} = Jason.decode(response)
+      # Check that the response is in the two-part format
+      assert String.contains?(response, "---JSON DATA---")
+
+      # Extract and parse the JSON part
+      [_, json_part] = String.split(response, "---JSON DATA---", parts: 2)
+      {:ok, parsed} = Jason.decode(String.trim(json_part))
       assert Map.has_key?(parsed, "id")
       assert Map.has_key?(parsed, "type")
-      assert Map.has_key?(parsed, "situation")
     end
 
     test "returns an outcome response when specified" do
@@ -23,9 +26,12 @@ defmodule StartupGame.Engine.LLM.MockAdapterTest do
       )
       assert is_binary(response)
 
-      # Parse the response to verify it's valid JSON
-      {:ok, parsed} = Jason.decode(response)
-      assert Map.has_key?(parsed, "text")
+      # Check that the response is in the two-part format
+      assert String.contains?(response, "---JSON DATA---")
+
+      # Extract and parse the JSON part
+      [_, json_part] = String.split(response, "---JSON DATA---", parts: 2)
+      {:ok, parsed} = Jason.decode(String.trim(json_part))
       assert Map.has_key?(parsed, "cash_change")
       assert Map.has_key?(parsed, "burn_rate_change")
       assert Map.has_key?(parsed, "ownership_changes")
