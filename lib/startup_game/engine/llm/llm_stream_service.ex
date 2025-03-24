@@ -11,6 +11,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.LLM.JSONResponseParser
   alias StartupGame.Engine.LLM.ScenarioProviderCallback
+  alias StartupGame.Utils
 
   # Client API
 
@@ -91,6 +92,8 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
         display_content: "",
         # Whether we're in the JSON part
         in_json_part: false,
+        # Buffer for detecting split delimiters
+        delimiter_buffer: "",
         scenario: nil,
         response_text: nil
       })
@@ -123,6 +126,8 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
         display_content: "",
         # Whether we're in the JSON part
         in_json_part: false,
+        # Buffer for detecting split delimiters
+        delimiter_buffer: "",
         scenario: scenario,
         response_text: response_text
       })
@@ -136,22 +141,58 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     {:reply, {:ok, stream_id}, state}
   end
 
+  # Define the delimiter as a module attribute for consistency
+  @delimiter "---JSON DATA---"
+  # @delimiter_length String.length(@delimiter)
+  @delimiter_rx Utils.Regex.all_prefixes("---JSON DATA---", "$")
+
   # Helper function to process delta parts and track which part we're in
-  defp process_delta_parts(current_display_content, delta_content, in_json_part) do
-    # Check if this delta contains the delimiter
-    if String.contains?(delta_content, "---JSON DATA---") do
-      # Split at delimiter
-      [narrative_part, _] = String.split(delta_content, "---JSON DATA---", parts: 2)
-      {current_display_content <> narrative_part, true}
-    else
-      if in_json_part do
-        # We're already in JSON part, don't add to display content
-        {current_display_content, true}
-      else
-        # Still in narrative part
-        {current_display_content <> delta_content, false}
-      end
+  @doc """
+  Determine how much of the delta content definitely belongs to the narrative part vs JSON part.
+  Arguents:
+    - current_display_content: The current display content
+    - delta_content: The new delta content
+    - in_json_part: Whether we're already in the JSON part
+    - delimiter_buffer: Buffer for detecting split delimiters
+   Returns:
+    - Tuple containing new display content, whether we're in JSON part, and the updated buffer
+  """
+  @spec process_delta_parts(
+          String.t(),
+          boolean(),
+          String.t()
+        ) ::
+          {String.t(), boolean(), String.t()}
+  def process_delta_parts(delta_content, in_json_part, delimiter_buffer) do
+    # Update the buffer with new content, keeping only enough characters to detect the delimiter
+    updated_buffer = delimiter_buffer <> delta_content
+
+    cond do
+      in_json_part ->
+        # If we're already in JSON part, no need to check for delimiter
+        {"", true, delimiter_buffer}
+
+      String.contains?(updated_buffer, @delimiter) ->
+        # Find where the delimiter starts in the buffer
+        [narrative_part, _] = String.split(updated_buffer, @delimiter, parts: 2)
+
+        {narrative_part, true, ""}
+
+      true ->
+        case check_suffix(updated_buffer) do
+          [narrative_part, potential_delim, ""] ->
+            {narrative_part, false, potential_delim}
+
+          _ ->
+            {updated_buffer, false, ""}
+        end
     end
+  end
+
+  @spec check_suffix(String.t()) :: [String.t()]
+  # check if the string ends with any prefix of the delimiter
+  defp check_suffix(string) do
+    Regex.split(@delimiter_rx, string, parts: 2, include_captures: true, trim: false)
   end
 
   @impl true
@@ -224,68 +265,38 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     # Update the partial content (full content for JSON parsing)
     updated_content = stream_state.partial_content <> delta_content
 
-    # Process which part this belongs to
-    {display_content, in_json_part} =
+    # Get the delimiter buffer from state or initialize it
+    delimiter_buffer = Map.get(stream_state, :delimiter_buffer, "")
+
+    # Process which part this belongs to with buffer
+    {new_display_content, in_json_part, updated_buffer} =
       process_delta_parts(
-        stream_state.display_content,
         delta_content,
-        stream_state.in_json_part
+        stream_state.in_json_part,
+        delimiter_buffer
       )
+
+    to_display_so_far = stream_state.display_content <> new_display_content
 
     # Update the stream state
     updated_stream = %{
       stream_state
       | partial_content: updated_content,
-        display_content: display_content,
-        in_json_part: in_json_part
+        display_content: to_display_so_far,
+        in_json_part: in_json_part,
+        delimiter_buffer: updated_buffer
     }
 
-    # Broadcast the delta if needed
-    broadcast_delta_if_needed(
-      stream_state,
-      stream_id,
-      delta_content,
-      display_content,
-      in_json_part
-    )
+    if new_display_content != "" do
+      StartupGameWeb.Endpoint.broadcast(
+        "llm_stream:#{stream_state.game_id}",
+        "llm_delta",
+        {:llm_delta, stream_id, new_display_content, to_display_so_far}
+      )
+    end
 
     # Update the state
     Map.put(state, stream_id, updated_stream)
-  end
-
-  # Broadcast delta based on which part we're in
-  defp broadcast_delta_if_needed(
-         stream_state,
-         stream_id,
-         delta_content,
-         display_content,
-         in_json_part
-       ) do
-    cond do
-      !stream_state.in_json_part && !in_json_part ->
-        # Still in narrative part, broadcast the delta
-        StartupGameWeb.Endpoint.broadcast(
-          "llm_stream:#{stream_state.game_id}",
-          "llm_delta",
-          {:llm_delta, stream_id, delta_content, display_content}
-        )
-
-      !stream_state.in_json_part && in_json_part ->
-        # We just crossed into JSON part, broadcast one last update with just the narrative part
-        narrative_part = String.split(delta_content, "---JSON DATA---", parts: 2) |> hd()
-
-        if narrative_part != "" do
-          StartupGameWeb.Endpoint.broadcast(
-            "llm_stream:#{stream_state.game_id}",
-            "llm_delta",
-            {:llm_delta, stream_id, narrative_part, display_content}
-          )
-        end
-
-      true ->
-        # Already in JSON part, don't broadcast
-        :ok
-    end
   end
 
   # Helper function to parse completion based on stream type

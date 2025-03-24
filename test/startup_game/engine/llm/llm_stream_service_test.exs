@@ -24,6 +24,22 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
     end
   end
 
+  # Mock provider for split delimiter testing
+  defmodule SplitDelimiterProvider do
+    def llm_adapter, do: MockStreamingAdapter
+    def llm_options, do: %{model: "test-model", test_mode: :split_delimiter}
+    def scenario_system_prompt, do: "You are a scenario generator"
+    def outcome_system_prompt, do: "You are an outcome generator"
+
+    def create_scenario_prompt(_game_state, _current_scenario_id) do
+      "Generate a scenario with split delimiter"
+    end
+
+    def create_outcome_prompt(_game_state, _scenario, _response_text) do
+      "Generate an outcome with split delimiter"
+    end
+  end
+
   setup do
     # Subscribe to PubSub for testing
     game_id = "test-game-#{:rand.uniform(1000)}"
@@ -97,6 +113,79 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
 
       # Clean up mocks
       # :meck.unload(StartupGame.Engine.LLM.AnthropicAdapter)
+      :meck.unload(JSONResponseParser)
+    end
+
+    test "handles delimiter split across multiple chunks", %{game_id: game_id} do
+      game_state = %{cash_on_hand: 10_000}
+      current_scenario_id = nil
+
+      # Mock the JSONResponseParser first
+      :meck.new(JSONResponseParser, [:passthrough])
+
+      :meck.expect(JSONResponseParser, :parse_scenario, fn _content ->
+        {:ok,
+         %{
+           situation: "This is a narrative with a split delimiter",
+           options: ["Option 1", "Option 2"]
+         }}
+      end)
+
+      # Start the test process to handle the messages
+      {:ok, _test_pid} = MockStreamingAdapter.start_link()
+
+      {:ok, stream_id} =
+        LLMStreamService.generate_scenario(
+          game_id,
+          game_state,
+          current_scenario_id,
+          SplitDelimiterProvider
+        )
+
+      # Assert that we got a stream_id
+      assert is_binary(stream_id)
+      assert String.starts_with?(stream_id, "stream_")
+
+      # Wait for the narrative part deltas
+      assert_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, "This is a narrative with a split", _}
+                     },
+                     100
+
+      assert_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, " delimiter ", _}
+                     },
+                     100
+
+      # The JSON part should not be broadcast as a delta
+      refute_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, "---", _}
+                     },
+                     20
+
+      refute_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, "JSON", _}
+                     },
+                     20
+
+      refute_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, " DATA---\n", _}
+                     },
+                     20
+
+      # Wait for completion
+      assert_receive %{
+                       event: "llm_complete",
+                       payload: {:llm_complete, ^stream_id, {:ok, _scenario}}
+                     },
+                     20
+
+      # Clean up mocks
       :meck.unload(JSONResponseParser)
     end
 
@@ -318,6 +407,44 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
       # Clean up mocks
       :meck.unload(MockStreamingAdapter)
       :meck.unload(JSONResponseParser)
+    end
+  end
+
+  describe "process_delta_parts/4" do
+    test "handles unambiguously narrative parts", _ do
+      r = LLMStreamService.process_delta_parts("Hello!", false, "")
+      assert {"Hello!", false, ""} == r
+    end
+
+    test "recognizes complete delimiter" do
+      r = LLMStreamService.process_delta_parts("---JSON DATA---", false, "")
+      assert {"", true, ""} == r
+    end
+
+    test "handles content before a complete delimiter" do
+      r =
+        LLMStreamService.process_delta_parts(
+          "How are you?\n---JSON DATA---",
+          false,
+          ""
+        )
+
+      assert {"How are you?\n", true, ""} == r
+    end
+
+    test "buffers content that might be part of delimiter" do
+      r = LLMStreamService.process_delta_parts("Hello!\n--", false, "")
+      assert {"Hello!\n", false, "--"} == r
+    end
+
+    test "builds up buffer while it could match delimiter" do
+      r = LLMStreamService.process_delta_parts("-J", false, "--")
+      assert {"", false, "---J"} == r
+    end
+
+    test "flushes buffer when it can no longer match delimiter" do
+      r = LLMStreamService.process_delta_parts("tricked ya!-", false, "---JSON")
+      assert {"---JSONtricked ya!", false, "-"} == r
     end
   end
 end
