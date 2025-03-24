@@ -1,37 +1,30 @@
 defmodule StartupGameWeb.GameLive.Play do
+  @moduledoc """
+  LiveView for the game play interface.
+  Coordinates game creation, gameplay, and streaming functionality.
+  """
+
   use StartupGameWeb, :live_view
 
-  alias StartupGame.GameService
-  alias StartupGame.Games
   alias StartupGame.Games.Round
-  alias StartupGameWeb.GameLive.Components.GameCreationComponent
-  alias StartupGameWeb.GameLive.Components.GamePlayComponent
+  alias StartupGameWeb.GameLive.Components.{GameCreationComponent, GamePlayComponent}
+  alias StartupGameWeb.GameLive.Handlers.{CreationHandler, PlayHandler, StreamHandler}
+  alias StartupGameWeb.GameLive.Helpers.SocketAssignments
+
+  @type t :: Phoenix.LiveView.Socket.t()
 
   @impl true
+  @spec mount(map(), map(), t()) :: {:ok, t(), keyword()}
   def mount(_params, _session, socket) do
-    # Initial mount - will be refined by handle_params
-    socket =
-      socket
-      |> assign(:creation_stage, :name_input)
-      |> assign(:temp_name, nil)
-      |> assign(:temp_description, nil)
-      |> assign(:game_id, nil)
-      |> assign(:response, "")
-      |> assign(:provider_preference, default_provider_preference())
-      |> assign(:rounds, [
-        %Round{
-          id: "temp_name_prompt",
-          situation: "What would you like to name your company?",
-          inserted_at: DateTime.utc_now(),
-          updated_at: DateTime.utc_now()
-        }
-      ])
-      |> assign(:ownerships, [])
-      |> assign(:streaming, false)
-      |> assign(:stream_id, nil)
-      # :outcome or :scenario
-      |> assign(:streaming_type, nil)
-      |> assign(:partial_content, "")
+    initial_round = %Round{
+      id: "temp_name_prompt",
+      situation: "What would you like to name your company?",
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now()
+    }
+
+    socket = SocketAssignments.initialize_socket(socket, initial_round)
+    socket = assign(socket, :provider_preference, default_provider_preference())
 
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
@@ -46,53 +39,18 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
+  @spec handle_params(map(), String.t(), t()) :: {:noreply, t()}
   def handle_params(%{"id" => id}, _uri, socket) do
-    # Handle route with ID parameter
-    case GameService.load_game(id) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        socket =
-          socket
-          |> assign(:game, game)
-          |> assign(:game_state, game_state)
-          |> assign(:game_id, id)
-          |> assign(:response, "")
-          |> assign(:rounds, Games.list_game_rounds(id))
-          |> assign(:ownerships, Games.list_game_ownerships(id))
-          |> assign(:creation_stage, :playing)
-
-        # Recovery check for game in progress
-        socket =
-          if game_state.status == :in_progress do
-            check_game_state_consistency(socket)
-          else
-            socket
-          end
-
-        {:noreply, socket}
-
-      {:error, _reason} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Game not found")
-         |> redirect(to: ~p"/games")}
-    end
+    CreationHandler.handle_existing_game(socket, id)
   end
 
   @impl true
   def handle_params(_params, _uri, socket) do
-    # No game_id parameter or empty parameter
-    # If we already have a game loaded (i.e., not in name/description input stage),
-    # keep that state; otherwise, stay in name input stage
-    if socket.assigns.creation_stage in [:name_input, :description_input] or
-         socket.assigns.game_id == nil do
-      {:noreply, socket}
-    else
-      # We have a game but no game_id in URL - keep the game
-      {:noreply, socket}
-    end
+    CreationHandler.handle_no_game_id(socket)
   end
 
   @impl true
+  @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
     <div class="container mx-auto p-4 max-w-6xl">
@@ -120,117 +78,14 @@ defmodule StartupGameWeb.GameLive.Play do
     """
   end
 
+  # Event handlers delegate to the appropriate handler modules
   @impl true
-  def handle_event(
-        "submit_response",
-        %{"response" => response},
-        %{assigns: %{creation_stage: :name_input}} = socket
-      )
-      when response != "" do
-    # Store the company name and transition to description input
-    socket =
-      socket
-      |> assign(:temp_name, response)
-      |> assign(:creation_stage, :description_input)
-      |> assign(:response, "")
-      |> assign(:rounds, [
-        %Round{
-          id: "temp_name_prompt",
-          situation: "What would you like to name your company?",
-          response: response,
-          inserted_at: DateTime.utc_now(),
-          updated_at: DateTime.utc_now()
-        },
-        %Round{
-          id: "temp_description_prompt",
-          situation: "Please provide a brief description of what #{response} does:",
-          inserted_at: DateTime.utc_now(),
-          updated_at: DateTime.utc_now()
-        }
-      ])
-
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event(
-        "submit_response",
-        %{"response" => response},
-        %{assigns: %{creation_stage: :description_input}} = socket
-      )
-      when response != "" do
-    # Create the game with the collected name and description
-    user = socket.assigns.current_user
-    name = socket.assigns.temp_name
-    provider = socket.assigns.provider_preference
-
-    case GameService.create_and_start_game(
-           name,
-           response,
-           user,
-           provider
-         ) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        socket =
-          socket
-          |> assign(:game, game)
-          |> assign(:game_state, game_state)
-          |> assign(:game_id, game.id)
-          |> assign(:creation_stage, :playing)
-          |> assign(:response, "")
-          |> assign(:rounds, Games.list_game_rounds(game.id))
-          |> assign(:ownerships, Games.list_game_ownerships(game.id))
-          |> put_flash(:info, "Started new venture: #{game.name}")
-
-        # Update the URL to include the game ID without a full page navigation
-        {:noreply, push_patch(socket, to: ~p"/games/play/#{game.id}", replace: true)}
-
-      {:error, %Ecto.Changeset{} = _changeset} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to create game: Invalid input")}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Failed to create game: #{inspect(reason)}")}
-    end
-  end
-
-  @impl true
-  def handle_event(
-        "submit_response",
-        %{"response" => response},
-        %{assigns: %{creation_stage: :playing}} = socket
-      )
-      when response != "" do
-    game_id = socket.assigns.game_id
-
-    # Create a temporary round entry for the response
-    updated_round = Games.list_game_rounds(game_id) |> List.last() |> Map.put(:response, response)
-
-    # Start the async response processing
-    case GameService.process_response_async(game_id, response) do
-      {:ok, stream_id} ->
-        # Subscribe to the streaming topic
-        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
-
-        socket =
-          socket
-          |> assign(:streaming, true)
-          |> assign(:stream_id, stream_id)
-          # Indicate we're streaming an outcome
-          |> assign(:streaming_type, :outcome)
-          |> assign(:partial_content, "")
-          |> assign(:response, "")
-          |> assign(:rounds, [updated_round])
-
-        {:noreply, socket}
-
-      {:error, reason} ->
-        {:noreply,
-         socket
-         |> put_flash(:error, "Error processing response: #{inspect(reason)}")}
+  @spec handle_event(String.t(), map(), t()) :: {:noreply, t()}
+  def handle_event("submit_response", %{"response" => response}, socket) when response != "" do
+    case socket.assigns.creation_stage do
+      :name_input -> CreationHandler.handle_name_input(socket, response)
+      :description_input -> CreationHandler.handle_description_input(socket, response)
+      :playing -> PlayHandler.handle_play_response(socket, response)
     end
   end
 
@@ -242,225 +97,43 @@ defmodule StartupGameWeb.GameLive.Play do
 
   @impl true
   def handle_event("set_provider", %{"provider" => provider}, socket) do
-    # For game creation, just store the preference in the socket
-    provider = String.to_existing_atom(provider)
-
-    {:noreply,
-     socket
-     |> assign(:provider_preference, provider)
-     |> put_flash(:info, "Scenario provider set to #{provider}")}
+    CreationHandler.handle_provider_change(socket, provider)
   end
 
   @impl true
   def handle_event("change_provider", %{"provider" => provider}, socket) do
-    game = socket.assigns.game
+    PlayHandler.handle_provider_change(socket, provider)
+  end
 
-    case StartupGame.Games.update_provider_preference(game, provider) do
-      {:ok, updated_game} ->
-        {:noreply,
-         socket
-         |> assign(:game, updated_game)
-         |> put_flash(:info, "Scenario provider updated to #{provider}")}
-
-      {:error, _reason} ->
-        {:noreply, socket |> put_flash(:error, "Failed to update scenario provider")}
-    end
+  # Info handlers delegate to the StreamHandler
+  @impl true
+  @spec handle_info(map(), t()) :: {:noreply, t()}
+  def handle_info(%{event: "llm_delta", payload: payload}, socket) do
+    StreamHandler.handle_delta(socket, payload)
   end
 
   @impl true
-  def handle_info(
-        %{event: "llm_delta", payload: {:llm_delta, stream_id, _delta, display_content}},
-        socket
-      ) do
-    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
-      # Update the display content (narrative part only)
-      socket =
-        socket
-        |> assign(:partial_content, display_content)
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
+  def handle_info(%{event: "llm_complete", payload: payload}, socket) do
+    StreamHandler.handle_complete(socket, payload)
   end
 
   @impl true
-  def handle_info(
-        %{event: "llm_complete", payload: {:llm_complete, stream_id, {:ok, result}}},
-        socket
-      ) do
-    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
-      game_id = socket.assigns.game_id
-
-      # Process the completed response based on what we're streaming
-      # (Either a scenario or an outcome)
-      case {socket.assigns.streaming_type, result} do
-        {:scenario, %{situation: _} = scenario} ->
-          finalize_scenario(socket, game_id, scenario)
-
-        {:outcome, %{text: _} = outcome} ->
-          finalize_outcome(socket, game_id, outcome)
-
-        # Handle unexpected result types
-        {streaming_type, result} ->
-          {:noreply,
-           socket
-           |> put_flash(
-             :error,
-             "Unexpected streaming result: #{inspect(streaming_type)}, #{inspect(result)}"
-           )
-           |> assign(:streaming, false)
-           |> assign(:stream_id, nil)
-           |> assign(:streaming_type, nil)
-           |> assign(:partial_content, "")}
-      end
-    else
-      {:noreply, socket}
-    end
-  end
-
-  @impl true
-  def handle_info(%{event: "llm_error", payload: {:llm_error, stream_id, error}}, socket) do
-    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
-      socket =
-        socket
-        |> assign(:streaming, false)
-        |> assign(:stream_id, nil)
-        |> assign(:streaming_type, nil)
-        |> assign(:partial_content, "")
-        |> put_flash(:error, "Error: #{error}")
-
-      {:noreply, socket}
-    else
-      {:noreply, socket}
-    end
+  def handle_info(%{event: "llm_error", payload: payload}, socket) do
+    StreamHandler.handle_error(socket, payload)
   end
 
   @impl true
   def handle_info({_ref, :ok}, socket) do
-    # Ignore Task completion messages
-    {:noreply, socket}
+    StreamHandler.handle_task_complete(socket, :ok)
   end
 
   @impl true
-  def handle_info({_ref, {:ok, _}}, socket) do
-    # Also ignore Task completion messages with {:ok, _} results
-    {:noreply, socket}
+  def handle_info({_ref, {:ok, result}}, socket) do
+    StreamHandler.handle_task_complete(socket, {:ok, result})
   end
 
   @impl true
-  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
-    # Ignore Task process DOWN messages
-    {:noreply, socket}
-  end
-
-  # New function to check game state consistency on reconnection
-  @spec check_game_state_consistency(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
-  defp check_game_state_consistency(%{assigns: %{game: game, game_id: game_id}} = socket) do
-    last_round = List.last(game.rounds)
-
-    cond do
-      # Case 1: Last round has a response but no outcome
-      last_round && last_round.response && !last_round.outcome ->
-        # Subscribe to streaming topic for this game
-        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
-
-        # Start async recovery for missing outcome
-        case GameService.recover_missing_outcome_async(game_id, last_round.response) do
-          {:ok, stream_id} ->
-            socket
-            |> assign(:streaming, true)
-            |> assign(:stream_id, stream_id)
-            |> assign(:streaming_type, :outcome)
-            |> assign(:partial_content, "")
-            |> put_flash(:info, "Recovering your previous session...")
-
-          {:error, reason} ->
-            socket
-            |> put_flash(:error, "Error recovering game state: #{inspect(reason)}")
-        end
-
-      # Case 2: All rounds complete (have outcomes) but game is still in progress and no current scenario
-      Enum.all?(game.rounds, & &1.outcome) ->
-        # Subscribe to streaming topic for this game
-        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
-
-        # Start async recovery for next scenario
-        case GameService.recover_next_scenario_async(game_id) do
-          {:ok, stream_id} ->
-            socket
-            |> assign(:streaming, true)
-            |> assign(:stream_id, stream_id)
-            |> assign(:streaming_type, :scenario)
-            |> assign(:partial_content, "")
-            |> put_flash(:info, "Generating next scenario...")
-
-          {:error, reason} ->
-            socket
-            |> put_flash(:error, "Error generating next scenario: #{inspect(reason)}")
-        end
-
-      # Case 3: Game state is consistent, no recovery needed
-      true ->
-        socket
-    end
-  end
-
-  defp finalize_scenario(socket, game_id, scenario) do
-    {:ok, %{game: updated_game, game_state: updated_state}} =
-      GameService.finalize_streamed_scenario(game_id, scenario)
-
-    socket =
-      socket
-      |> assign(:game, updated_game)
-      |> assign(:game_state, updated_state)
-      |> assign(:streaming, false)
-      |> assign(:stream_id, nil)
-      |> assign(:streaming_type, nil)
-      |> assign(:partial_content, "")
-      |> assign(:rounds, Games.list_game_rounds(game_id))
-
-    {:noreply, socket}
-  end
-
-  defp finalize_outcome(socket, game_id, outcome) do
-    # We received an outcome - finalize it first
-    {:ok, %{game: updated_game, game_state: updated_state}} =
-      GameService.finalize_streamed_outcome(game_id, outcome)
-
-    # Update the socket with the finalized outcome
-    socket =
-      socket
-      |> assign(:game, updated_game)
-      |> assign(:game_state, updated_state)
-      |> assign(:streaming, false)
-      |> assign(:stream_id, nil)
-      |> assign(:streaming_type, nil)
-      |> assign(:partial_content, "")
-      |> assign(:rounds, Games.list_game_rounds(game_id))
-      |> assign(:ownerships, Games.list_game_ownerships(game_id))
-
-    # Only start the next round if the game is still in progress
-    if updated_state.status == :in_progress do
-      # Start streaming the next scenario
-      case GameService.start_next_round_async(updated_game, updated_state) do
-        {:ok, new_stream_id} ->
-          # Update socket for the new streaming scenario
-          socket =
-            socket
-            |> assign(:streaming, true)
-            |> assign(:stream_id, new_stream_id)
-            |> assign(:streaming_type, :scenario)
-            |> assign(:partial_content, "")
-
-          {:noreply, socket}
-
-        {:error, reason} ->
-          {:noreply, socket |> put_flash(:error, "Error starting next round: #{inspect(reason)}")}
-      end
-    else
-      # Game is over, no need to start next round
-      {:noreply, socket}
-    end
+  def handle_info({:DOWN, _ref, :process, _pid, reason}, socket) do
+    StreamHandler.handle_task_down(socket, reason)
   end
 end
