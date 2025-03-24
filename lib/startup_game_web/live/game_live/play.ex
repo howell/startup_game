@@ -60,6 +60,14 @@ defmodule StartupGameWeb.GameLive.Play do
           |> assign(:ownerships, Games.list_game_ownerships(id))
           |> assign(:creation_stage, :playing)
 
+        # Recovery check for game in progress
+        socket =
+          if game_state.status == :in_progress do
+            check_game_state_consistency(socket)
+          else
+            socket
+          end
+
         {:noreply, socket}
 
       {:error, _reason} ->
@@ -344,6 +352,58 @@ defmodule StartupGameWeb.GameLive.Play do
   def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
     # Ignore Task process DOWN messages
     {:noreply, socket}
+  end
+
+  # New function to check game state consistency on reconnection
+  @spec check_game_state_consistency(Phoenix.LiveView.Socket.t()) :: Phoenix.LiveView.Socket.t()
+  defp check_game_state_consistency(%{assigns: %{game: game, game_id: game_id}} = socket) do
+    last_round = List.last(game.rounds)
+
+    cond do
+      # Case 1: Last round has a response but no outcome
+      last_round && last_round.response && !last_round.outcome ->
+        # Subscribe to streaming topic for this game
+        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+
+        # Start async recovery for missing outcome
+        case GameService.recover_missing_outcome_async(game_id, last_round.response) do
+          {:ok, stream_id} ->
+            socket
+            |> assign(:streaming, true)
+            |> assign(:stream_id, stream_id)
+            |> assign(:streaming_type, :outcome)
+            |> assign(:partial_content, "")
+            |> put_flash(:info, "Recovering your previous session...")
+
+          {:error, reason} ->
+            socket
+            |> put_flash(:error, "Error recovering game state: #{inspect(reason)}")
+        end
+
+      # Case 2: All rounds complete (have outcomes) but game is still in progress and no current scenario
+      Enum.all?(game.rounds, & &1.outcome) ->
+        # Subscribe to streaming topic for this game
+        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+
+        # Start async recovery for next scenario
+        case GameService.recover_next_scenario_async(game_id) do
+          {:ok, stream_id} ->
+            socket
+            |> assign(:streaming, true)
+            |> assign(:stream_id, stream_id)
+            |> assign(:streaming_type, :scenario)
+            |> assign(:partial_content, "")
+            |> put_flash(:info, "Generating next scenario...")
+
+          {:error, reason} ->
+            socket
+            |> put_flash(:error, "Error generating next scenario: #{inspect(reason)}")
+        end
+
+      # Case 3: Game state is consistent, no recovery needed
+      true ->
+        socket
+    end
   end
 
   defp finalize_scenario(socket, game_id, scenario) do

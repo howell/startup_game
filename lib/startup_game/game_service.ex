@@ -249,6 +249,37 @@ defmodule StartupGame.GameService do
     end
   end
 
+  @doc """
+  Asynchronously recovers a missing outcome by restarting the streaming process.
+  This is used when a user disconnects during outcome generation and then reconnects.
+  """
+  @spec recover_missing_outcome_async(Ecto.UUID.t(), String.t()) :: {:ok, String.t()} | {:error, any()}
+  def recover_missing_outcome_async(game_id, response_text) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      provider = determine_provider(game)
+
+      # Use the same async function as the normal flow
+      provider.generate_outcome_async(
+        game_state,
+        game_id,
+        game_state.current_scenario_data,
+        response_text
+      )
+    end
+  end
+
+  @doc """
+  Asynchronously recovers a missing next scenario by restarting the streaming process.
+  This is used when a user disconnects after outcome but before next scenario generation.
+  """
+  @spec recover_next_scenario_async(Ecto.UUID.t()) :: {:ok, String.t()} | {:error, any()}
+  def recover_next_scenario_async(game_id) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      # Use the existing async function for consistency
+      start_next_round_async(game, game_state)
+    end
+  end
+
   defp handle_progress(game, game_state) do
     if game_state.status == :in_progress do
       start_next_round(game, game_state)

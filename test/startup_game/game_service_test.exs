@@ -578,4 +578,53 @@ defmodule StartupGame.GameServiceTest do
       assert Decimal.compare(final_game.burn_rate, expected_burn) == :eq
     end
   end
+
+  describe "async recovery functions" do
+    setup do
+      user = AccountsFixtures.user_fixture()
+      {:ok, %{game: game}} = GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+      %{user: user, game: game}
+    end
+
+    test "recover_missing_outcome_async starts streaming for incomplete round", %{game: game} do
+      # Update the last round to have a response but no outcome
+      round = List.last(game.rounds)
+      {:ok, _} = Games.update_round(round, %{
+        response: "accept",
+        outcome: nil
+      })
+
+      # Call the function to start async recovery
+      result = GameService.recover_missing_outcome_async(game.id, "accept")
+
+      # Should return a stream ID
+      assert {:ok, stream_id} = result
+      assert is_binary(stream_id)
+    end
+
+    test "recover_next_scenario_async starts streaming for next scenario", %{game: game} do
+      # Process a response to complete the first round
+      {:ok, %{game: updated_game}} = GameService.process_response(game.id, "accept")
+
+      # Call the function to start async recovery for next scenario
+      result = GameService.recover_next_scenario_async(updated_game.id)
+
+      # Should return a stream ID
+      assert {:ok, stream_id} = result
+      assert is_binary(stream_id)
+    end
+
+    test "handles error when async recovery fails" do
+      # Test with non-existent game ID
+      non_existent_id = Ecto.UUID.generate()
+
+      # Call the recovery functions with invalid ID
+      result1 = GameService.recover_missing_outcome_async(non_existent_id, "accept")
+      result2 = GameService.recover_next_scenario_async(non_existent_id)
+
+      # Both should return errors
+      assert {:error, _} = result1
+      assert {:error, _} = result2
+    end
+  end
 end

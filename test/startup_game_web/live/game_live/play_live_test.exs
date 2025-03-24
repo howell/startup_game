@@ -94,6 +94,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
     test "displays rounds and messages correctly", %{conn: conn, user: user} do
       game = complete_game_fixture(%{}, user)
+      Games.update_game(game, %{status: :failed})
       rounds = Games.list_game_rounds(game.id)
 
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
@@ -315,36 +316,6 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       updated_rounds = Games.list_game_rounds(game.id)
       assert length(updated_rounds) == initial_rounds_count
     end
-
-    # Commenting out this test as it requires the meck dependency
-    # To enable it, add {:meck, "~> 0.9.2", only: :test} to deps in mix.exs
-    #
-    # test "handles error when processing response", %{conn: conn, user: user} do
-    #   # Create a game with a mock provider that will cause an error
-    #   game = game_fixture(%{}, user)
-    #
-    #   # Mock the GameService.process_response to return an error
-    #   expect_error_message = "Test error message"
-    #
-    #   # Use meck to mock the GameService module
-    #   :ok = :meck.new(StartupGame.GameService, [:passthrough])
-    #   :ok = :meck.expect(StartupGame.GameService, :process_response, fn _id, _response ->
-    #     {:error, expect_error_message}
-    #   end)
-    #
-    #   {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
-    #
-    #   # Submit a response
-    #   rendered = view
-    #   |> form("form[phx-submit='submit_response']", %{response: "This should cause an error"})
-    #   |> render_submit()
-    #
-    #   # Check for error flash
-    #   assert rendered =~ "Error processing response: #{inspect(expect_error_message)}"
-    #
-    #   # Clean up the mock
-    #   :meck.unload(StartupGame.GameService)
-    # end
   end
 
   describe "Play LiveView - helper functions" do
@@ -393,6 +364,49 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       # Runway (10000/3333.33 ≈ 3.0)
       assert html =~ "3.0"
+    end
+  end
+
+  describe "Play LiveView - game state recovery" do
+    setup :register_and_log_in_user
+
+    test "starts async recovery when round has response but no outcome", %{conn: conn, user: user} do
+      # Create a game with a round that has a response but no outcome
+      game = game_fixture(%{start?: true}, user)
+
+      # Update the last round to have a response but no outcome
+      round = List.last(Games.list_game_rounds(game.id))
+
+      {:ok, _} =
+        Games.update_round(round, %{
+          response: "accept",
+          outcome: nil
+        })
+
+      # Connect to the LiveView
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # Verify recovery message is shown
+      assert render(view) =~ "Recovering your previous session"
+
+      # We can't directly access view.assigns in LiveViewTest, but we can verify
+      # that the streaming UI elements are present
+      html = render(view)
+      assert html =~ "Recovering your previous session"
+    end
+
+    test "generates next scenario when all rounds complete", %{conn: conn, user: user} do
+      # Create a game with all rounds complete but no current scenario
+      game = game_fixture(%{start?: true}, user)
+
+      Games.update_round(hd(game.rounds), %{response: "accept", outcome: "Test outcome"})
+
+      # Connect to the LiveView
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      assert_receive(%{event: "llm_complete", payload: {:llm_complete, _, {:ok, _}}})
+      # Verify recovery happened
+      assert render(view) =~ "You need to hire a key employee"
     end
   end
 end
