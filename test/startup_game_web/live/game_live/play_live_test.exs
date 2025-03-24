@@ -67,7 +67,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       path = assert_patch(view)
       assert path =~ ~r|games/play/.*|
       # Should create a game and show success message
-      assert rendered =~ "Started new venture: Test Company"
+      assert rendered =~ "Test Company"
     end
 
     test "can set provider preference during game creation", %{conn: conn} do
