@@ -11,6 +11,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.LLM.JSONResponseParser
   alias StartupGame.Engine.LLM.ScenarioProviderCallback
+  alias StartupGame.StreamingService
   alias StartupGame.Utils
 
   # Client API
@@ -226,11 +227,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
         result = parse_completion(stream_state.stream_type, full_content)
 
         # Broadcast the completion to subscribers
-        StartupGameWeb.Endpoint.broadcast(
-          "llm_stream:#{stream_state.game_id}",
-          "llm_complete",
-          {:llm_complete, stream_id, result}
-        )
+        StreamingService.broadcast_complete(stream_state.game_id, stream_id, result)
 
         # Remove this stream from state
         {:noreply, Map.delete(state, stream_id)}
@@ -249,11 +246,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
       stream_state ->
         # Broadcast the error to subscribers
-        StartupGameWeb.Endpoint.broadcast(
-          "llm_stream:#{stream_state.game_id}",
-          "llm_error",
-          {:llm_error, stream_id, error}
-        )
+        StreamingService.broadcast_error(stream_state.game_id, stream_id, error)
 
         # Remove this stream from state
         {:noreply, Map.delete(state, stream_id)}
@@ -288,10 +281,11 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     }
 
     if new_display_content != "" do
-      StartupGameWeb.Endpoint.broadcast(
-        "llm_stream:#{stream_state.game_id}",
-        "llm_delta",
-        {:llm_delta, stream_id, new_display_content, to_display_so_far}
+      StreamingService.broadcast_delta(
+        stream_state.game_id,
+        stream_id,
+        new_display_content,
+        to_display_so_far
       )
     end
 

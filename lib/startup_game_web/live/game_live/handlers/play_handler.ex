@@ -8,6 +8,7 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
 
   alias StartupGame.GameService
   alias StartupGame.Games
+  alias StartupGame.StreamingService
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
 
   @type socket :: Phoenix.LiveView.Socket.t()
@@ -26,7 +27,7 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
     case GameService.process_response_async(game_id, response) do
       {:ok, stream_id} ->
         # Subscribe to the streaming topic
-        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+        StreamingService.subscribe(game_id)
 
         socket =
           socket
@@ -106,6 +107,9 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
       # Start streaming the next scenario
       case GameService.start_next_round_async(updated_game, updated_state) do
         {:ok, new_stream_id} ->
+          # Ensure we're subscribed to the streaming topic
+          StreamingService.subscribe(game_id)
+
           # Update socket for the new streaming scenario
           socket =
             socket

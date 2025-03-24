@@ -9,6 +9,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   alias StartupGame.GameService
   alias StartupGame.Games
   alias StartupGame.Games.Round
+  alias StartupGame.StreamingService
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
 
   @type socket :: Phoenix.LiveView.Socket.t()
@@ -184,7 +185,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   @spec recover_missing_outcome(socket(), String.t(), Round.t()) :: socket()
   defp recover_missing_outcome(socket, game_id, round) do
     # Subscribe to streaming topic for this game
-    StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+    StreamingService.subscribe(game_id)
 
     # Start async recovery for missing outcome
     case GameService.recover_missing_outcome_async(game_id, round.response) do
@@ -202,7 +203,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   @spec recover_next_scenario(socket(), String.t()) :: socket()
   defp recover_next_scenario(socket, game_id) do
     # Subscribe to streaming topic for this game
-    StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+    StreamingService.subscribe(game_id)
 
     # Start async recovery for next scenario
     case GameService.recover_next_scenario_async(game_id) do
