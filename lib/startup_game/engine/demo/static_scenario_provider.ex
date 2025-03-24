@@ -3,12 +3,10 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   Provides predefined scenarios from a static collection for testing.
   Implements the ScenarioProvider behavior.
   """
-
-  @behaviour StartupGame.Engine.ScenarioProvider
+  use StartupGame.Engine.Demo.BaseScenarioProvider
 
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.Scenario
-  alias StartupGame.Engine.Demo.BaseScenarioProvider
 
   # Fixed sequence for deterministic gameplay
   @scenario_sequence [

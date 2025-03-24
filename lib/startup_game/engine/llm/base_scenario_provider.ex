@@ -7,6 +7,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
   """
 
   alias StartupGame.Engine.GameState
+  alias StartupGame.Engine.LLM.LLMStreamService
 
   @doc """
   When used, defines an LLM-based scenario provider.
@@ -48,9 +49,30 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
       end
 
       @impl StartupGame.Engine.ScenarioProvider
+      def get_next_scenario_async(game_state, game_id, current_scenario_id) do
+        StartupGame.Engine.LLM.BaseScenarioProvider.get_next_scenario_async_impl(
+          game_state,
+          game_id,
+          current_scenario_id,
+          __MODULE__
+        )
+      end
+
+      @impl StartupGame.Engine.ScenarioProvider
       def generate_outcome(game_state, scenario, response_text) do
         StartupGame.Engine.LLM.BaseScenarioProvider.generate_outcome_impl(
           game_state,
+          scenario,
+          response_text,
+          __MODULE__
+        )
+      end
+
+      @impl StartupGame.Engine.ScenarioProvider
+      def generate_outcome_async(game_state, game_id, scenario, response_text) do
+        StartupGame.Engine.LLM.BaseScenarioProvider.generate_outcome_async_impl(
+          game_state,
+          game_id,
           scenario,
           response_text,
           __MODULE__
@@ -110,16 +132,28 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
       # Generate the scenario
       case generate_llm_scenario(
-        llm_module,
-        system_prompt,
-        user_prompt,
-        llm_opts,
-        response_parser
-      ) do
+             llm_module,
+             system_prompt,
+             user_prompt,
+             llm_opts,
+             response_parser
+           ) do
         {:ok, scenario} -> scenario
         {:error, reason} -> raise "Failed to generate LLM scenario: #{reason}"
       end
     end
+  end
+
+  @doc """
+  Default implementation of get_next_scenario_async.
+  """
+  def get_next_scenario_async_impl(game_state, game_id, _current_scenario_id, provider_module) do
+    LLMStreamService.generate_scenario(
+      game_id,
+      game_state,
+      game_state.current_scenario,
+      provider_module
+    )
   end
 
   @doc """
@@ -137,15 +171,28 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
     # Generate the outcome
     case generate_llm_outcome(
-      llm_module,
-      system_prompt,
-      user_prompt,
-      llm_opts,
-      response_parser
-    ) do
+           llm_module,
+           system_prompt,
+           user_prompt,
+           llm_opts,
+           response_parser
+         ) do
       {:ok, outcome} -> {:ok, outcome}
       {:error, reason} -> raise "Failed to generate LLM outcome: #{reason}"
     end
+  end
+
+  @doc """
+  Main implementation of generate_outcome_async that's used by all providers.
+  """
+  def generate_outcome_async_impl(game_state, game_id, scenario, response_text, provider_module) do
+    LLMStreamService.generate_outcome(
+      game_id,
+      game_state,
+      scenario,
+      response_text,
+      provider_module
+    )
   end
 
   @doc """

@@ -14,6 +14,8 @@ defmodule StartupGame.Application do
       {Phoenix.PubSub, name: StartupGame.PubSub},
       # Start the Finch HTTP client for sending emails
       {Finch, name: StartupGame.Finch},
+      # Start the LLM streaming service
+      StartupGame.Engine.LLM.LLMStreamService,
       # Start a worker by calling: StartupGame.Worker.start_link(arg)
       # {StartupGame.Worker, arg},
       # Start to serve requests, typically the last entry

@@ -216,9 +216,15 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
+      StartupGameWeb.Endpoint.subscribe("llm_stream:#{game.id}")
+
       view
       |> form("form[phx-submit='submit_response']", %{response: "accept"})
       |> render_submit()
+
+      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, _}} = _msg
+      html = render(view)
+      assert html =~ "accept"
 
       updated_rounds = Games.list_game_rounds(game.id)
       assert [first_round, _second_round] = updated_rounds

@@ -6,6 +6,7 @@ defmodule StartupGame.GameService do
   bridging the in-memory game state with the database records.
   """
 
+  alias StartupGame.Engine.Scenario
   alias StartupGame.Engine
   alias StartupGame.Games
   alias StartupGame.Accounts.User
@@ -23,7 +24,7 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec create_game(String.t(), String.t(), User.t(), module() | nil) :: game_result
+  @spec create_game(String.t(), String.t(), User.t(), module() | nil) :: game_result()
   def create_game(
         name,
         description,
@@ -152,6 +153,90 @@ defmodule StartupGame.GameService do
     else
       %Engine.GameState{error_message: msg} -> {:error, msg}
       error -> error
+    end
+  end
+
+  @doc """
+  Asynchronously processes a player response by streaming the LLM results.
+  Returns immediately with a stream_id that can be used to track progress.
+
+  The LiveView can subscribe to "llm_stream:{game_id}" to receive updates.
+  """
+  @spec process_response_async(Ecto.UUID.t(), String.t()) :: {:ok, String.t()} | {:error, any()}
+  def process_response_async(game_id, response_text) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      last_round = List.last(game.rounds)
+      Games.update_round(last_round, %{response: response_text})
+      provider = determine_provider(game)
+
+      provider.generate_outcome_async(
+        game_state,
+        game_id,
+        game_state.current_scenario_data,
+        response_text
+      )
+    end
+  end
+
+  @doc """
+  Asynchronously starts the next round by streaming the LLM results.
+  Returns immediately with a stream_id that can be used to track progress.
+
+  The LiveView can subscribe to "llm_stream:{game_id}" to receive updates.
+  """
+  @spec start_next_round_async(Games.Game.t(), GameState.t()) ::
+          {:ok, String.t()} | {:error, any()}
+  def start_next_round_async(game, game_state) do
+    provider = determine_provider(game)
+    provider.get_next_scenario_async(game_state, game.id, game_state.current_scenario)
+  end
+
+  @doc """
+  Finalizes a streamed response by saving it to the database.
+  This is called once the complete response is received.
+  """
+  @spec finalize_streamed_outcome(Ecto.UUID.t(), Scenario.outcome()) :: game_result()
+  def finalize_streamed_outcome(game_id, outcome) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      # Update the game state with the outcome
+      response = List.last(game.rounds).response
+      updated_game_state = Engine.apply_outcome(game_state, outcome, response)
+
+      # Save the results to the database
+      save_round_result(game, updated_game_state)
+      |> case do
+        {:ok, %{game: updated_game, game_state: final_state}} ->
+          handle_progress(updated_game, final_state)
+
+        error ->
+          error
+      end
+    end
+  end
+
+  @doc """
+  Finalizes a streamed scenario by saving it to the database.
+  This is called once the complete scenario is received.
+  """
+  @spec finalize_streamed_scenario(Ecto.UUID.t(), map()) :: game_result()
+  def finalize_streamed_scenario(game_id, scenario) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      # Update the game state with the new scenario
+      updated_game_state = %{
+        game_state
+        | current_scenario: scenario.id,
+          current_scenario_data: scenario
+      }
+
+      # Create a new round in the database
+      {:ok, round} =
+        Games.create_round(%{
+          situation: scenario.situation,
+          game_id: game.id
+        })
+
+      {:ok,
+       %{game: %Games.Game{game | rounds: game.rounds ++ [round]}, game_state: updated_game_state}}
     end
   end
 

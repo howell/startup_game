@@ -28,6 +28,11 @@ defmodule StartupGame.Engine.LLM.MockAdapter do
     end
   end
 
+  @impl true
+  def generate_streaming_completion(_system_prompt, _user_prompt, _opts, _handlers) do
+    {:error, "Streaming not supported by the mock adapter"}
+  end
+
   # Generate a mock scenario response
   defp generate_scenario_response do
     """

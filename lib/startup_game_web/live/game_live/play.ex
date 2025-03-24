@@ -27,6 +27,9 @@ defmodule StartupGameWeb.GameLive.Play do
         }
       ])
       |> assign(:ownerships, [])
+      |> assign(:streaming, false)
+      |> assign(:stream_id, nil)
+      |> assign(:partial_content, "")
 
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
@@ -165,16 +168,22 @@ defmodule StartupGameWeb.GameLive.Play do
       when response != "" do
     game_id = socket.assigns.game_id
 
-    case GameService.process_response(game_id, response) do
-      {:ok, %{game: updated_game, game_state: updated_state}} ->
+    # Create a temporary round entry for the response
+    updated_round = Games.list_game_rounds(game_id) |> List.last() |> Map.put(:response, response)
+
+    # Start the async response processing
+    case GameService.process_response_async(game_id, response) do
+      {:ok, stream_id} ->
+        # Subscribe to the streaming topic
+        StartupGameWeb.Endpoint.subscribe("llm_stream:#{game_id}")
+
         socket =
           socket
-          |> assign(:game, updated_game)
-          |> assign(:game_state, updated_state)
+          |> assign(:streaming, true)
+          |> assign(:stream_id, stream_id)
+          |> assign(:partial_content, "")
           |> assign(:response, "")
-          # Reload rounds and ownerships
-          |> assign(:rounds, Games.list_game_rounds(game_id))
-          |> assign(:ownerships, Games.list_game_ownerships(game_id))
+          |> assign(:rounds, [updated_round])
 
         {:noreply, socket}
 
@@ -219,6 +228,106 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
+  def handle_info(
+        %{event: "llm_delta", payload: {:llm_delta, stream_id, _delta, full_content}},
+        socket
+      ) do
+    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
+      # Update the partial content
+      socket =
+        socket
+        |> assign(:partial_content, full_content)
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(
+        %{event: "llm_complete", payload: {:llm_complete, stream_id, {:ok, result}}},
+        socket
+      ) do
+    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
+      game_id = socket.assigns.game_id
+
+      # Process the completed response based on what we're streaming
+      # (Either a scenario or an outcome)
+      case result do
+        %{situation: _} = scenario ->
+          # We received a scenario
+          {:ok, %{game: updated_game, game_state: updated_state}} =
+            GameService.finalize_streamed_scenario(game_id, scenario)
+
+          socket =
+            socket
+            |> assign(:game, updated_game)
+            |> assign(:game_state, updated_state)
+            |> assign(:streaming, false)
+            |> assign(:stream_id, nil)
+            |> assign(:partial_content, "")
+            |> assign(:rounds, Games.list_game_rounds(game_id))
+
+          {:noreply, socket}
+
+        %{text: _} = outcome ->
+          # We received an outcome
+          {:ok, %{game: updated_game, game_state: updated_state}} =
+            GameService.finalize_streamed_outcome(game_id, outcome)
+
+          socket =
+            socket
+            |> assign(:game, updated_game)
+            |> assign(:game_state, updated_state)
+            |> assign(:streaming, false)
+            |> assign(:stream_id, nil)
+            |> assign(:partial_content, "")
+            |> assign(:rounds, Games.list_game_rounds(game_id))
+            |> assign(:ownerships, Games.list_game_ownerships(game_id))
+
+          {:noreply, socket}
+      end
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info(%{event: "llm_error", payload: {:llm_error, stream_id, error}}, socket) do
+    if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
+      socket =
+        socket
+        |> assign(:streaming, false)
+        |> assign(:stream_id, nil)
+        |> assign(:partial_content, "")
+        |> put_flash(:error, "Error: #{error}")
+
+      {:noreply, socket}
+    else
+      {:noreply, socket}
+    end
+  end
+
+  @impl true
+  def handle_info({_ref, :ok}, socket) do
+    # Ignore Task completion messages
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({_ref, {:ok, _}}, socket) do
+    # Also ignore Task completion messages with {:ok, _} results
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_info({:DOWN, _ref, :process, _pid, _reason}, socket) do
+    # Ignore Task process DOWN messages
+    {:noreply, socket}
+  end
+
+  @impl true
   def render(assigns) do
     ~H"""
     <div class="container mx-auto p-4 max-w-6xl">
@@ -238,6 +347,8 @@ defmodule StartupGameWeb.GameLive.Play do
             rounds={@rounds}
             ownerships={@ownerships}
             response={@response}
+            streaming={@streaming}
+            partial_content={@partial_content}
           />
       <% end %>
     </div>

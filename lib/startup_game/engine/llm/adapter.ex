@@ -6,6 +6,8 @@ defmodule StartupGame.Engine.LLM.Adapter do
   compatible with the LLM scenario provider system.
   """
 
+  @type behaviour() :: module()
+
   @doc """
   Generates a completion from the LLM based on the provided system and user prompts.
 
@@ -18,5 +20,16 @@ defmodule StartupGame.Engine.LLM.Adapter do
     - {:ok, content} if successful, where content is the LLM's response
     - {:error, reason} if an error occurred
   """
-  @callback generate_completion(String.t(), String.t(), map()) :: {:ok, String.t()} | {:error, String.t()}
+  @callback generate_completion(String.t(), String.t(), map()) ::
+              {:ok, String.t()} | {:error, String.t()}
+
+  @doc """
+  Generate a completion with streaming enabled and callbacks.
+  """
+  @callback generate_streaming_completion(
+              String.t(),
+              String.t(),
+              map(),
+              map()
+            ) :: {:ok, String.t()} | {:error, String.t()}
 end

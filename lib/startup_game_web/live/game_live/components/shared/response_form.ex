@@ -21,6 +21,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
   attr :button_text, :string, required: true
   attr :value, :string, default: ""
   attr :submit_event, :string, default: "submit_response"
+  attr :disabled, :boolean, default: false
 
   def response_form(assigns) do
     ~H"""
@@ -33,11 +34,17 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
           rows="3"
           value={@value}
           required
+          disabled={@disabled}
         ></textarea>
         <button
           type="submit"
-          class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded w-full"
+          class={[
+            "font-bold py-2 px-4 rounded w-full",
+            @disabled && "bg-gray-400 cursor-not-allowed",
+            !@disabled && "bg-blue-600 hover:bg-blue-700 text-white"
+          ]}
           phx-disable-with="Sending..."
+          disabled={@disabled}
         >
           {@button_text}
         </button>

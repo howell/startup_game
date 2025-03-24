@@ -4,6 +4,37 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
   Contains shared utility functions used by both static and dynamic providers.
   """
 
+  defmacro __using__(_) do
+    mod = __MODULE__
+
+    quote do
+      @behaviour StartupGame.Engine.ScenarioProvider
+
+      alias unquote(mod)
+
+      @impl StartupGame.Engine.ScenarioProvider
+      def get_next_scenario_async(game_state, game_id, current_scenario_id) do
+        StartupGame.Engine.Demo.BaseScenarioProvider.default_get_next_scenario_async(
+          __MODULE__,
+          game_state,
+          game_id,
+          current_scenario_id
+        )
+      end
+
+      @impl StartupGame.Engine.ScenarioProvider
+      def generate_outcome_async(game_state, game_id, scenario, response_text) do
+        StartupGame.Engine.Demo.BaseScenarioProvider.default_generate_outcome_async(
+          __MODULE__,
+          game_state,
+          game_id,
+          scenario,
+          response_text
+        )
+      end
+    end
+  end
+
   alias StartupGame.Engine.Scenario
 
   @doc """
@@ -86,5 +117,43 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
   def add_choices_to_scenario(scenario, choices) do
     choices_text = format_choices_for_display(choices)
     %{scenario | situation: scenario.situation <> choices_text}
+  end
+
+  @doc """
+  Default implementation of get_next_scenario_async.
+  """
+  def default_get_next_scenario_async(mod, game_state, game_id, current_scenario_id) do
+    stream_id = UUID.uuid4()
+
+    Task.async(fn ->
+      result = mod.get_next_scenario(game_state, current_scenario_id)
+
+      StartupGameWeb.Endpoint.broadcast(
+        "llm_stream:#{game_id}",
+        "llm_complete",
+        {:llm_complete, stream_id, result}
+      )
+    end)
+
+    {:ok, stream_id}
+  end
+
+  @doc """
+  Default implementation of generate_outcome_async.
+  """
+  def default_generate_outcome_async(mod, game_state, game_id, scenario, response_text) do
+    stream_id = UUID.uuid4()
+
+    Task.async(fn ->
+      result = mod.generate_outcome(game_state, scenario, response_text)
+
+      StartupGameWeb.Endpoint.broadcast(
+        "llm_stream:#{game_id}",
+        "llm_complete",
+        {:llm_complete, stream_id, result}
+      )
+    end)
+
+    {:ok, stream_id}
   end
 end

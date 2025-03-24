@@ -3,12 +3,10 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
   Provides dynamically generated scenarios for testing.
   Implements the ScenarioProvider behavior.
   """
-
-  @behaviour StartupGame.Engine.ScenarioProvider
+  use StartupGame.Engine.Demo.BaseScenarioProvider
 
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.Scenario
-  alias StartupGame.Engine.Demo.BaseScenarioProvider
 
   @impl true
   @spec get_next_scenario(GameState.t(), String.t() | nil) :: Scenario.t() | nil
@@ -60,7 +58,11 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
         # Store the choices for this scenario
         choices = [
           %{id: "accept", text: "Accept their offer", selection_keys: ["a", "accept"]},
-          %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+          %{
+            id: "negotiate",
+            text: "Try to negotiate better terms",
+            selection_keys: ["n", "negotiate"]
+          },
           %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
         ]
 
@@ -179,7 +181,11 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
         # Store the choices for this scenario
         choices = [
           %{id: "accept", text: "Accept their offer", selection_keys: ["a", "accept"]},
-          %{id: "negotiate", text: "Try to negotiate better terms", selection_keys: ["n", "negotiate"]},
+          %{
+            id: "negotiate",
+            text: "Try to negotiate better terms",
+            selection_keys: ["n", "negotiate"]
+          },
           %{id: "decline", text: "Decline the offer", selection_keys: ["d", "decline"]}
         ]
 
@@ -225,7 +231,11 @@ defmodule StartupGame.Engine.Demo.DynamicScenarioProvider do
 
         # Store the choices for this scenario
         choices = [
-          %{id: "features", text: "Focus on adding new features", selection_keys: ["f", "features"]},
+          %{
+            id: "features",
+            text: "Focus on adding new features",
+            selection_keys: ["f", "features"]
+          },
           %{id: "ux", text: "Focus on improving user experience", selection_keys: ["u", "ux"]}
         ]
 

@@ -17,6 +17,8 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   attr :rounds, :list, required: true
   attr :ownerships, :list, required: true
   attr :response, :string, default: ""
+  attr :streaming, :boolean, default: false
+  attr :partial_content, :string, default: ""
 
   def game_play(assigns) do
     ~H"""
@@ -30,11 +32,23 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
 
         <ChatHistory.chat_history rounds={@rounds} />
 
+        <!-- Show streaming indicator and partial content when streaming -->
+        <%= if @streaming do %>
+          <div class="bg-gray-100 rounded-lg p-4 mb-4 animate-pulse">
+            <div class="flex items-center mb-2">
+              <div class="h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
+              <span class="text-gray-700 font-medium">AI is thinking...</span>
+            </div>
+            <div class="whitespace-pre-wrap text-gray-700"><%= @partial_content %></div>
+          </div>
+        <% end %>
+
         <%= if @game.status == :in_progress do %>
           <ResponseForm.response_form
             placeholder="How do you want to respond?"
             button_text="Send Response"
             value={@response}
+            disabled={@streaming}
           />
         <% else %>
           <div class="bg-white rounded-lg shadow-md p-4 text-center">
@@ -53,7 +67,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           </div>
         <% end %>
       </div>
-      
+
     <!-- Status panel -->
       <div class="w-full md:w-80 order-1 md:order-2">
         <div class="bg-white rounded-lg shadow-md p-4 mb-4">

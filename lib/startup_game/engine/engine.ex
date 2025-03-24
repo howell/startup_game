@@ -112,7 +112,24 @@ defmodule StartupGame.Engine do
   end
 
   # Helper function to process an outcome
-  @spec process_outcome(GameState.t(), Scenario.t(), map(), String.t()) :: GameState.t()
+  @doc """
+  Applies an outcome to the game state without requiring a scenario or response text.
+  This is used for streaming responses where the outcome is generated asynchronously.
+
+  ## Examples
+
+      iex> Engine.apply_outcome(game_state, outcome)
+      %GameState{...}
+  """
+  @spec apply_outcome(GameState.t(), Scenario.outcome(), String.t()) :: GameState.t()
+  def apply_outcome(game_state, outcome, response_text) do
+    scenario = game_state.current_scenario_data
+
+    process_outcome(game_state, scenario, outcome, response_text)
+  end
+
+  @spec process_outcome(GameState.t(), Scenario.t(), Scenario.outcome(), String.t()) ::
+          GameState.t()
   defp process_outcome(game_state, scenario, outcome, response_text) do
     # Create the round entry
     round = %{

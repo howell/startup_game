@@ -6,6 +6,11 @@ defmodule StartupGame.Engine.LLM.ScenarioProviderCallback do
   that use the BaseLLMScenarioProvider.
   """
 
+  @typedoc """
+  A module implementing the ScenarioProviderCallback behaviour.
+  """
+  @type behaviour() :: module()
+
   alias StartupGame.Engine.GameState
   alias StartupGame.Engine.Scenario
 
@@ -14,7 +19,7 @@ defmodule StartupGame.Engine.LLM.ScenarioProviderCallback do
 
   This module must implement the StartupGame.Engine.LLM.Adapter behaviour.
   """
-  @callback llm_adapter() :: module()
+  @callback llm_adapter() :: StartupGame.Engine.LLM.Adapter.behaviour()
 
   @doc """
   Returns the options to pass to the LLM adapter.
