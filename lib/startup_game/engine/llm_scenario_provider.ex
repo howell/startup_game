@@ -34,6 +34,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     3. Have meaningful consequences for different possible decisions
     4. Be engaging and thought-provoking
     5. Vary in type (funding, hiring, product, legal, market changes, etc.)
+    6. Connect to previous scenarios and decisions to create a coherent narrative
 
     You will receive information about:
     - The startup's name and description
@@ -41,16 +42,20 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     - Ownership structure
     - Previous scenarios and decisions (game history)
 
-    Your response must be a single JSON object in valid JSON format with these fields:
-    {
-      "id": "A unique identifier for this scenario",
-      "type": "One of: funding, acquisition, hiring, legal, other",
-      "situation": "The full scenario text to present to the player"
-    }
-    IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
-    For example: "This is line one.\\nThis is line two."
+    Generate a response in TWO PARTS:
 
-    IMPORTANT: Your response should be a single JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
+    PART 1: A narrative response that presents a challenging, realistic scenario that this startup might face.
+    Write this in a compelling way that can be shown directly to players.
+
+    PART 2: After the line "---JSON DATA---", provide structured data in this JSON format:
+    {
+      "id": "[optional unique identifier]",
+      "type": "funding|acquisition|hiring|legal|other",
+    }
+
+    This part must be a single JSON object in valid JSON format. Make sure it has all required fields and does not contain improper trailing commas.
+
+    IMPORTANT: Your response should be the requested narrative and JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
 
     The situation should describe the scenario in detail and end with an open-ended question
     about what the player wants to do, without providing explicit options.
@@ -72,6 +77,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     3. Sometimes affect company ownership when appropriate
     4. Occasionally lead to major events like acquisition, IPO, or shutdown
     5. Be detailed and explain the consequences of the decision
+    6. Connect to previous scenarios and decisions to create a coherent narrative
 
     You will receive information about:
     - The startup's name and description
@@ -79,9 +85,14 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     - The player's response/decision
     - Current financial state and ownership
 
-    Your response must be a single JSON object in valid JSON format with these fields:
+    Generate a response in TWO PARTS:
+
+    PART 1: A narrative response that describes the outcome of the player's decision.
+    This should be detailed and explain what happened as a result of their choice.
+    Write this in a compelling way that can be shown directly to players.
+
+    PART 2: After the line "---JSON DATA---", provide structured data in this JSON format:
     {
-      "text": "Detailed outcome description",
       "cash_change": number (can be positive or negative),
       "burn_rate_change": number (can be positive or negative),
       "ownership_changes": [
@@ -94,10 +105,10 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
       "exit_type": "none" or "acquisition" or "ipo" or "shutdown",
       "exit_value": number (only if exit_type is not "none")
     }
-    IMPORTANT: Make sure all newlines in string values are properly escaped with \\n.
-    For example: "This is line one.\\nThis is line two."
 
-    IMPORTANT: Your response should be a single JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
+    This part must be a single JSON object in valid JSON format. Make sure it has all required fields and does not contain improper trailing commas.
+
+    IMPORTANT: Your response should be the requested narrative and JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
 
     If there are no ownership changes, set "ownership_changes" to null.
     If there is no exit event, set "exit_type" to "none" and omit "exit_value".
