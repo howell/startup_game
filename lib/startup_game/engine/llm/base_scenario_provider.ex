@@ -210,7 +210,17 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
     # Create the prompt
     """
-    Generate a scenario for a startup simulation game.
+    Generate a response in TWO PARTS for a startup simulation game:
+
+    PART 1: A narrative response that presents a challenging, realistic scenario that this startup might face.
+    This should be detailed and end with an open-ended question about what the player wants to do.
+    Write this in a compelling way that can be shown directly to players.
+
+    PART 2: After the line "---JSON DATA---", provide structured data in this JSON format:
+    {
+      "id": "[optional unique identifier]",
+      "type": "funding|acquisition|hiring|legal|other",
+    }
 
     Startup: "#{game_state.name}" in #{game_state.description}
 
@@ -224,9 +234,6 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
     Game history:
     #{history}
-
-    Generate a challenging, realistic scenario that this startup might face.
-    The scenario should be detailed and end with an open-ended question about what the player wants to do.
     """
   end
 
@@ -242,7 +249,26 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
     # Create the prompt
     """
-    Generate an outcome for a startup simulation game based on the player's decision.
+    Generate a response in TWO PARTS for a startup simulation game outcome:
+
+    PART 1: A narrative response that describes the outcome of the player's decision.
+    This should be detailed and explain what happened as a result of their choice.
+    Write this in a compelling way that can be shown directly to players.
+
+    PART 2: After the line "---JSON DATA---", provide structured data in this JSON format:
+    {
+      "cash_change": [number representing change in cash],
+      "burn_rate_change": [number representing change in monthly expenses],
+      "ownership_changes": [
+        {
+          "entity_name": "[name of entity]",
+          "previous_percentage": [previous ownership percentage],
+          "new_percentage": [new ownership percentage]
+        }
+      ],
+      "exit_type": "none|acquisition|ipo|shutdown",
+      "exit_value": [value if exit occurred, otherwise omit]
+    }
 
     Startup: "#{game_state.name}" in #{game_state.description}
 

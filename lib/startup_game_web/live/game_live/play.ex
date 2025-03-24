@@ -229,14 +229,14 @@ defmodule StartupGameWeb.GameLive.Play do
 
   @impl true
   def handle_info(
-        %{event: "llm_delta", payload: {:llm_delta, stream_id, _delta, full_content}},
+        %{event: "llm_delta", payload: {:llm_delta, stream_id, _delta, display_content}},
         socket
       ) do
     if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
-      # Update the partial content
+      # Update the display content (narrative part only)
       socket =
         socket
-        |> assign(:partial_content, full_content)
+        |> assign(:partial_content, display_content)
 
       {:noreply, socket}
     else

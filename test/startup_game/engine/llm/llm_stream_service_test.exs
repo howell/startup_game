@@ -64,17 +64,27 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
       assert is_binary(stream_id)
       assert String.starts_with?(stream_id, "stream_")
 
-      # Wait for the deltas and completion
+      # Wait for the narrative part deltas
       assert_receive %{
                        event: "llm_delta",
-                       payload: {:llm_delta, ^stream_id, "First part of ", "First part of "}
+                       payload:
+                         {:llm_delta, ^stream_id, "This is the narrative part ",
+                          "This is the narrative part "}
                      },
                      100
 
       assert_receive %{
                        event: "llm_delta",
                        payload:
-                         {:llm_delta, ^stream_id, "the response", "First part of the response"}
+                         {:llm_delta, ^stream_id, "of the response. ",
+                          "This is the narrative part of the response. "}
+                     },
+                     100
+
+      # The JSON part should not be broadcast as a delta
+      refute_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, "---JSON DATA---\n", _}
                      },
                      100
 
@@ -87,11 +97,11 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
 
       # Clean up mocks
       # :meck.unload(StartupGame.Engine.LLM.AnthropicAdapter)
-      :meck.unload(JSONResponseParser)
+      :meck.unload(jsonresponseparser)
     end
 
-    @tag :skip
-    @tag :external_api
+    # @tag :skip
+    # @tag :external_api
     test "integration test with real API (skipped by default)", %{game_id: game_id} do
       # This test actually hits the Anthropic API and should be skipped by default
       # To run this test, use: mix test --include external_api
@@ -155,17 +165,27 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
       assert is_binary(stream_id)
       assert String.starts_with?(stream_id, "stream_")
 
-      # Wait for the deltas and completion
+      # Wait for the narrative part deltas
       assert_receive %{
                        event: "llm_delta",
-                       payload: {:llm_delta, ^stream_id, "First part of ", "First part of "}
+                       payload:
+                         {:llm_delta, ^stream_id, "This is the narrative part ",
+                          "This is the narrative part "}
                      },
                      100
 
       assert_receive %{
                        event: "llm_delta",
                        payload:
-                         {:llm_delta, ^stream_id, "the response", "First part of the response"}
+                         {:llm_delta, ^stream_id, "of the response. ",
+                          "This is the narrative part of the response. "}
+                     },
+                     100
+
+      # The JSON part should not be broadcast as a delta
+      refute_receive %{
+                       event: "llm_delta",
+                       payload: {:llm_delta, ^stream_id, "---JSON DATA---\n", _}
                      },
                      100
 

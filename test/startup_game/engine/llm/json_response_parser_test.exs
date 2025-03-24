@@ -5,6 +5,26 @@ defmodule StartupGame.Engine.LLM.JSONResponseParserTest do
   alias StartupGame.Engine.Scenario
 
   describe "parse_scenario/1" do
+    test "parses scenario from two-part response format" do
+      json = """
+      This is a narrative description of a funding scenario that would be shown to the user.
+      A venture capital firm is interested in your startup. What will you do?
+      ---JSON DATA---
+      {
+        "id": "test_scenario_123",
+        "type": "funding"
+      }
+      """
+
+      assert {:ok, scenario} = JSONResponseParser.parse_scenario(json)
+      assert %Scenario{} = scenario
+      assert scenario.id == "test_scenario_123"
+      assert scenario.type == :funding
+
+      assert scenario.situation ==
+               "This is a narrative description of a funding scenario that would be shown to the user.\nA venture capital firm is interested in your startup. What will you do?"
+    end
+
     test "successfully parses valid scenario JSON" do
       json = """
       {
@@ -107,6 +127,40 @@ defmodule StartupGame.Engine.LLM.JSONResponseParserTest do
   end
 
   describe "parse_outcome/1" do
+    test "parses outcome from two-part response format" do
+      json = """
+      You successfully negotiated with the VC firm. They've agreed to invest $2.5 million in your startup,
+      but they want a 12% stake in the company. This will dilute the founders' ownership from 80% to 70.4%.
+      The investment will increase your monthly burn rate by $50,000 as you'll need to hire more staff.
+      ---JSON DATA---
+      {
+        "cash_change": 2500000,
+        "burn_rate_change": 50000,
+        "ownership_changes": [
+          {
+            "entity_name": "Founders",
+            "previous_percentage": 80,
+            "new_percentage": 70.4
+          },
+          {
+            "entity_name": "VC Firm",
+            "previous_percentage": 0,
+            "new_percentage": 12
+          }
+        ],
+        "exit_type": "none"
+      }
+      """
+
+      assert {:ok, outcome} = JSONResponseParser.parse_outcome(json)
+      assert outcome.text =~ "You successfully negotiated with the VC firm."
+      assert Decimal.equal?(outcome.cash_change, Decimal.new("2500000"))
+      assert Decimal.equal?(outcome.burn_rate_change, Decimal.new("50000"))
+      assert length(outcome.ownership_changes) == 2
+      assert outcome.exit_type == :none
+      assert outcome.exit_value == nil
+    end
+
     test "successfully parses valid outcome JSON" do
       json = """
       {
