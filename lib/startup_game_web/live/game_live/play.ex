@@ -85,6 +85,34 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
+  def render(assigns) do
+    ~H"""
+    <div class="container mx-auto p-4 max-w-6xl">
+      <%= case @creation_stage do %>
+        <% stage when stage in [:name_input, :description_input] -> %>
+          <GameCreationComponent.game_creation
+            creation_stage={@creation_stage}
+            temp_name={@temp_name}
+            rounds={@rounds}
+            response={@response}
+            provider_preference={@provider_preference}
+          />
+        <% :playing -> %>
+          <GamePlayComponent.game_play
+            game={@game}
+            game_state={@game_state}
+            rounds={@rounds}
+            ownerships={@ownerships}
+            response={@response}
+            streaming={@streaming}
+            partial_content={@partial_content}
+          />
+      <% end %>
+    </div>
+    """
+  end
+
+  @impl true
   def handle_event(
         "submit_response",
         %{"response" => response},
@@ -374,33 +402,5 @@ defmodule StartupGameWeb.GameLive.Play do
       # Game is over, no need to start next round
       {:noreply, socket}
     end
-  end
-
-  @impl true
-  def render(assigns) do
-    ~H"""
-    <div class="container mx-auto p-4 max-w-6xl">
-      <%= case @creation_stage do %>
-        <% stage when stage in [:name_input, :description_input] -> %>
-          <GameCreationComponent.game_creation
-            creation_stage={@creation_stage}
-            temp_name={@temp_name}
-            rounds={@rounds}
-            response={@response}
-            provider_preference={@provider_preference}
-          />
-        <% :playing -> %>
-          <GamePlayComponent.game_play
-            game={@game}
-            game_state={@game_state}
-            rounds={@rounds}
-            ownerships={@ownerships}
-            response={@response}
-            streaming={@streaming}
-            partial_content={@partial_content}
-          />
-      <% end %>
-    </div>
-    """
   end
 end
