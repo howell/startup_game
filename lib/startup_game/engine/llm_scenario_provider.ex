@@ -8,6 +8,7 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
   """
 
   use StartupGame.Engine.LLM.BaseScenarioProvider
+  alias StartupGame.Engine.LLM.PromptExamples
 
   @impl StartupGame.Engine.LLM.ScenarioProviderCallback
   def llm_adapter do
@@ -56,6 +57,10 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     This part must be a single JSON object in valid JSON format. Make sure it has all required fields and does not contain improper trailing commas.
 
     IMPORTANT: Your response should be the requested narrative and JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
+
+    Here are some examples of well-formatted responses:
+
+    #{PromptExamples.format_scenario_examples()}
 
     The situation should describe the scenario in detail and end with an open-ended question
     about what the player wants to do, without providing explicit options.
@@ -109,6 +114,10 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
     This part must be a single JSON object in valid JSON format. Make sure it has all required fields and does not contain improper trailing commas.
 
     IMPORTANT: Your response should be the requested narrative and JSON object and NOTHING ELSE, i.e. no additional text/comments before or after.
+
+    Here are some examples of well-formatted responses:
+
+    #{PromptExamples.format_outcome_examples()}
 
     If there are no ownership changes, set "ownership_changes" to null.
     If there is no exit event, set "exit_type" to "none" and omit "exit_value".
