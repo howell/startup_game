@@ -194,6 +194,10 @@ defmodule StartupGame.GameService do
   @doc """
   Finalizes a streamed response by saving it to the database.
   This is called once the complete response is received.
+
+  This function does NOT automatically start the next round. Instead, it just
+  finalizes the outcome and returns. The caller is responsible for starting the
+  next round if needed.
   """
   @spec finalize_streamed_outcome(Ecto.UUID.t(), Scenario.outcome()) :: game_result()
   def finalize_streamed_outcome(game_id, outcome) do
@@ -202,15 +206,20 @@ defmodule StartupGame.GameService do
       response = List.last(game.rounds).response
       updated_game_state = Engine.apply_outcome(game_state, outcome, response)
 
-      # Save the results to the database
+      # Save the results to the database without starting the next round
       save_round_result(game, updated_game_state)
-      |> case do
-        {:ok, %{game: updated_game, game_state: final_state}} ->
-          handle_progress(updated_game, final_state)
+    end
+  end
 
-        error ->
-          error
-      end
+  @doc """
+  Starts the next round after an outcome has been finalized.
+  This function should be called after finalize_streamed_outcome
+  to progress the game to the next round.
+  """
+  @spec start_next_round_after_outcome(Ecto.UUID.t()) :: game_result()
+  def start_next_round_after_outcome(game_id) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      handle_progress(game, game_state)
     end
   end
 

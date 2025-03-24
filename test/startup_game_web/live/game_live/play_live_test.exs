@@ -1,5 +1,5 @@
 defmodule StartupGameWeb.GameLive.PlayLiveTest do
-  use StartupGameWeb.ConnCase, async: true
+  use StartupGameWeb.ConnCase
 
   import Phoenix.LiveViewTest
   import StartupGame.GamesFixtures
@@ -227,9 +227,77 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "accept"
 
       updated_rounds = Games.list_game_rounds(game.id)
-      assert [first_round, _second_round] = updated_rounds
-
+      assert length(updated_rounds) >= 1
+      first_round = List.first(updated_rounds)
       assert first_round.response == "accept"
+
+      assert_receive %{event: "llm_complete", payload: _} = _msg
+
+      receive do
+      after
+        10 -> :ok
+      end
+
+      updated_rounds = Games.list_game_rounds(game.id)
+      assert length(updated_rounds) >= 2
+    end
+
+    test "outcome is finalized before next scenario starts streaming", %{conn: conn, user: user} do
+      # Start the mock streaming adapter
+      {:ok, _pid} = StartupGame.Mocks.LLM.MockStreamingAdapter.start_link()
+
+      # Create a game with a provider that will use our mock adapter
+      game = game_fixture(%{start?: true}, user)
+
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # Subscribe to the streaming topic
+      StartupGameWeb.Endpoint.subscribe("llm_stream:#{game.id}")
+
+      # Get the initial situation
+      initial_html = render(view)
+      # From StaticScenarioProvider
+      assert initial_html =~ "An angel investor offers $100,000 for 15% of your company."
+
+      # Submit a response
+      response_text = "accept"
+
+      view
+      |> form("form[phx-submit='submit_response']", %{response: response_text})
+      |> render_submit()
+
+      # Then outcome completion
+      assert_receive %{
+                       event: "llm_complete",
+                       payload: {:llm_complete, stream_id, {:ok, outcome}}
+                     },
+                     100
+
+      # CRITICAL TEST: After outcome completion, the outcome should be visible in the UI as a message
+      html_after_outcome = render(view)
+      # User's response should be visible
+      assert html_after_outcome =~ response_text
+
+      # The outcome text should be in the database and visible in the UI
+      assert outcome.text
+      # From MockStreamingAdapter
+      assert html_after_outcome =~ "You accept the offer and receive the investment"
+
+      # Finally scenario completion
+      assert_receive %{
+                       event: "llm_complete",
+                       payload: {:llm_complete, new_stream_id, {:ok, _scenario}}
+                     },
+                     1000
+
+      # Should be a different stream ID
+      refute new_stream_id == stream_id
+
+      # Final verification: both outcome and new scenario should be visible
+      final_html = render(view)
+      assert final_html =~ response_text
+      # New scenario text
+      assert final_html =~ "You need to hire a key employee."
     end
 
     test "submitting an empty response does nothing", %{conn: conn, user: user} do

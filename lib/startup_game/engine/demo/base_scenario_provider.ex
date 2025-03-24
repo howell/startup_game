@@ -131,7 +131,7 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
       StartupGameWeb.Endpoint.broadcast(
         "llm_stream:#{game_id}",
         "llm_complete",
-        {:llm_complete, stream_id, result}
+        {:llm_complete, stream_id, {:ok, result}}
       )
     end)
 

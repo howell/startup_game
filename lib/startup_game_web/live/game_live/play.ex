@@ -29,6 +29,7 @@ defmodule StartupGameWeb.GameLive.Play do
       |> assign(:ownerships, [])
       |> assign(:streaming, false)
       |> assign(:stream_id, nil)
+      |> assign(:streaming_type, nil) # :outcome or :scenario
       |> assign(:partial_content, "")
 
     {:ok, socket, temporary_assigns: [rounds: []]}
@@ -181,6 +182,7 @@ defmodule StartupGameWeb.GameLive.Play do
           socket
           |> assign(:streaming, true)
           |> assign(:stream_id, stream_id)
+          |> assign(:streaming_type, :outcome) # Indicate we're streaming an outcome
           |> assign(:partial_content, "")
           |> assign(:response, "")
           |> assign(:rounds, [updated_round])
@@ -254,8 +256,8 @@ defmodule StartupGameWeb.GameLive.Play do
 
       # Process the completed response based on what we're streaming
       # (Either a scenario or an outcome)
-      case result do
-        %{situation: _} = scenario ->
+      case {socket.assigns.streaming_type, result} do
+        {:scenario, %{situation: _} = scenario} ->
           # We received a scenario
           {:ok, %{game: updated_game, game_state: updated_state}} =
             GameService.finalize_streamed_scenario(game_id, scenario)
@@ -266,27 +268,61 @@ defmodule StartupGameWeb.GameLive.Play do
             |> assign(:game_state, updated_state)
             |> assign(:streaming, false)
             |> assign(:stream_id, nil)
+            |> assign(:streaming_type, nil)
             |> assign(:partial_content, "")
             |> assign(:rounds, Games.list_game_rounds(game_id))
 
           {:noreply, socket}
 
-        %{text: _} = outcome ->
-          # We received an outcome
+        {:outcome, %{text: _} = outcome} ->
+          # We received an outcome - finalize it first
           {:ok, %{game: updated_game, game_state: updated_state}} =
             GameService.finalize_streamed_outcome(game_id, outcome)
 
+          # Update the socket with the finalized outcome
           socket =
             socket
             |> assign(:game, updated_game)
             |> assign(:game_state, updated_state)
             |> assign(:streaming, false)
             |> assign(:stream_id, nil)
+            |> assign(:streaming_type, nil)
             |> assign(:partial_content, "")
             |> assign(:rounds, Games.list_game_rounds(game_id))
             |> assign(:ownerships, Games.list_game_ownerships(game_id))
 
-          {:noreply, socket}
+          # Only start the next round if the game is still in progress
+          if updated_state.status == :in_progress do
+            # Start streaming the next scenario
+            case GameService.start_next_round_async(updated_game, updated_state) do
+              {:ok, new_stream_id} ->
+                # Update socket for the new streaming scenario
+                socket =
+                  socket
+                  |> assign(:streaming, true)
+                  |> assign(:stream_id, new_stream_id)
+                  |> assign(:streaming_type, :scenario)
+                  |> assign(:partial_content, "")
+
+                {:noreply, socket}
+
+              {:error, reason} ->
+                {:noreply, socket |> put_flash(:error, "Error starting next round: #{inspect(reason)}")}
+            end
+          else
+            # Game is over, no need to start next round
+            {:noreply, socket}
+          end
+
+        # Handle unexpected result types
+        {streaming_type, result} ->
+          {:noreply,
+           socket
+           |> put_flash(:error, "Unexpected streaming result: #{inspect(streaming_type)}, #{inspect(result)}")
+           |> assign(:streaming, false)
+           |> assign(:stream_id, nil)
+           |> assign(:streaming_type, nil)
+           |> assign(:partial_content, "")}
       end
     else
       {:noreply, socket}
@@ -300,6 +336,7 @@ defmodule StartupGameWeb.GameLive.Play do
         socket
         |> assign(:streaming, false)
         |> assign(:stream_id, nil)
+        |> assign(:streaming_type, nil)
         |> assign(:partial_content, "")
         |> put_flash(:error, "Error: #{error}")
 

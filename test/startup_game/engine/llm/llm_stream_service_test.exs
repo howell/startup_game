@@ -1,6 +1,6 @@
 # Mock adapter that doesn't hit the real API
 defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
-  use StartupGame.DataCase, async: true
+  use StartupGame.DataCase
 
   alias StartupGame.Engine.LLM.LLMStreamService
   alias StartupGame.Engine.LLM.JSONResponseParser
