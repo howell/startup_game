@@ -5,10 +5,11 @@ on:
     workflows: ["Elixir CI"]
     types:
       - completed
+    branches:
+      - 'prod'
 
 jobs:
   deploy:
-    if: ${{ github.event.workflow_run.conclusion == 'success' && github.ref == 'refs/heads/prod' }}
     runs-on: ubuntu-latest
 
     steps:
