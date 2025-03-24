@@ -29,6 +29,10 @@
                 {
                     "name": "SECRET_KEY_BASE",
                     "valueFrom": "arn:aws:secretsmanager:us-east-1:222634374714:secret:StartupAppSecrets-07N1wD:SECRET_KEY_BASE::"
+                },
+                {
+                    "name": "ANTHROPIC_API_KEY",
+                    "valueFrom": "arn:aws:secretsmanager:us-east-1:222634374714:secret:StartupAppSecrets-07N1wD:ANTHROPIC_API_KEY::"
                 }
             ]
         }
