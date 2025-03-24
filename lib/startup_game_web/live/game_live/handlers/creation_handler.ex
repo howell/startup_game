@@ -54,7 +54,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     name = socket.assigns.temp_name
     provider = socket.assigns.provider_preference
 
-    case GameService.create_and_start_game(
+    case GameService.create_game(
            name,
            response,
            user,
@@ -75,7 +75,8 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
           |> Phoenix.LiveView.put_flash(:info, "Started new venture: #{game.name}")
 
         # Update the URL to include the game ID without a full page navigation
-        {:noreply, Phoenix.LiveView.push_patch(socket, to: ~p"/games/play/#{game.id}", replace: true)}
+        {:noreply,
+         Phoenix.LiveView.push_patch(socket, to: ~p"/games/play/#{game.id}", replace: true)}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         ErrorHandler.handle_game_error(socket, :game_creation, changeset)
@@ -214,7 +215,10 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
 
       {:error, reason} ->
         socket
-        |> Phoenix.LiveView.put_flash(:error, "Error generating next scenario: #{inspect(reason)}")
+        |> Phoenix.LiveView.put_flash(
+          :error,
+          "Error generating next scenario: #{inspect(reason)}"
+        )
     end
   end
 end
