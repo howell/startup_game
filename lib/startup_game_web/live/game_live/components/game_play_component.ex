@@ -19,6 +19,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   attr :response, :string, default: ""
   attr :streaming, :boolean, default: false
   attr :partial_content, :string, default: ""
+  attr :streaming_type, :atom, default: nil
 
   def game_play(assigns) do
     ~H"""
@@ -30,18 +31,12 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           <p class="text-gray-600">{@game.description}</p>
         </div>
 
-        <ChatHistory.chat_history rounds={@rounds} />
-
-        <!-- Show streaming indicator and partial content when streaming -->
-        <%= if @streaming do %>
-          <div class="bg-gray-100 rounded-lg p-4 mb-4 animate-pulse">
-            <div class="flex items-center mb-2">
-              <div class="h-3 w-3 bg-blue-500 rounded-full mr-2"></div>
-              <span class="text-gray-700 font-medium">AI is thinking...</span>
-            </div>
-            <div class="whitespace-pre-wrap text-gray-700"><%= @partial_content %></div>
-          </div>
-        <% end %>
+        <ChatHistory.chat_history
+          rounds={@rounds}
+          streaming={@streaming}
+          streaming_type={@streaming_type}
+          partial_content={@partial_content}
+        />
 
         <%= if @game.status == :in_progress do %>
           <ResponseForm.response_form

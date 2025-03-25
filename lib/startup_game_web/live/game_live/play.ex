@@ -71,6 +71,7 @@ defmodule StartupGameWeb.GameLive.Play do
             ownerships={@ownerships}
             response={@response}
             streaming={@streaming}
+            streaming_type={@streaming_type}
             partial_content={@partial_content}
           />
       <% end %>
