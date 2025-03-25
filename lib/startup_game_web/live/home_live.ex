@@ -5,7 +5,8 @@ defmodule StartupGameWeb.HomeLive do
     HeroSection,
     HowItWorksSection,
     TestimonialsSection,
-    CTASection
+    CTASection,
+    Footer
   }
 
   def mount(_params, _session, socket) do
@@ -20,6 +21,7 @@ defmodule StartupGameWeb.HomeLive do
       <.live_component module={StartupGameWeb.Components.Home.GamePreviewSection} id="game_preview" />
       <.testimonials_section />
       <.cta_section />
+      <.footer />
     </div>
     """
   end
