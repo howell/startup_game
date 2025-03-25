@@ -65,7 +65,8 @@ defmodule StartupGame.MixProject do
       {:dialyxir, "~> 1.1", only: [:dev], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:dotenv, "~> 3.0", only: [:dev, :test]},
-      {:meck, "~> 0.9.2", only: :test}
+      {:meck, "~> 0.9.2", only: :test},
+      {:gen_smtp, "~> 1.0"}
     ]
   end
 
