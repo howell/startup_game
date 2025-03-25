@@ -3,6 +3,8 @@ defmodule StartupGame.Accounts.UserNotifier do
 
   alias StartupGame.Mailer
 
+  @email_from "noreply@sillyconvalley.lol"
+
   @moduledoc """
   This module provides functions to deliver emails to users.
   """
@@ -12,7 +14,7 @@ defmodule StartupGame.Accounts.UserNotifier do
     email =
       new()
       |> to(recipient)
-      |> from({"StartupGame", "contact@example.com"})
+      |> from({"noreply", @email_from})
       |> subject(subject)
       |> text_body(body)
 
