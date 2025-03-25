@@ -234,10 +234,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       assert_receive %{event: "llm_complete", payload: _} = _msg
 
-      receive do
-      after
-        10 -> :ok
-      end
+      Process.sleep(20)
 
       updated_rounds = Games.list_game_rounds(game.id)
       assert length(updated_rounds) >= 2
@@ -273,6 +270,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
                        payload: {:llm_complete, stream_id, {:ok, outcome}}
                      },
                      100
+
+      Process.sleep(20)
 
       # CRITICAL TEST: After outcome completion, the outcome should be visible in the UI as a message
       html_after_outcome = render(view)
