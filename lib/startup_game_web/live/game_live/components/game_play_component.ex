@@ -24,7 +24,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
 
   def game_play(assigns) do
     ~H"""
-    <div class="flex flex-col lg:flex-row gap-6 h-[calc(100vh-180px)]">
+    <div class="flex flex-col lg:flex-row gap-6 h-dvh">
       <!-- Mobile toggle for game state -->
       <button
         class="lg:hidden silly-button-secondary mb-4 flex items-center justify-center"
@@ -32,7 +32,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
       >
         {if @is_mobile_state_visible, do: "Hide Game State", else: "Show Game State"}
       </button>
-      
+
     <!-- Game state panel - hidden on mobile unless toggled -->
       <div class={"#{if @is_mobile_state_visible, do: "block", else: "hidden"} lg:block lg:w-1/3 xl:w-1/4 order-1 lg:order-2"}>
         <div class="h-fit overflow-y-auto">
@@ -101,7 +101,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
                   <% end %>
                 </div>
               </div>
-              
+
     <!-- Ownership Structure section -->
               <div>
                 <h3 class="text-sm font-semibold text-foreground/70 mb-3">OWNERSHIP STRUCTURE</h3>
@@ -126,10 +126,10 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
                   <% end %>
                 </div>
               </div>
-              
+
     <!-- Provider selector -->
               <ProviderSelector.provider_selector game={@game} />
-              
+
     <!-- Recent events section -->
               <div>
                 <h3 class="text-sm font-semibold text-foreground/70 mb-3">RECENT EVENTS</h3>
@@ -152,7 +152,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           </div>
         </div>
       </div>
-      
+
     <!-- Chat interface -->
       <div class="flex-1 order-2 lg:order-1">
         <div class="glass-card h-full flex flex-col">
