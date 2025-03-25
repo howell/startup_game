@@ -23,41 +23,42 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
 
   def chat_history(assigns) do
     ~H"""
-    <div class="bg-white rounded-lg shadow-md p-4 mb-4 h-[60vh] overflow-y-auto" id="chat-messages">
-      <div class="space-y-6">
-        <%= for round <- @rounds do %>
+    <div class="p-4 space-y-6">
+      <%= for round <- @rounds do %>
+        <MessageBubble.message_bubble
+          type={:system}
+          content={round.situation}
+          timestamp={round.inserted_at}
+        />
+
+        <%= if round.response do %>
           <MessageBubble.message_bubble
-            type={:system}
-            content={round.situation}
-            timestamp={round.inserted_at}
-          />
-
-          <%= if round.response do %>
-            <MessageBubble.message_bubble
-              type={:user}
-              content={round.response}
-              timestamp={round.updated_at}
-            />
-          <% end %>
-
-          <%= if round.outcome do %>
-            <MessageBubble.message_bubble
-              type={:outcome}
-              content={round.outcome}
-              timestamp={round.updated_at}
-            />
-          <% end %>
-        <% end %>
-
-        <%= if @streaming and @partial_content != "" do %>
-          <MessageBubble.message_bubble
-            type={message_type_for_streaming(@streaming_type)}
-            content={@partial_content}
-            timestamp={DateTime.utc_now()}
-            streaming={true}
+            type={:user}
+            content={round.response}
+            timestamp={round.updated_at}
           />
         <% end %>
-      </div>
+
+        <%= if round.outcome do %>
+          <MessageBubble.message_bubble
+            type={:outcome}
+            content={round.outcome}
+            timestamp={round.updated_at}
+          />
+        <% end %>
+      <% end %>
+
+      <%= if @streaming and @partial_content != "" do %>
+        <MessageBubble.message_bubble
+          type={message_type_for_streaming(@streaming_type)}
+          content={@partial_content}
+          timestamp={DateTime.utc_now()}
+          streaming={true}
+        />
+      <% end %>
+      
+    <!-- Adds some space at the bottom for better scrolling experience -->
+      <div class="h-4"></div>
     </div>
     """
   end

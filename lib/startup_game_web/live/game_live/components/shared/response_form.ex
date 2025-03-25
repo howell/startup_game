@@ -2,7 +2,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
   @moduledoc """
   Component for rendering a response input form with customizable placeholder and button text.
   """
-  use Phoenix.Component
+  use StartupGameWeb, :html
 
   @doc """
   Renders a response input form.
@@ -25,31 +25,32 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
 
   def response_form(assigns) do
     ~H"""
-    <div class="bg-white rounded-lg shadow-md p-4">
-      <form phx-submit={@submit_event}>
+    <form phx-submit={@submit_event} class="w-full">
+      <div class="flex gap-2">
         <textarea
           name="response"
           placeholder={@placeholder}
-          class="w-full p-3 border rounded-md mb-3"
-          rows="3"
+          class="flex-1 resize-none p-3 rounded-lg border-gray-200 focus:border-silly-blue focus:ring-silly-blue/20"
+          rows="2"
           value={@value}
           required
           disabled={@disabled}
         ></textarea>
-        <button
-          type="submit"
-          class={[
-            "font-bold py-2 px-4 rounded w-full",
-            @disabled && "bg-gray-400 cursor-not-allowed",
-            !@disabled && "bg-blue-600 hover:bg-blue-700 text-white"
-          ]}
-          phx-disable-with="Sending..."
-          disabled={@disabled}
-        >
-          {@button_text}
-        </button>
-      </form>
-    </div>
+        <div class="flex flex-col justify-end">
+          <button
+            type="submit"
+            class={[
+              "silly-button-primary flex items-center justify-center",
+              @disabled && "opacity-60 cursor-not-allowed"
+            ]}
+            phx-disable-with="..."
+            disabled={@disabled}
+          >
+            <.icon name="hero-paper-airplane" class="h-5 w-5" />
+          </button>
+        </div>
+      </div>
+    </form>
     """
   end
 end

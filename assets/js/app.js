@@ -22,13 +22,15 @@ import {Socket} from "phoenix"
 import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import scroll_hooks from "./hooks/scroll";
+import chat_hooks from "./hooks/chat_hooks";
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
   longPollFallbackMs: 2500,
   params: {_csrf_token: csrfToken},
   hooks: {
-    ...scroll_hooks
+    ...scroll_hooks,
+    ...chat_hooks
   }
 })
 
@@ -45,4 +47,3 @@ liveSocket.connect()
 // >> liveSocket.enableLatencySim(1000)  // enabled for duration of browser session
 // >> liveSocket.disableLatencySim()
 window.liveSocket = liveSocket
-

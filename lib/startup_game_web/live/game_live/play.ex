@@ -25,6 +25,7 @@ defmodule StartupGameWeb.GameLive.Play do
 
     socket = SocketAssignments.initialize_socket(socket, initial_round)
     socket = assign(socket, :provider_preference, default_provider_preference())
+    socket = assign(socket, :is_mobile_state_visible, false)
 
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
@@ -73,6 +74,7 @@ defmodule StartupGameWeb.GameLive.Play do
             streaming={@streaming}
             streaming_type={@streaming_type}
             partial_content={@partial_content}
+            is_mobile_state_visible={@is_mobile_state_visible}
           />
       <% end %>
     </div>
@@ -94,6 +96,11 @@ defmodule StartupGameWeb.GameLive.Play do
   def handle_event("submit_response", _params, socket) do
     # Empty response, do nothing
     {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("toggle_mobile_state", _, socket) do
+    {:noreply, assign(socket, is_mobile_state_visible: !socket.assigns.is_mobile_state_visible)}
   end
 
   @impl true

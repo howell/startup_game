@@ -2,7 +2,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.MessageBubble do
   @moduledoc """
   Component for rendering chat message bubbles with different styles based on the message type.
   """
-  use Phoenix.Component
+  use StartupGameWeb, :html
 
   @doc """
   Renders a chat message bubble.
@@ -32,16 +32,14 @@ defmodule StartupGameWeb.GameLive.Components.Shared.MessageBubble do
     ~H"""
     <div class={container_class(@type)}>
       <div class={avatar_class(@type)}>
-        <span class={avatar_text_class(@type)}>{avatar_text(@type)}</span>
+        <.icon name={avatar_icon(@type)} class={avatar_icon_class(@type)} />
       </div>
       <div class={content_class(@type)}>
         <div class={bubble_class(@type, @streaming)}>
           <p class="whitespace-pre-wrap">{@content}</p>
           <.ellipsis :if={@streaming} />
-          <%= if @streaming do %>
-          <% end %>
         </div>
-        <p class="text-xs text-gray-500 mt-1">
+        <p class="text-xs text-foreground/60 mt-1">
           {Calendar.strftime(@timestamp, "%I:%M %p · %b %d")}
         </p>
       </div>
@@ -53,45 +51,51 @@ defmodule StartupGameWeb.GameLive.Components.Shared.MessageBubble do
   defp container_class(:user), do: "flex items-start gap-3 justify-end"
   defp container_class(_), do: "flex items-start gap-3"
 
-  defp avatar_class(_), do: "w-10 h-10 rounded-full flex items-center justify-center"
+  defp avatar_class(:system),
+    do: "w-10 h-10 bg-silly-blue/10 rounded-full flex items-center justify-center"
 
-  defp avatar_text_class(:system), do: "text-gray-600 font-semibold"
-  defp avatar_text_class(:user), do: "text-blue-600 font-semibold"
-  defp avatar_text_class(:outcome), do: "text-gray-600 font-semibold"
+  defp avatar_class(:user),
+    do: "w-10 h-10 bg-silly-accent/10 rounded-full flex items-center justify-center"
 
-  defp avatar_text(:system), do: "CF"
-  defp avatar_text(:user), do: "ME"
-  defp avatar_text(:outcome), do: "CF"
+  defp avatar_class(:outcome),
+    do: "w-10 h-10 bg-silly-purple/10 rounded-full flex items-center justify-center"
+
+  defp avatar_icon(:system), do: "hero-computer-desktop"
+  defp avatar_icon(:user), do: "hero-user"
+  defp avatar_icon(:outcome), do: "hero-sparkles"
+
+  defp avatar_icon_class(:system), do: "h-5 w-5 text-silly-blue"
+  defp avatar_icon_class(:user), do: "h-5 w-5 text-silly-accent"
+  defp avatar_icon_class(:outcome), do: "h-5 w-5 text-silly-purple"
 
   defp content_class(:user), do: "flex-1 text-right"
   defp content_class(_), do: "flex-1"
 
   defp bubble_class(:system, streaming?) do
-    base = "bg-gray-100 p-3 rounded-lg rounded-tl-none"
+    base =
+      "bg-white/90 backdrop-blur-sm p-4 rounded-lg rounded-tl-none border border-gray-200/50 shadow-sm"
+
     if streaming?, do: "#{base} animate-pulse", else: base
-    base
   end
 
   defp bubble_class(:user, streaming?) do
-    base =
-      "bg-blue-100 p-3 rounded-lg rounded-tr-none inline-block text-left"
-
+    base = "bg-silly-blue text-white p-4 rounded-lg rounded-tr-none inline-block text-left"
     if streaming?, do: "#{base} animate-pulse", else: base
-    base
   end
 
   defp bubble_class(:outcome, streaming?) do
-    base = "bg-gray-100 p-3 rounded-lg rounded-tl-none"
+    base = "bg-silly-purple/10 p-4 rounded-lg rounded-tl-none border border-silly-purple/20"
     if streaming?, do: "#{base} animate-pulse", else: base
-    base
   end
 
   defp ellipsis(assigns) do
     ~H"""
     <div class="flex mt-2 space-x-1">
-      <div class="h-1 w-1 bg-gray-500 rounded-full animate-pulse"></div>
-      <div class="h-1 w-1 bg-gray-500 rounded-full animate-pulse delay-75"></div>
-      <div class="h-1 w-1 bg-gray-500 rounded-full animate-pulse delay-150"></div>
+      <div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce"></div>
+      <div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.2s">
+      </div>
+      <div class="h-2 w-2 bg-gray-400 rounded-full animate-bounce" style="animation-delay: 0.4s">
+      </div>
     </div>
     """
   end

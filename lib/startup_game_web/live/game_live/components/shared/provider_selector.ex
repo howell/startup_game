@@ -31,22 +31,24 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ProviderSelector do
   def provider_selector(assigns) do
     ~H"""
     <%= if Application.get_env(:startup_game, :env, :prod) != :prod do %>
-      <div class="bg-white rounded-lg shadow-md p-4 mb-4">
-        <h2 class="text-lg font-semibold mb-3">Development Options</h2>
-        <form phx-submit={if @creation_mode, do: "set_provider", else: "change_provider"}>
-          <label class="block mb-2">Scenario Provider:</label>
-          <select name="provider" class="block w-full rounded border-gray-300 mb-2">
-            <%= for option <- @provider_options do %>
-              <.provider_option
-                value={option.value}
-                label={option.label}
-                provider_preference={@provider_preference || (@game && @game.provider_preference)}
-              />
-            <% end %>
-          </select>
+      <div>
+        <h3 class="text-sm font-semibold text-foreground/70 mb-3">DEVELOPER OPTIONS</h3>
+        <form phx-submit={if @creation_mode, do: "set_provider", else: "change_provider"} class="space-y-2">
+          <div>
+            <label class="text-sm text-foreground/70 block mb-1">Scenario Provider:</label>
+            <select name="provider" class="w-full rounded-lg border-gray-200 text-sm focus:border-silly-blue focus:ring-silly-blue/20">
+              <%= for option <- @provider_options do %>
+                <.provider_option
+                  value={option.value}
+                  label={option.label}
+                  provider_preference={@provider_preference || (@game && @game.provider_preference)}
+                />
+              <% end %>
+            </select>
+          </div>
           <button
             type="submit"
-            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            class="silly-button-secondary w-full text-sm"
           >
             {if @creation_mode, do: "Set Provider", else: "Change Provider"}
           </button>
