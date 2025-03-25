@@ -30,7 +30,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ProviderSelector do
 
   def provider_selector(assigns) do
     ~H"""
-    <%= if Application.get_env(:startup_game, :env, Mix.env()) != :prod do %>
+    <%= if Application.get_env(:startup_game, :env, :prod) != :prod do %>
       <div class="bg-white rounded-lg shadow-md p-4 mb-4">
         <h2 class="text-lg font-semibold mb-3">Development Options</h2>
         <form phx-submit={if @creation_mode, do: "set_provider", else: "change_provider"}>
