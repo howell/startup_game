@@ -47,19 +47,6 @@ defmodule StartupGameWeb.Components.Home.HeroSection do
               How It Works
             </a>
           </div>
-
-          <div class="pt-12 sm:pt-24 opacity-80">
-            <button
-              id="scroll-down-button"
-              class="flex flex-col items-center text-sm font-medium text-foreground/60 hover:text-foreground/80 transition-colors"
-              aria-label="Scroll down"
-              phx-hook="SmoothScroll"
-              data-target="#how-it-works"
-            >
-              <span class="mb-2">Scroll to learn more</span>
-              <.icon name="hero-chevron-down" class="animate-bounce-subtle" />
-            </button>
-          </div>
         </div>
       </div>
     </section>
