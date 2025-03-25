@@ -126,9 +126,9 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Cash on hand
-      assert html =~ "$50000.00"
+      assert html =~ "$50.0k"
       # Burn rate
-      assert html =~ "$5000.00"
+      assert html =~ "$5.0k"
       # Runway (50000/5000 = 10)
       assert html =~ "10.0"
     end
@@ -173,7 +173,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Game Acquired!"
-      assert html =~ "Congratulations! Your company was acquired for $2000000.00"
+      assert html =~ "Congratulations! Your company was acquired for $2.0M"
       assert html =~ "Back to Games"
       # Input form should not be shown
       refute html =~ "How do you want to respond?"
@@ -193,7 +193,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "Game IPO Successful!"
-      assert html =~ "Congratulations! Your company went public with a valuation of $5000000.00"
+      assert html =~ "Congratulations! Your company went public with a valuation of $5.0M"
       assert html =~ "Back to Games"
     end
 
@@ -334,9 +334,9 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Cash on hand
-      assert html =~ "$12345.67"
+      assert html =~ "$12.3k"
       # Burn rate
-      assert html =~ "$1234.56"
+      assert html =~ "$1.2k"
     end
 
     test "format_percentage formats decimal values correctly", %{conn: conn, user: user} do
