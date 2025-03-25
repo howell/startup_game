@@ -20,7 +20,10 @@ defmodule StartupGameWeb.Router do
   scope "/", StartupGameWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
+    live_session :homepage,
+      on_mount: [{StartupGameWeb.UserAuth, :mount_current_user}] do
+      live "/", HomeLive, :index
+    end
   end
 
   # Other scopes may use custom stacks.

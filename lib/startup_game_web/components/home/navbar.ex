@@ -1,13 +1,17 @@
 defmodule StartupGameWeb.Components.Home.Navbar do
   @moduledoc """
-  Navigation bar component for the home page.
+  Navigation bar component for the entire site.
 
   Provides a responsive navigation bar with mobile menu toggle functionality.
   Uses JavaScript hooks for scroll detection to change styling based on scroll position.
+  Works on all pages including the home page and authenticated pages.
   """
   use StartupGameWeb, :html
 
   attr :id, :string, required: true
+  attr :current_user, :any, default: nil
+
+  attr :is_home_page, :boolean, default: false
 
   def navbar(assigns) do
     ~H"""
@@ -17,35 +21,110 @@ defmodule StartupGameWeb.Components.Home.Navbar do
       phx-hook="ScrollDetection"
     >
       <div class="container mx-auto px-4 md:px-6 flex items-center justify-between">
-        <a href="#" class="flex items-center gap-2">
+        <.link navigate={~p"/"} class="flex items-center gap-2">
           <span class="font-display text-2xl font-bold">
             SillyCon<span class="text-silly-accent">Valley</span>.lol
           </span>
-        </a>
+        </.link>
 
     <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center gap-8">
-          <a
-            href="#how-it-works"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-          >
-            How It Works
-          </a>
-          <a
-            href="#features"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-          >
-            Features
-          </a>
-          <a
-            href="#testimonials"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-          >
-            Testimonials
-          </a>
-          <a href="#play-now" class="silly-button-primary">
-            Play Now
-          </a>
+          <%= if @is_home_page do %>
+            <!-- Home Page Navigation -->
+            <a
+              href="#how-it-works"
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+            >
+              How It Works
+            </a>
+            <a
+              href="#features"
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+            >
+              Features
+            </a>
+            <a
+              href="#testimonials"
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+            >
+              Testimonials
+            </a>
+
+            <%= if @current_user do %>
+              <.link navigate={~p"/games/play"} class="silly-button-primary">
+                Play Now
+              </.link>
+            <% else %>
+              <.link href={~p"/users/register"} class="silly-button-primary">
+                Play Now
+              </.link>
+            <% end %>
+          <% else %>
+            <!-- Main Site Navigation -->
+            <%= if @current_user do %>
+              <.link
+                navigate={~p"/"}
+                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+              >
+                Home
+              </.link>
+              <.link
+                navigate={~p"/games"}
+                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+              >
+                Portfolio
+              </.link>
+              <.link
+                navigate={~p"/games/play"}
+                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+              >
+                New Venture
+              </.link>
+            <% else %>
+              <.link
+                navigate={~p"/"}
+                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+              >
+                Home
+              </.link>
+            <% end %>
+          <% end %>
+
+          <!-- User Authentication -->
+          <div class="flex items-center">
+            <%= if @current_user do %>
+              <div class="flex items-center space-x-4">
+                <.link
+                  href={~p"/users/settings"}
+                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+                >
+                  Settings
+                </.link>
+                <.link
+                  href={~p"/users/log_out"}
+                  method="delete"
+                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+                >
+                  Log out
+                </.link>
+              </div>
+            <% else %>
+              <div class="flex items-center space-x-4">
+                <.link
+                  href={~p"/users/register"}
+                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+                >
+                  Register
+                </.link>
+                <.link
+                  href={~p"/users/log_in"}
+                  class="silly-button-secondary"
+                >
+                  Log in
+                </.link>
+              </div>
+            <% end %>
+          </div>
         </nav>
 
     <!-- Mobile Navigation Toggle -->
@@ -67,42 +146,145 @@ defmodule StartupGameWeb.Components.Home.Navbar do
         id="mobile-menu"
         class="md:hidden hidden absolute top-full left-0 right-0 bg-white shadow-lg p-4 flex flex-col gap-4 animate-fade-in"
       >
-        <a
-          href="#how-it-works"
-          class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
-          phx-click={
-            JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-          }
-        >
-          How It Works
-        </a>
-        <a
-          href="#features"
-          class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
-          phx-click={
-            JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-          }
-        >
-          Features
-        </a>
-        <a
-          href="#testimonials"
-          class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
-          phx-click={
-            JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-          }
-        >
-          Testimonials
-        </a>
-        <a
-          href="#play-now"
-          class="silly-button-primary text-center"
-          phx-click={
-            JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-          }
-        >
-          Play Now
-        </a>
+        <%= if @is_home_page do %>
+          <!-- Home Page Mobile Navigation -->
+          <a
+            href="#how-it-works"
+            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            phx-click={
+              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+            }
+          >
+            How It Works
+          </a>
+          <a
+            href="#features"
+            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            phx-click={
+              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+            }
+          >
+            Features
+          </a>
+          <a
+            href="#testimonials"
+            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            phx-click={
+              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+            }
+          >
+            Testimonials
+          </a>
+
+          <%= if @current_user do %>
+            <.link
+              navigate={~p"/games/play"}
+              class="silly-button-primary text-center"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Play Now
+            </.link>
+          <% else %>
+            <.link
+              href={~p"/users/register"}
+              class="silly-button-primary text-center"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Play Now
+            </.link>
+          <% end %>
+        <% else %>
+          <!-- Main Site Mobile Navigation -->
+          <%= if @current_user do %>
+            <.link
+              navigate={~p"/"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Home
+            </.link>
+            <.link
+              navigate={~p"/games"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Portfolio
+            </.link>
+            <.link
+              navigate={~p"/games/play"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              New Venture
+            </.link>
+          <% else %>
+            <.link
+              navigate={~p"/"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Home
+            </.link>
+          <% end %>
+        <% end %>
+
+        <!-- Mobile User Authentication -->
+        <%= if @current_user do %>
+          <div class="border-t border-gray-100 mt-2 pt-2">
+            <.link
+              href={~p"/users/settings"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Settings
+            </.link>
+            <.link
+              href={~p"/users/log_out"}
+              method="delete"
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Log out
+            </.link>
+          </div>
+        <% else %>
+          <div class="border-t border-gray-100 mt-2 pt-2">
+            <.link
+              href={~p"/users/register"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Register
+            </.link>
+            <.link
+              href={~p"/users/log_in"}
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              phx-click={
+                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              }
+            >
+              Log in
+            </.link>
+          </div>
+        <% end %>
       </div>
     </header>
     """

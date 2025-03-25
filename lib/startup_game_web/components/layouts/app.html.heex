@@ -1,16 +1,6 @@
-<!-- Each page can have a title, which is shown in this header -->
-<div class="bg-white shadow-sm">
-  <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="py-6">
-      <h1 class="text-2xl font-bold text-gray-900">
-        {assigns[:page_title] || "Startup Game"}
-      </h1>
-    </div>
-  </div>
-</div>
-
+<!-- App layout (internal pages, after the navbar) -->
 <!-- Main content area -->
-<main class="py-8">
+<main class="py-10">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <.flash_group flash={@flash} />
     {@inner_content}

@@ -5,27 +5,21 @@ defmodule StartupGameWeb.HomeLive do
     HeroSection,
     HowItWorksSection,
     TestimonialsSection,
-    CTASection,
-    Footer,
-    Navbar
+    CTASection
   }
 
   def mount(_params, _session, socket) do
-    {:ok, socket}
+    {:ok, socket |> assign(:page_title, "SillyConValley.lol") |> assign(:is_home_page, true)}
   end
 
   def render(assigns) do
     ~H"""
     <div class="min-h-screen flex flex-col">
-      <.navbar id="main-navbar" />
-      <main>
-        <.hero_section />
-        <.how_it_works_section />
-        <.live_component module={StartupGameWeb.Components.Home.GamePreviewSection} id="game_preview" />
-        <.testimonials_section />
-        <.cta_section />
-      </main>
-      <.footer />
+      <.hero_section />
+      <.how_it_works_section />
+      <.live_component module={StartupGameWeb.Components.Home.GamePreviewSection} id="game_preview" />
+      <.testimonials_section />
+      <.cta_section />
     </div>
     """
   end
