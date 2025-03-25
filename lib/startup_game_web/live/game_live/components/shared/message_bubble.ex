@@ -24,14 +24,12 @@ defmodule StartupGameWeb.GameLive.Components.Shared.MessageBubble do
     ~H"""
     <div class={container_class(@type)}>
       <div class={avatar_class(@type)}>
-        <span class={avatar_text_class(@type)}><%= avatar_text(@type) %></span>
+        <span class={avatar_text_class(@type)}>{avatar_text(@type)}</span>
       </div>
       <div class={content_class(@type)}>
-        <p class={bubble_class(@type)}>
-          <%= @content %>
-        </p>
+        <p class={bubble_class(@type)}>{@content}</p>
         <p class="text-xs text-gray-500 mt-1">
-          <%= Calendar.strftime(@timestamp, "%I:%M %p · %b %d") %>
+          {Calendar.strftime(@timestamp, "%I:%M %p · %b %d")}
         </p>
       </div>
     </div>
@@ -55,7 +53,11 @@ defmodule StartupGameWeb.GameLive.Components.Shared.MessageBubble do
   defp content_class(:user), do: "flex-1 text-right"
   defp content_class(_), do: "flex-1"
 
-  defp bubble_class(:system), do: "bg-blue-100 p-3 rounded-lg rounded-tl-none"
-  defp bubble_class(:user), do: "bg-green-100 p-3 rounded-lg rounded-tr-none inline-block text-left"
-  defp bubble_class(:outcome), do: "bg-gray-100 p-3 rounded-lg rounded-tl-none"
+  defp bubble_class(:system), do: "bg-blue-100 p-3 rounded-lg rounded-tl-none whitespace-pre-wrap"
+
+  defp bubble_class(:user),
+    do: "bg-green-100 p-3 rounded-lg rounded-tr-none inline-block text-left whitespace-pre-wrap"
+
+  defp bubble_class(:outcome),
+    do: "bg-gray-100 p-3 rounded-lg rounded-tl-none whitespace-pre-wrap"
 end
