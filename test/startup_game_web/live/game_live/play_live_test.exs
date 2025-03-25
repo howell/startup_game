@@ -19,7 +19,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "Cash"
       assert html =~ "Burn Rate"
       assert html =~ "Runway"
-      assert html =~ "Ownership Structure"
+      assert html =~ "OWNERSHIP STRUCTURE"
     end
 
     test "redirects to games index when game doesn't exist", %{conn: conn} do
