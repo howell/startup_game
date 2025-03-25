@@ -108,7 +108,7 @@ if config_env() == :prod do
   #
   config :startup_game, StartupGame.Mailer,
     adapter: Swoosh.Adapters.AmazonSES,
-    region: System.get_env("us-east-1"),
+    region: "us-east-1",
     access_key: System.get_env("AWS_ACCESS_KEY_ID"),
     secret: System.get_env("AWS_SECRET")
 
