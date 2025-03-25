@@ -16,8 +16,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       assert html =~ "Test Game"
       assert html =~ "Test Description"
-      assert html =~ "Cash on Hand"
-      assert html =~ "Monthly Burn Rate"
+      assert html =~ "Cash"
+      assert html =~ "Burn Rate"
       assert html =~ "Runway"
       assert html =~ "Ownership Structure"
     end
@@ -156,7 +156,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert html =~ "How do you want to respond?"
-      assert html =~ "Send Response"
+      assert html =~ "hero-paper-airplane"
     end
 
     test "shows acquisition end screen", %{conn: conn, user: user} do

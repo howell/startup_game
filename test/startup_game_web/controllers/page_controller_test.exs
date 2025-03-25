@@ -1,10 +1,11 @@
 defmodule StartupGameWeb.PageControllerTest do
   use StartupGameWeb.ConnCase
+  import Phoenix.LiveViewTest
 
   test "GET /", %{conn: conn} do
-    conn = get(conn, ~p"/")
+    {:ok, _view, html} = live(conn, ~p"/")
 
-    assert html_response(conn, 200) =~
-             "Experience the thrills and challenges of founding a startup."
+    assert html =~
+             "Navigate ridiculous scenarios"
   end
 end

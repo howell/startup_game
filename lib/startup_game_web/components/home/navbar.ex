@@ -26,7 +26,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             SillyCon<span class="text-silly-accent">Valley</span>.lol
           </span>
         </.link>
-
+        
     <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center gap-8">
           <%= if @is_home_page do %>
@@ -89,11 +89,14 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               </.link>
             <% end %>
           <% end %>
-
-          <!-- User Authentication -->
+          
+    <!-- User Authentication -->
           <div class="flex items-center">
             <%= if @current_user do %>
               <div class="flex items-center space-x-4">
+                <span class="text-foreground/60 font-medium">
+                  {@current_user.email}
+                </span>
                 <.link
                   href={~p"/users/settings"}
                   class="text-foreground/80 hover:text-foreground transition-colors font-medium"
@@ -116,17 +119,14 @@ defmodule StartupGameWeb.Components.Home.Navbar do
                 >
                   Register
                 </.link>
-                <.link
-                  href={~p"/users/log_in"}
-                  class="silly-button-secondary"
-                >
+                <.link href={~p"/users/log_in"} class="silly-button-secondary">
                   Log in
                 </.link>
               </div>
             <% end %>
           </div>
         </nav>
-
+        
     <!-- Mobile Navigation Toggle -->
         <button
           class="md:hidden silly-button-secondary !p-2"
@@ -140,7 +140,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <.icon name="hero-x-mark" class="h-6 w-6 hidden" id="menu-close-icon" />
         </button>
       </div>
-
+      
     <!-- Mobile Navigation Menu -->
       <div
         id="mobile-menu"
@@ -152,7 +152,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             href="#how-it-works"
             class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
             phx-click={
-              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              JS.hide(to: "#mobile-menu")
+              |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
             }
           >
             How It Works
@@ -161,7 +162,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             href="#features"
             class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
             phx-click={
-              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              JS.hide(to: "#mobile-menu")
+              |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
             }
           >
             Features
@@ -170,7 +172,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             href="#testimonials"
             class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
             phx-click={
-              JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+              JS.hide(to: "#mobile-menu")
+              |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
             }
           >
             Testimonials
@@ -181,7 +184,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               navigate={~p"/games/play"}
               class="silly-button-primary text-center"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Play Now
@@ -191,7 +195,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               href={~p"/users/register"}
               class="silly-button-primary text-center"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Play Now
@@ -204,7 +209,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               navigate={~p"/"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Home
@@ -213,7 +219,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               navigate={~p"/games"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Portfolio
@@ -222,7 +229,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               navigate={~p"/games/play"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               New Venture
@@ -232,22 +240,27 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               navigate={~p"/"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Home
             </.link>
           <% end %>
         <% end %>
-
-        <!-- Mobile User Authentication -->
+        
+    <!-- Mobile User Authentication -->
         <%= if @current_user do %>
           <div class="border-t border-gray-100 mt-2 pt-2">
+            <div class="text-foreground/80 font-medium p-2 block">
+              {@current_user.email}
+            </div>
             <.link
               href={~p"/users/settings"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Settings
@@ -257,7 +270,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               method="delete"
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Log out
@@ -269,7 +283,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               href={~p"/users/register"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Register
@@ -278,7 +293,8 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               href={~p"/users/log_in"}
               class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
               phx-click={
-                JS.hide(to: "#mobile-menu") |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                JS.hide(to: "#mobile-menu")
+                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
               }
             >
               Log in
