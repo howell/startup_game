@@ -474,6 +474,336 @@ defmodule StartupGame.GamesTest do
     end
   end
 
+  # Leaderboard tests
+
+  describe "leaderboard data" do
+    test "list_leaderboard_data/1 returns formatted leaderboard entries" do
+      # Create user and completed game with known exit value and ownership
+      user = user_fixture(%{email: "test@example.com"})
+
+      game = game_fixture(%{
+        name: "Test Company",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("2000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user.id
+      })
+
+      # Create a round for the game (needed for ownership changes)
+      round = round_fixture(%{game: game})
+
+      # Create founder ownership with 60% equity
+      ownership_fixture(%{
+        game: game,
+        entity_name: "Founder",
+        percentage: Decimal.new("60.0")
+      })
+
+      # Get leaderboard data
+      [entry] = Games.list_leaderboard_data()
+
+      # Verify the entry has the expected fields and values
+      assert entry.username == "test"
+      assert entry.company_name == "Test Company"
+      assert Decimal.equal?(entry.exit_value, Decimal.new("2000000"))
+      assert Decimal.equal?(entry.yield, Decimal.new("1200000")) # 60% of exit value
+      assert entry.user_id == user.id
+    end
+
+    test "list_leaderboard_data/1 sorts by exit_value desc by default" do
+      # Create multiple games with different exit values
+      user1 = user_fixture(%{email: "user1@example.com"})
+      user2 = user_fixture(%{email: "user2@example.com"})
+      user3 = user_fixture(%{email: "user3@example.com"})
+
+      # Game A - highest exit value
+      game_a = game_fixture(%{
+        name: "Company A",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("3000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user1.id
+      })
+      round_a = round_fixture(%{game: game_a})
+      ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Game B - lowest exit value
+      game_b = game_fixture(%{
+        name: "Company B",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("1000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user2.id
+      })
+      round_b = round_fixture(%{game: game_b})
+      ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Game C - middle exit value
+      game_c = game_fixture(%{
+        name: "Company C",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("2000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user3.id
+      })
+      round_c = round_fixture(%{game: game_c})
+      ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Get leaderboard data (default sort is exit_value desc)
+      entries = Games.list_leaderboard_data()
+
+      # Verify order: A, C, B (descending exit value)
+      assert length(entries) == 3
+      assert Enum.map(entries, & &1.company_name) == ["Company A", "Company C", "Company B"]
+    end
+
+    test "list_leaderboard_data/1 can sort by exit_value asc" do
+      # Create multiple games with different exit values (reusing setup from previous test)
+      user1 = user_fixture(%{email: "user1@example.com"})
+      user2 = user_fixture(%{email: "user2@example.com"})
+      user3 = user_fixture(%{email: "user3@example.com"})
+
+      # Game A - highest exit value
+      game_a = game_fixture(%{
+        name: "Company A",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("3000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user1.id
+      })
+      round_a = round_fixture(%{game: game_a})
+      ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Game B - lowest exit value
+      game_b = game_fixture(%{
+        name: "Company B",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("1000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user2.id
+      })
+      round_b = round_fixture(%{game: game_b})
+      ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Game C - middle exit value
+      game_c = game_fixture(%{
+        name: "Company C",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("2000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user3.id
+      })
+      round_c = round_fixture(%{game: game_c})
+      ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Get leaderboard data with ascending sort
+      entries = Games.list_leaderboard_data(%{sort_by: "exit_value", sort_direction: :asc})
+
+      # Verify order: B, C, A (ascending exit value)
+      assert length(entries) == 3
+      assert Enum.map(entries, & &1.company_name) == ["Company B", "Company C", "Company A"]
+    end
+
+    test "list_leaderboard_data/1 can sort by yield" do
+      # Create multiple games with different founder percentages and exit values
+      user1 = user_fixture(%{email: "user1@example.com"})
+      user2 = user_fixture(%{email: "user2@example.com"})
+      user3 = user_fixture(%{email: "user3@example.com"})
+
+      # Game A: $3M exit, 40% founder ownership = $1.2M yield
+      game_a = game_fixture(%{
+        name: "Company A",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("3000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user1.id
+      })
+      round_a = round_fixture(%{game: game_a})
+      ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("40.0")})
+
+      # Game B: $1M exit, 90% founder ownership = $0.9M yield
+      game_b = game_fixture(%{
+        name: "Company B",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("1000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user2.id
+      })
+      round_b = round_fixture(%{game: game_b})
+      ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("90.0")})
+
+      # Game C: $2M exit, 80% founder ownership = $1.6M yield
+      game_c = game_fixture(%{
+        name: "Company C",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("2000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user3.id
+      })
+      round_c = round_fixture(%{game: game_c})
+      ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("80.0")})
+
+      # Get leaderboard data sorted by yield desc
+      entries = Games.list_leaderboard_data(%{sort_by: "yield", sort_direction: :desc})
+
+      # Verify order: C, A, B
+      assert length(entries) == 3
+      company_names = Enum.map(entries, & &1.company_name)
+      assert Enum.at(company_names, 0) == "Company C" # $1.6M yield
+      assert Enum.at(company_names, 1) == "Company A" # $1.2M yield
+      assert Enum.at(company_names, 2) == "Company B" # $0.9M yield
+    end
+
+    test "list_leaderboard_data/1 respects the limit parameter" do
+      # Create multiple games
+      user1 = user_fixture(%{email: "user1@example.com"})
+      user2 = user_fixture(%{email: "user2@example.com"})
+      user3 = user_fixture(%{email: "user3@example.com"})
+
+      for {user, name, value} <- [
+        {user1, "Company A", "3000000"},
+        {user2, "Company B", "2000000"},
+        {user3, "Company C", "1000000"}
+      ] do
+        game = game_fixture(%{
+          name: name,
+          exit_type: :acquisition,
+          exit_value: Decimal.new(value),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user.id
+        })
+        round = round_fixture(%{game: game})
+        ownership_fixture(%{game: game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+      end
+
+      # Get leaderboard data with limit of 2
+      entries = Games.list_leaderboard_data(%{limit: 2})
+
+      # Verify we only get 2 entries
+      assert length(entries) == 2
+      assert Enum.map(entries, & &1.company_name) == ["Company A", "Company B"]
+    end
+
+    test "list_leaderboard_data/1 only returns eligible games" do
+      user = user_fixture(%{email: "test@example.com"})
+
+      # Eligible game
+      eligible_game = game_fixture(%{
+        name: "Eligible Company",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("2000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user.id
+      })
+      eligible_round = round_fixture(%{game: eligible_game})
+      ownership_fixture(%{game: eligible_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Non-public game
+      private_game = game_fixture(%{
+        name: "Private Company",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("3000000"),
+        is_public: false,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user.id
+      })
+      private_round = round_fixture(%{game: private_game})
+      ownership_fixture(%{game: private_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Non-leaderboard eligible game
+      ineligible_game = game_fixture(%{
+        name: "Non-eligible Company",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("4000000"),
+        is_public: true,
+        is_leaderboard_eligible: false,
+        status: :completed,
+        user_id: user.id
+      })
+      ineligible_round = round_fixture(%{game: ineligible_game})
+      ownership_fixture(%{game: ineligible_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Not completed game
+      incomplete_game = game_fixture(%{
+        name: "Incomplete Company",
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :in_progress,
+        user_id: user.id
+      })
+      incomplete_round = round_fixture(%{game: incomplete_game})
+      ownership_fixture(%{game: incomplete_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Failed game
+      failed_game = game_fixture(%{
+        name: "Failed Company",
+        exit_type: :shutdown,
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :failed,
+        user_id: user.id
+      })
+      failed_round = round_fixture(%{game: failed_game})
+      ownership_fixture(%{game: failed_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
+
+      # Get leaderboard data
+      entries = Games.list_leaderboard_data()
+
+      # Verify we only get the eligible game
+      assert length(entries) == 1
+      assert hd(entries).company_name == "Eligible Company"
+    end
+
+    test "calculate_founder_yield handles missing founder ownership" do
+      # Create a game without explicit founder ownership
+      user = user_fixture(%{email: "test@example.com"})
+
+      game = game_fixture(%{
+        name: "No Founder",
+        exit_type: :acquisition,
+        exit_value: Decimal.new("1000000"),
+        is_public: true,
+        is_leaderboard_eligible: true,
+        status: :completed,
+        user_id: user.id
+      })
+
+      # Create a round but don't create founder ownership
+      round = round_fixture(%{game: game})
+
+      # Get leaderboard data - should use default 50% for yield calculation
+      [entry] = Games.list_leaderboard_data()
+
+      # Verify default 50% yield is calculated
+      assert Decimal.equal?(entry.yield, Decimal.new("500000"))
+    end
+  end
+
   # Complex business logic tests
 
   describe "update_ownership_structure/3" do
