@@ -63,6 +63,63 @@ defmodule StartupGame.Games do
   end
 
   @doc """
+  Returns formatted leaderboard data with user info and calculated yields.
+
+  ## Examples
+
+      iex> list_leaderboard_data(%{sort_by: "exit_value", limit: 10})
+      [%{username: "user1", company_name: "Company", exit_value: 1000000, yield: 500000}, ...]
+
+  """
+  def list_leaderboard_data(params \\ %{}) do
+    sort_by = Map.get(params, :sort_by, "exit_value")
+    sort_direction = Map.get(params, :sort_direction, :desc)
+    limit = Map.get(params, :limit, 50)
+
+    # Get eligible games with users and ownerships
+    games =
+      Game
+      |> where([g], g.is_public == true and g.is_leaderboard_eligible == true)
+      |> where([g], g.status == :completed)
+      |> where([g], g.exit_type in [:acquisition, :ipo])
+      |> preload([:user, :ownerships])
+      |> order_by([g], [{^sort_direction, field(g, ^String.to_atom(sort_by))}])
+      |> limit(^limit)
+      |> Repo.all()
+
+    # Format the data, calculate yields
+    Enum.map(games, fn game ->
+      founder_yield = calculate_founder_yield(game)
+
+      %{
+        username: game.user.email |> String.split("@") |> hd(),
+        company_name: game.name,
+        exit_value: game.exit_value,
+        yield: founder_yield,
+        user_id: game.user_id
+      }
+    end)
+  end
+
+  # Helper to calculate founder yield based on ownership
+  defp calculate_founder_yield(game) do
+    # Find the founder's ownership
+    founder_ownership =
+      Enum.find(game.ownerships, fn ownership ->
+        ownership.entity_name == "Founder"
+      end)
+
+    # Calculate yield based on percentage
+    if founder_ownership do
+      percentage = Decimal.div(founder_ownership.percentage, Decimal.new(100))
+      Decimal.mult(game.exit_value, percentage)
+    else
+      # Default if no founder record found
+      Decimal.mult(game.exit_value, Decimal.new("0.5"))
+    end
+  end
+
+  @doc """
   Gets a single game.
 
   Raises `Ecto.NoResultsError` if the Game does not exist.
@@ -194,7 +251,8 @@ defmodule StartupGame.Games do
       {:ok, %Game{}}
 
   """
-  @spec update_provider_preference(Game.t(), String.t()) :: {:ok, Game.t()} | {:error, Ecto.Changeset.t()}
+  @spec update_provider_preference(Game.t(), String.t()) ::
+          {:ok, Game.t()} | {:error, Ecto.Changeset.t()}
   def update_provider_preference(%Game{} = game, provider) when is_binary(provider) do
     update_game(game, %{provider_preference: provider})
   end

@@ -88,6 +88,7 @@ defmodule StartupGameWeb.Router do
       on_mount: [{StartupGameWeb.UserAuth, :mount_current_user}] do
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
+      live "/leaderboard", LeaderboardLive, :index
     end
   end
 end
