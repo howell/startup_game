@@ -63,6 +63,10 @@ defmodule StartupGameWeb.GameLive.Play do
             rounds={@rounds}
             response={@response}
             provider_preference={@provider_preference}
+            streaming={@streaming}
+            streaming_type={@streaming_type}
+            partial_content={@partial_content}
+            is_mobile_state_visible={@is_mobile_state_visible}
           />
         <% :playing -> %>
           <GamePlayComponent.game_play
