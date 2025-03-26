@@ -40,6 +40,25 @@ const ChatHooks = {
         behavior: 'smooth'
       });
     }
+  },
+  
+  // Handles Enter to submit, Shift+Enter for new line in textareas
+  TextareaSubmit: {
+    mounted() {
+      this.el.addEventListener('keydown', (e) => {
+        // If Enter is pressed without Shift
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault(); // Prevent default Enter behavior
+          
+          // Find the closest form and submit it
+          const form = this.el.closest('form');
+          if (form) {
+            form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+          }
+        }
+        // If Shift+Enter, let the default behavior happen (new line)
+      });
+    }
   }
 };
 

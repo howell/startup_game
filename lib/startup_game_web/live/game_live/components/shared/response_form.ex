@@ -28,6 +28,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
     <form phx-submit={@submit_event} class="w-full">
       <div class="flex gap-2">
         <textarea
+          id="response-textarea"
           name="response"
           placeholder={@placeholder}
           class="flex-1 resize-none p-3 rounded-lg border-gray-200 focus:border-silly-blue focus:ring-silly-blue/20"
@@ -35,6 +36,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
           value={@value}
           required
           disabled={@disabled}
+          phx-hook="TextareaSubmit"
         ></textarea>
         <div class="flex flex-col justify-center">
           <button
@@ -49,6 +51,9 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
             <.icon name="hero-paper-airplane" class="h-5 w-5" />
           </button>
         </div>
+      </div>
+      <div class="mt-2 text-xs text-foreground/60">
+        <span>Press Enter to send</span>
       </div>
     </form>
     """

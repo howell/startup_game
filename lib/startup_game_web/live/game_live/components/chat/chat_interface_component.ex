@@ -41,12 +41,6 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
               value={@response}
               disabled={@streaming}
             />
-            <div class="mt-2 flex justify-between items-center text-xs text-foreground/60">
-              <span>Press Enter to send</span>
-              <.link navigate={~p"/games"} class="flex items-center gap-1 hover:text-foreground/80">
-                <.icon name="hero-home" class="h-3 w-3" /> Back to Games
-              </.link>
-            </div>
           </div>
         </div>
       <% else %>
