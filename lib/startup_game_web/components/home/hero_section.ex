@@ -40,9 +40,9 @@ defmodule StartupGameWeb.Components.Home.HeroSection do
           </p>
 
           <div class="flex flex-col sm:flex-row gap-4 justify-center pt-6">
-            <a href="#play-now" class="silly-button-primary text-center">
+            <.link navigate={~p"/games/play"} class="silly-button-primary text-center">
               Start Your Startup Journey
-            </a>
+            </.link>
             <a href="#how-it-works" class="silly-button-secondary text-center">
               How It Works
             </a>

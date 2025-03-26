@@ -31,9 +31,9 @@ defmodule StartupGameWeb.Components.Home.CTASection do
               </p>
 
               <div class="flex flex-col sm:flex-row gap-4 justify-center">
-                <a href="#" class="silly-button-primary text-center">
+                <.link navigate={~p"/games/play"} class="silly-button-primary text-center">
                   Play Now
-                </a>
+                </.link>
                 <a href="#" class="silly-button-secondary text-center">
                   Learn More
                 </a>
