@@ -36,7 +36,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
           required
           disabled={@disabled}
         ></textarea>
-        <div class="flex flex-col justify-end">
+        <div class="flex flex-col justify-center">
           <button
             type="submit"
             class={[

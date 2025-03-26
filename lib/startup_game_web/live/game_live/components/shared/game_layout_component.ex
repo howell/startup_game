@@ -15,7 +15,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
 
   def game_layout(assigns) do
     ~H"""
-    <div class="h-[calc(100vh-8rem)] w-screen flex flex-col overflow-hidden">
+    <div class="h-[calc(100vh-6rem)] w-screen flex flex-col overflow-hidden">
       <!-- Mobile toggle for game state -->
       <button
         class="lg:hidden silly-button-secondary mb-4 flex items-center justify-center"
@@ -26,7 +26,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
 
       <div class="flex flex-1 overflow-hidden">
         <!-- Game state panel component (for desktop) -->
-        <div class="hidden lg:block lg:w-1/3 xl:w-1/4 flex-shrink-0 border-r border-gray-200">
+        <div class="hidden lg:block lg:w-1/3 xl:w-1/4 flex-shrink-0 border-r border-b border-gray-200">
           {render_slot(@state_panel)}
         </div>
         
@@ -36,7 +36,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
         </div>
         
     <!-- Content area -->
-        <div class={"flex-1 #{if @is_mobile_state_visible, do: "hidden", else: "block"}"}>
+        <div class={"flex-1 border border-b border-gray-200 #{if @is_mobile_state_visible, do: "hidden", else: "block"}"}>
           {render_slot(@content_area)}
         </div>
       </div>
