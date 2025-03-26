@@ -17,8 +17,8 @@ defmodule StartupGameWeb.UserSettingsLive do
         class={
           "px-4 py-2 rounded-md text-sm font-medium #{
             if @active_tab == "profile",
-            do: "bg-silly-blue text-white",
-            else: "bg-white text-gray-700 hover:bg-gray-100"
+            do: "",
+            else: "opacity-50 hover:opacity-75"
           }"
         }
       >
@@ -31,8 +31,8 @@ defmodule StartupGameWeb.UserSettingsLive do
         class={
           "px-4 py-2 rounded-md text-sm font-medium #{
             if @active_tab == "security",
-            do: "bg-silly-blue text-white",
-            else: "bg-white text-gray-700 hover:bg-gray-100"
+            do: "",
+            else: "opacity-50 hover:opacity-75"
           }"
         }
       >
