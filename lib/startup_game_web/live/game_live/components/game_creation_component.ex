@@ -44,7 +44,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
 
       <:content_area>
         <div class="h-full flex flex-col">
-          <div class="flex-1 overflow-y-auto" id="chat-messages" phx-hook="ScrollToBottom">
+          <div class="flex-1 overflow-y-auto" id="chat-messages">
             <ChatHistory.chat_history
               rounds={@rounds}
               streaming={@streaming}
