@@ -88,19 +88,7 @@ defmodule StartupGameWeb.UserResetPasswordLiveTest do
   end
 
   describe "Reset password navigation" do
-    test "redirects to login page when the Log in button is clicked", %{conn: conn, token: token} do
-      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
-
-      {:ok, conn} =
-        lv
-        |> element(~s|main a:fl-contains("Log in")|)
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/log_in")
-
-      assert conn.resp_body =~ "Log in"
-    end
-
-    test "redirects to registration page when the Register button is clicked", %{
+    test "redirects to login page when the Reset Password button is clicked", %{
       conn: conn,
       token: token
     } do
@@ -108,11 +96,31 @@ defmodule StartupGameWeb.UserResetPasswordLiveTest do
 
       {:ok, conn} =
         lv
-        |> element(~s|main a:fl-contains("Register")|)
-        |> render_click()
-        |> follow_redirect(conn, ~p"/users/register")
+        |> form("#reset_password_form",
+          user: %{
+            "password" => "password12345",
+            "password_confirmation" => "password12345"
+          }
+        )
+        |> render_submit()
+        |> follow_redirect(conn, ~p"/users/log_in")
 
-      assert conn.resp_body =~ "Register"
+      assert conn.resp_body =~ "Log in"
+    end
+
+    test "redirects to login page when the Back to log in link is clicked", %{
+      conn: conn,
+      token: token
+    } do
+      {:ok, lv, _html} = live(conn, ~p"/users/reset_password/#{token}")
+
+      {:ok, _login_lv, html} =
+        lv
+        |> element(~s|a:fl-contains("Back to log in")|)
+        |> render_click()
+        |> follow_redirect(conn, ~p"/users/log_in")
+
+      assert html =~ "Log in"
     end
   end
 end

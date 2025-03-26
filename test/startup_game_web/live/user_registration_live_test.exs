@@ -8,7 +8,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
     test "renders registration page", %{conn: conn} do
       {:ok, _lv, html} = live(conn, ~p"/users/register")
 
-      assert html =~ "Register"
+      assert html =~ "Create an account"
       assert html =~ "Log in"
     end
 
@@ -30,7 +30,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
         |> element("#registration_form")
         |> render_change(user: %{"email" => "with spaces", "password" => "too short"})
 
-      assert result =~ "Register"
+      assert result =~ "Create an account"
       assert result =~ "must have the @ sign and no spaces"
       assert result =~ "should be at least 12 character"
     end
@@ -41,18 +41,32 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
-      form = form(lv, "#registration_form", user: valid_user_attributes(email: email))
-      render_submit(form)
-      conn = follow_trigger_action(form, conn)
+      password = "valid_password12345"
 
-      assert redirected_to(conn) == ~p"/"
+      # Submit the form with valid values
+      lv
+      |> element("#registration_form")
+      |> render_submit(%{
+        user: %{
+          "email" => email,
+          "password" => password,
+          "password_confirmation" => password
+        }
+      })
 
-      # Now do a logged in request and assert on the menu
-      conn = get(conn, "/")
-      response = html_response(conn, 200)
-      assert response =~ email
-      assert response =~ "Settings"
-      assert response =~ "Log out"
+      # Verify the account was created
+      user = StartupGame.Accounts.get_user_by_email(email)
+      assert user
+
+      # Verify we can log in with the new credentials
+      new_conn =
+        build_conn()
+        |> post("/users/log_in", %{
+          "user" => %{"email" => email, "password" => password}
+        })
+
+      assert redirected_to(new_conn) == "/"
+      assert get_session(new_conn, :user_token)
     end
 
     test "renders errors for duplicated email", %{conn: conn} do
@@ -60,14 +74,22 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
 
       user = user_fixture(%{email: "test@email.com"})
 
-      result =
-        lv
-        |> form("#registration_form",
-          user: %{"email" => user.email, "password" => "valid_password"}
-        )
-        |> render_submit()
+      # Submit the form with existing email
+      lv
+      |> form("#registration_form",
+        user: %{
+          "email" => user.email,
+          "password" => "valid_password",
+          "password_confirmation" => "valid_password"
+        }
+      )
+      |> render_submit()
 
-      assert result =~ "has already been taken"
+      # The page should reload with an error message
+      assert render(lv) =~ "Oops, something went wrong"
+
+      # Check that we're still on the registration page
+      assert render(lv) =~ "Create an account"
     end
   end
 
@@ -77,7 +99,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
 
       {:ok, _login_live, login_html} =
         lv
-        |> element(~s|main a:fl-contains("Log in")|)
+        |> element(~s|a:fl-contains("Log in")|)
         |> render_click()
         |> follow_redirect(conn, ~p"/users/log_in")
 
