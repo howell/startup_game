@@ -11,14 +11,12 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
 
       <.response_form
         placeholder="Enter your response"
-        button_text="Send"
         value={@response}
         submit_event="submit_response"
       />
 
   """
   attr :placeholder, :string, required: true
-  attr :button_text, :string, required: true
   attr :value, :string, default: ""
   attr :submit_event, :string, default: "submit_response"
   attr :disabled, :boolean, default: false
@@ -45,7 +43,6 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
               "silly-button-primary flex items-center justify-center",
               @disabled && "opacity-60 cursor-not-allowed"
             ]}
-            phx-disable-with="..."
             disabled={@disabled}
           >
             <.icon name="hero-paper-airplane" class="h-5 w-5" />

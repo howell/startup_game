@@ -37,7 +37,6 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           <div class="mx-auto w-full">
             <ResponseForm.response_form
               placeholder="How do you want to respond?"
-              button_text="Send Response"
               value={@response}
               disabled={@streaming}
             />

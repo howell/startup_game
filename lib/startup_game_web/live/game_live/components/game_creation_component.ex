@@ -61,12 +61,8 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
                     do: "Enter your company name",
                     else: "Describe what your company does"
                 }
-                button_text={
-                  if @creation_stage == :name_input,
-                    do: "Set Company Name",
-                    else: "Set Company Description"
-                }
                 value={@response}
+                disabled={@streaming}
               />
             </div>
           </div>
