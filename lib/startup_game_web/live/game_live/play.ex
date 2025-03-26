@@ -54,7 +54,7 @@ defmodule StartupGameWeb.GameLive.Play do
   @spec render(map()) :: Phoenix.LiveView.Rendered.t()
   def render(assigns) do
     ~H"""
-    <div class="container mx-auto p-4 max-w-6xl">
+    <div class="container ">
       <%= case @creation_stage do %>
         <% stage when stage in [:name_input, :description_input] -> %>
           <GameCreationComponent.game_creation

@@ -20,17 +20,15 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
 
   def game_state_panel(assigns) do
     ~H"""
-    <div class={"#{if @is_visible, do: "block", else: "hidden"} lg:block lg:w-1/3 xl:w-1/4 order-1 lg:order-2"}>
-      <div class="h-fit overflow-y-auto">
-        <div class="glass-card h-full p-5">
-          <.company_header game={@game} />
+    <div class={"#{if @is_visible, do: "block", else: "hidden"} h-full overflow-hidden flex flex-col"}>
+      <div class="glass-card flex-1 overflow-y-auto p-5">
+        <.company_header game={@game} />
 
-          <div class="space-y-6">
-            <FinancesComponent.finances_section game={@game} ownerships={@ownerships} />
-            <OwnershipComponent.ownership_section ownerships={@ownerships} />
-            <ProviderSelector.provider_selector game={@game} />
-            <.recent_events_section rounds={@rounds} />
-          </div>
+        <div class="space-y-6">
+          <FinancesComponent.finances_section game={@game} ownerships={@ownerships} />
+          <OwnershipComponent.ownership_section ownerships={@ownerships} />
+          <ProviderSelector.provider_selector game={@game} />
+          <.recent_events_section rounds={@rounds} />
         </div>
       </div>
     </div>
@@ -45,14 +43,14 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
   def company_header(assigns) do
     ~H"""
     <div class="mb-6">
-      <h2 class="heading-md mb-1"><%= @game.name %></h2>
-      <p class="text-foreground/70 text-sm mb-2"><%= @game.description %></p>
+      <h2 class="heading-md mb-1">{@game.name}</h2>
+      <p class="text-foreground/70 text-sm mb-2">{@game.description}</p>
       <div class="flex items-center gap-2 text-foreground/70">
         <.icon name="hero-arrow-trending-up" class="text-silly-accent" />
         <p>
-          $<%= GameFormatters.format_money(@game.cash_on_hand) %> • Runway: <%= GameFormatters.format_runway(
+          ${GameFormatters.format_money(@game.cash_on_hand)} • Runway: {GameFormatters.format_runway(
             Games.calculate_runway(@game)
-          ) %> months
+          )} months
         </p>
       </div>
     </div>
@@ -76,8 +74,8 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
               <div class="bg-silly-blue/10 rounded-full p-1 mr-2 mt-0.5">
                 <.icon name="hero-star" class="h-3 w-3 text-silly-blue" />
               </div>
-              <%= String.slice(round.situation, 0, 60) <>
-                if String.length(round.situation) > 60, do: "...", else: "" %>
+              {String.slice(round.situation, 0, 60) <>
+                if String.length(round.situation) > 60, do: "...", else: ""}
             </div>
           <% end %>
         <% end %>

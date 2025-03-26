@@ -69,6 +69,9 @@ module.exports = {
         ".glass-card": {
           "@apply bg-white/80 backdrop-blur-sm border border-white/20 shadow-lg rounded-2xl": {},
         },
+        ".glass-card-blur": {
+          "@apply bg-white/90 backdrop-blur-md border border-white/20 shadow-lg": {},
+        },
         ".silly-button": {
           "@apply px-6 py-3 font-medium rounded-full transition-all duration-300 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-2": {},
         },

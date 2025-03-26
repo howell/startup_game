@@ -17,6 +17,29 @@ const ChatHooks = {
     scrollToBottom() {
       this.el.scrollTop = this.el.scrollHeight;
     }
+  },
+  
+  // Automatically scrolls the window to the bottom when chat content changes
+  WindowScrollToBottom: {
+    mounted() {
+      this.scrollToBottom();
+      
+      this.handleEvent("scroll-to-bottom", () => {
+        this.scrollToBottom();
+      });
+    },
+    
+    updated() {
+      this.scrollToBottom();
+    },
+    
+    scrollToBottom() {
+      // Use smooth scrolling for better UX
+      window.scrollTo({
+        top: document.body.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }
 };
 
