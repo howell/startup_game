@@ -1,39 +1,65 @@
 defmodule StartupGameWeb.UserResetPasswordLive do
   use StartupGameWeb, :live_view
+  import StartupGameWeb.CoreComponents
 
   alias StartupGame.Accounts
 
   def render(assigns) do
     ~H"""
-    <div class="mx-auto max-w-sm">
-      <.header class="text-center">Reset Password</.header>
+    <div class="flex-1 flex items-center justify-center p-4">
+      <div class="w-full max-w-md bg-white rounded-lg shadow-md p-6">
+        <div class="text-center mb-6">
+          <h1 class="text-2xl font-bold">Reset Password</h1>
+          <p class="text-gray-600 mt-1">
+            Enter your new password below
+          </p>
+        </div>
 
-      <.simple_form
-        for={@form}
-        id="reset_password_form"
-        phx-submit="reset_password"
-        phx-change="validate"
-      >
-        <.error :if={@form.errors != []}>
-          Oops, something went wrong! Please check the errors below.
-        </.error>
+        <.simple_form
+          for={@form}
+          id="reset_password_form"
+          phx-submit="reset_password"
+          phx-change="validate"
+          class="space-y-4"
+        >
+          <.input
+            field={@form[:password]}
+            type="password"
+            label="New password"
+            placeholder="Enter your new password"
+            autocomplete="new-password"
+            phx-debounce="300"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-silly-blue focus:border-silly-blue"
+          />
 
-        <.input field={@form[:password]} type="password" label="New password" required />
-        <.input
-          field={@form[:password_confirmation]}
-          type="password"
-          label="Confirm new password"
-          required
-        />
-        <:actions>
-          <.button phx-disable-with="Resetting..." class="w-full">Reset Password</.button>
-        </:actions>
-      </.simple_form>
+          <.input
+            field={@form[:password_confirmation]}
+            type="password"
+            label="Confirm new password"
+            placeholder="Confirm your new password"
+            autocomplete="new-password"
+            phx-debounce="300"
+            required
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-silly-blue focus:border-silly-blue"
+          />
 
-      <p class="text-center text-sm mt-4">
-        <.link href={~p"/users/register"}>Register</.link>
-        | <.link href={~p"/users/log_in"}>Log in</.link>
-      </p>
+          <:actions>
+            <.button
+              phx-disable-with="Resetting..."
+              class="w-full bg-silly-blue text-white font-medium py-2 px-4 rounded-md hover:bg-silly-blue/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-silly-blue"
+            >
+              Reset Password
+            </.button>
+          </:actions>
+        </.simple_form>
+
+        <div class="mt-6 text-center">
+          <.link navigate={~p"/users/log_in"} class="text-silly-blue hover:underline">
+            Back to log in
+          </.link>
+        </div>
+      </div>
     </div>
     """
   end
