@@ -15,7 +15,7 @@ defmodule StartupGameWeb.HomeLive do
 
   def render(assigns) do
     ~H"""
-    <div class="min-h-screen flex flex-col">
+    <div class="min-h-screen flex flex-col mx-auto">
       <.hero_section />
       <.how_it_works_section />
       <.live_component module={StartupGameWeb.Components.Home.GamePreviewSection} id="game_preview" />
