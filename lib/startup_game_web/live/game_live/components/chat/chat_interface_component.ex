@@ -22,7 +22,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
     ~H"""
     <div class="h-full flex flex-col">
       <!-- Chat messages with scrolling -->
-      <div class="flex-1 overflow-y-auto" id="chat-messages" phx-hook="ScrollToBottom">
+      <div class="flex-1 overflow-y-auto" id="chat-messages">
         <ChatHistory.chat_history
           rounds={@rounds}
           streaming={@streaming}
