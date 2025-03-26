@@ -76,6 +76,9 @@ defmodule StartupGame.Games do
     sort_direction = Map.get(params, :sort_direction, :desc)
     limit = Map.get(params, :limit, 50)
 
+    # Replace "yield" with "founder_return" in sort_by if needed
+    sort_by = if sort_by == "yield", do: "founder_return", else: sort_by
+
     # Get eligible games with users and ownerships
     games =
       Game
@@ -87,15 +90,22 @@ defmodule StartupGame.Games do
       |> limit(^limit)
       |> Repo.all()
 
-    # Format the data, calculate yields
+    # Format the data, calculate yields if founder_return is not set
     Enum.map(games, fn game ->
-      founder_yield = calculate_founder_yield(game)
+      # For backward compatibility with existing games and tests
+      # If founder_return is not set or is 0, calculate it
+      yield =
+        if Decimal.compare(game.founder_return || Decimal.new(0), Decimal.new(0)) == :eq do
+          calculate_founder_yield(game)
+        else
+          game.founder_return
+        end
 
       %{
         username: game.user.email |> String.split("@") |> hd(),
         company_name: game.name,
         exit_value: game.exit_value,
-        yield: founder_yield,
+        yield: yield,
         user_id: game.user_id
       }
     end)
@@ -817,10 +827,27 @@ defmodule StartupGame.Games do
   """
   def complete_game(%Game{} = game, exit_type, exit_value)
       when exit_type in [:acquisition, :ipo] do
+    # Preload ownerships if not already loaded
+    game_with_ownerships =
+      if Ecto.assoc_loaded?(game.ownerships) do
+        game
+      else
+        Repo.preload(game, :ownerships)
+      end
+
+    # Calculate founder return
+    founder_return =
+      calculate_founder_yield(%{
+        exit_value: exit_value,
+        ownerships: game_with_ownerships.ownerships
+      })
+
+    # Update the game with exit details and founder return
     update_game(game, %{
       status: :completed,
       exit_type: exit_type,
-      exit_value: exit_value
+      exit_value: exit_value,
+      founder_return: founder_return
     })
   end
 

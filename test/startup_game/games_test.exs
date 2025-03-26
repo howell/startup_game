@@ -106,6 +106,7 @@ defmodule StartupGame.GamesTest do
 
       # Create an eligible game
       user = user_fixture()
+
       {:ok, eligible_game} =
         %{
           name: "Eligible Game",
@@ -143,6 +144,7 @@ defmodule StartupGame.GamesTest do
 
     test "create_game/1 with valid data creates a game" do
       user = user_fixture()
+
       valid_attrs = %{
         name: "New Startup",
         description: "A new startup description",
@@ -164,6 +166,7 @@ defmodule StartupGame.GamesTest do
 
     test "create_new_game/2 creates a game with initial ownership" do
       user = user_fixture()
+
       valid_attrs = %{
         name: "New Startup",
         description: "A new startup description"
@@ -182,6 +185,7 @@ defmodule StartupGame.GamesTest do
 
     test "update_game/2 with valid data updates the game" do
       game = game_fixture()
+
       update_attrs = %{
         name: "Updated Name",
         description: "Updated description",
@@ -228,6 +232,7 @@ defmodule StartupGame.GamesTest do
 
     test "create_round/1 with valid data creates a round" do
       game = game_fixture()
+
       valid_attrs = %{
         situation: "New situation",
         response: "New response",
@@ -260,7 +265,9 @@ defmodule StartupGame.GamesTest do
         burn_rate_change: Decimal.new("500.00")
       }
 
-      assert {:ok, %{round: round, game: updated_game}} = Games.create_game_round(round_attrs, game)
+      assert {:ok, %{round: round, game: updated_game}} =
+               Games.create_game_round(round_attrs, game)
+
       assert round.situation == "Test situation"
 
       # Check that game state was updated
@@ -273,6 +280,7 @@ defmodule StartupGame.GamesTest do
 
     test "update_round/2 with valid data updates the round" do
       round = round_fixture()
+
       update_attrs = %{
         situation: "Updated situation",
         response: "Updated response"
@@ -307,7 +315,10 @@ defmodule StartupGame.GamesTest do
     test "list_game_ownerships/1 returns all ownerships for a game" do
       game = game_fixture()
       ownership = ownership_fixture(%{game: game})
-      assert Games.list_game_ownerships(game.id) |> Enum.map(& &1.id) |> Enum.member?(ownership.id)
+
+      assert Games.list_game_ownerships(game.id)
+             |> Enum.map(& &1.id)
+             |> Enum.member?(ownership.id)
     end
 
     test "get_ownership!/1 returns the ownership with given id" do
@@ -317,6 +328,7 @@ defmodule StartupGame.GamesTest do
 
     test "create_ownership/1 with valid data creates an ownership" do
       game = game_fixture()
+
       valid_attrs = %{
         entity_name: "New Entity",
         percentage: Decimal.new("25.00"),
@@ -334,12 +346,15 @@ defmodule StartupGame.GamesTest do
 
     test "update_ownership/2 with valid data updates the ownership" do
       ownership = ownership_fixture()
+
       update_attrs = %{
         entity_name: "Updated Entity",
         percentage: Decimal.new("75.00")
       }
 
-      assert {:ok, %Ownership{} = updated_ownership} = Games.update_ownership(ownership, update_attrs)
+      assert {:ok, %Ownership{} = updated_ownership} =
+               Games.update_ownership(ownership, update_attrs)
+
       assert updated_ownership.entity_name == "Updated Entity"
       assert Decimal.equal?(updated_ownership.percentage, Decimal.new("75.00"))
     end
@@ -368,13 +383,19 @@ defmodule StartupGame.GamesTest do
     test "list_game_ownership_changes/1 returns all ownership changes for a game" do
       game = game_fixture()
       ownership_change = ownership_change_fixture(%{game: game})
-      assert Games.list_game_ownership_changes(game.id) |> Enum.map(& &1.id) |> Enum.member?(ownership_change.id)
+
+      assert Games.list_game_ownership_changes(game.id)
+             |> Enum.map(& &1.id)
+             |> Enum.member?(ownership_change.id)
     end
 
     test "list_round_ownership_changes/1 returns all ownership changes for a round" do
       round = round_fixture()
       ownership_change = ownership_change_fixture(%{round: round, game: round.game})
-      assert Games.list_round_ownership_changes(round.id) |> Enum.map(& &1.id) |> Enum.member?(ownership_change.id)
+
+      assert Games.list_round_ownership_changes(round.id)
+             |> Enum.map(& &1.id)
+             |> Enum.member?(ownership_change.id)
     end
 
     test "get_ownership_change!/1 returns the ownership change with given id" do
@@ -385,6 +406,7 @@ defmodule StartupGame.GamesTest do
     test "create_ownership_change/1 with valid data creates an ownership change" do
       game = game_fixture()
       round = round_fixture(%{game: game})
+
       valid_attrs = %{
         entity_name: "New Entity",
         previous_percentage: Decimal.new("0.00"),
@@ -394,7 +416,9 @@ defmodule StartupGame.GamesTest do
         round_id: round.id
       }
 
-      assert {:ok, %OwnershipChange{} = ownership_change} = Games.create_ownership_change(valid_attrs)
+      assert {:ok, %OwnershipChange{} = ownership_change} =
+               Games.create_ownership_change(valid_attrs)
+
       assert ownership_change.entity_name == "New Entity"
       assert Decimal.equal?(ownership_change.previous_percentage, Decimal.new("0.00"))
       assert Decimal.equal?(ownership_change.new_percentage, Decimal.new("25.00"))
@@ -407,19 +431,25 @@ defmodule StartupGame.GamesTest do
 
     test "update_ownership_change/2 with valid data updates the ownership change" do
       ownership_change = ownership_change_fixture()
+
       update_attrs = %{
         entity_name: "Updated Entity",
         new_percentage: Decimal.new("75.00")
       }
 
-      assert {:ok, %OwnershipChange{} = updated_change} = Games.update_ownership_change(ownership_change, update_attrs)
+      assert {:ok, %OwnershipChange{} = updated_change} =
+               Games.update_ownership_change(ownership_change, update_attrs)
+
       assert updated_change.entity_name == "Updated Entity"
       assert Decimal.equal?(updated_change.new_percentage, Decimal.new("75.00"))
     end
 
     test "update_ownership_change/2 with invalid data returns error changeset" do
       ownership_change = ownership_change_fixture()
-      assert {:error, %Ecto.Changeset{}} = Games.update_ownership_change(ownership_change, %{entity_name: nil})
+
+      assert {:error, %Ecto.Changeset{}} =
+               Games.update_ownership_change(ownership_change, %{entity_name: nil})
+
       assert ownership_change.id == Games.get_ownership_change!(ownership_change.id).id
     end
 
@@ -439,20 +469,27 @@ defmodule StartupGame.GamesTest do
 
   describe "game state" do
     test "calculate_runway/1 calculates the runway correctly" do
-      game = game_fixture(%{cash_on_hand: Decimal.new("10000.00"), burn_rate: Decimal.new("2000.00")})
+      game =
+        game_fixture(%{cash_on_hand: Decimal.new("10000.00"), burn_rate: Decimal.new("2000.00")})
+
       runway = Games.calculate_runway(game)
       assert Decimal.equal?(runway, Decimal.new("5"))
     end
 
     test "calculate_runway/1 handles zero burn rate" do
-      game = game_fixture(%{cash_on_hand: Decimal.new("10000.00"), burn_rate: Decimal.new("0.00")})
+      game =
+        game_fixture(%{cash_on_hand: Decimal.new("10000.00"), burn_rate: Decimal.new("0.00")})
+
       runway = Games.calculate_runway(game)
       assert Decimal.equal?(runway, Decimal.new("999"))
     end
 
     test "complete_game/3 completes a game with acquisition" do
       game = game_fixture()
-      assert {:ok, updated_game} = Games.complete_game(game, :acquisition, Decimal.new("1000000.00"))
+
+      assert {:ok, updated_game} =
+               Games.complete_game(game, :acquisition, Decimal.new("1000000.00"))
+
       assert updated_game.status == :completed
       assert updated_game.exit_type == :acquisition
       assert Decimal.equal?(updated_game.exit_value, Decimal.new("1000000.00"))
@@ -481,18 +518,19 @@ defmodule StartupGame.GamesTest do
       # Create user and completed game with known exit value and ownership
       user = user_fixture(%{email: "test@example.com"})
 
-      game = game_fixture(%{
-        name: "Test Company",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("2000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user.id
-      })
+      game =
+        game_fixture(%{
+          name: "Test Company",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("2000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user.id
+        })
 
       # Create a round for the game (needed for ownership changes)
-      round = round_fixture(%{game: game})
+      _round = round_fixture(%{game: game})
 
       # Create founder ownership with 60% equity
       ownership_fixture(%{
@@ -508,7 +546,8 @@ defmodule StartupGame.GamesTest do
       assert entry.username == "test"
       assert entry.company_name == "Test Company"
       assert Decimal.equal?(entry.exit_value, Decimal.new("2000000"))
-      assert Decimal.equal?(entry.yield, Decimal.new("1200000")) # 60% of exit value
+      # 60% of exit value
+      assert Decimal.equal?(entry.yield, Decimal.new("1200000"))
       assert entry.user_id == user.id
     end
 
@@ -519,42 +558,48 @@ defmodule StartupGame.GamesTest do
       user3 = user_fixture(%{email: "user3@example.com"})
 
       # Game A - highest exit value
-      game_a = game_fixture(%{
-        name: "Company A",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("3000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user1.id
-      })
-      round_a = round_fixture(%{game: game_a})
+      game_a =
+        game_fixture(%{
+          name: "Company A",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("3000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user1.id
+        })
+
+      _round_a = round_fixture(%{game: game_a})
       ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Game B - lowest exit value
-      game_b = game_fixture(%{
-        name: "Company B",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("1000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user2.id
-      })
-      round_b = round_fixture(%{game: game_b})
+      game_b =
+        game_fixture(%{
+          name: "Company B",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("1000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user2.id
+        })
+
+      _round_b = round_fixture(%{game: game_b})
       ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Game C - middle exit value
-      game_c = game_fixture(%{
-        name: "Company C",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("2000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user3.id
-      })
-      round_c = round_fixture(%{game: game_c})
+      game_c =
+        game_fixture(%{
+          name: "Company C",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("2000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user3.id
+        })
+
+      _round_c = round_fixture(%{game: game_c})
       ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Get leaderboard data (default sort is exit_value desc)
@@ -572,42 +617,48 @@ defmodule StartupGame.GamesTest do
       user3 = user_fixture(%{email: "user3@example.com"})
 
       # Game A - highest exit value
-      game_a = game_fixture(%{
-        name: "Company A",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("3000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user1.id
-      })
-      round_a = round_fixture(%{game: game_a})
+      game_a =
+        game_fixture(%{
+          name: "Company A",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("3000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user1.id
+        })
+
+      _round_a = round_fixture(%{game: game_a})
       ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Game B - lowest exit value
-      game_b = game_fixture(%{
-        name: "Company B",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("1000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user2.id
-      })
-      round_b = round_fixture(%{game: game_b})
+      game_b =
+        game_fixture(%{
+          name: "Company B",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("1000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user2.id
+        })
+
+      _round_b = round_fixture(%{game: game_b})
       ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Game C - middle exit value
-      game_c = game_fixture(%{
-        name: "Company C",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("2000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user3.id
-      })
-      round_c = round_fixture(%{game: game_c})
+      game_c =
+        game_fixture(%{
+          name: "Company C",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("2000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user3.id
+        })
+
+      _round_c = round_fixture(%{game: game_c})
       ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Get leaderboard data with ascending sort
@@ -625,53 +676,68 @@ defmodule StartupGame.GamesTest do
       user3 = user_fixture(%{email: "user3@example.com"})
 
       # Game A: $3M exit, 40% founder ownership = $1.2M yield
-      game_a = game_fixture(%{
-        name: "Company A",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("3000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user1.id
-      })
-      round_a = round_fixture(%{game: game_a})
+      game_a =
+        game_fixture(%{
+          name: "Company A",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("3000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user1.id,
+          # Explicitly set founder_return
+          founder_return: Decimal.new("1200000")
+        })
+
+      _round_a = round_fixture(%{game: game_a})
       ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("40.0")})
 
       # Game B: $1M exit, 90% founder ownership = $0.9M yield
-      game_b = game_fixture(%{
-        name: "Company B",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("1000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user2.id
-      })
-      round_b = round_fixture(%{game: game_b})
+      game_b =
+        game_fixture(%{
+          name: "Company B",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("1000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user2.id,
+          # Explicitly set founder_return
+          founder_return: Decimal.new("900000")
+        })
+
+      _round_b = round_fixture(%{game: game_b})
       ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("90.0")})
 
       # Game C: $2M exit, 80% founder ownership = $1.6M yield
-      game_c = game_fixture(%{
-        name: "Company C",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("2000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user3.id
-      })
-      round_c = round_fixture(%{game: game_c})
+      game_c =
+        game_fixture(%{
+          name: "Company C",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("2000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user3.id,
+          # Explicitly set founder_return
+          founder_return: Decimal.new("1600000")
+        })
+
+      _round_c = round_fixture(%{game: game_c})
       ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("80.0")})
 
       # Get leaderboard data sorted by yield desc
-      entries = Games.list_leaderboard_data(%{sort_by: "yield", sort_direction: :desc})
+      entries = Games.list_leaderboard_data(%{sort_by: "founder_return", sort_direction: :desc})
 
       # Verify order: C, A, B
       assert length(entries) == 3
       company_names = Enum.map(entries, & &1.company_name)
-      assert Enum.at(company_names, 0) == "Company C" # $1.6M yield
-      assert Enum.at(company_names, 1) == "Company A" # $1.2M yield
-      assert Enum.at(company_names, 2) == "Company B" # $0.9M yield
+      # $1.6M yield
+      assert Enum.at(company_names, 0) == "Company C"
+      # $1.2M yield
+      assert Enum.at(company_names, 1) == "Company A"
+      # $0.9M yield
+      assert Enum.at(company_names, 2) == "Company B"
     end
 
     test "list_leaderboard_data/1 respects the limit parameter" do
@@ -681,20 +747,22 @@ defmodule StartupGame.GamesTest do
       user3 = user_fixture(%{email: "user3@example.com"})
 
       for {user, name, value} <- [
-        {user1, "Company A", "3000000"},
-        {user2, "Company B", "2000000"},
-        {user3, "Company C", "1000000"}
-      ] do
-        game = game_fixture(%{
-          name: name,
-          exit_type: :acquisition,
-          exit_value: Decimal.new(value),
-          is_public: true,
-          is_leaderboard_eligible: true,
-          status: :completed,
-          user_id: user.id
-        })
-        round = round_fixture(%{game: game})
+            {user1, "Company A", "3000000"},
+            {user2, "Company B", "2000000"},
+            {user3, "Company C", "1000000"}
+          ] do
+        game =
+          game_fixture(%{
+            name: name,
+            exit_type: :acquisition,
+            exit_value: Decimal.new(value),
+            is_public: true,
+            is_leaderboard_eligible: true,
+            status: :completed,
+            user_id: user.id
+          })
+
+        _round = round_fixture(%{game: game})
         ownership_fixture(%{game: game, entity_name: "Founder", percentage: Decimal.new("50.0")})
       end
 
@@ -710,66 +778,101 @@ defmodule StartupGame.GamesTest do
       user = user_fixture(%{email: "test@example.com"})
 
       # Eligible game
-      eligible_game = game_fixture(%{
-        name: "Eligible Company",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("2000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user.id
+      eligible_game =
+        game_fixture(%{
+          name: "Eligible Company",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("2000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user.id
+        })
+
+      _eligible_round = round_fixture(%{game: eligible_game})
+
+      ownership_fixture(%{
+        game: eligible_game,
+        entity_name: "Founder",
+        percentage: Decimal.new("50.0")
       })
-      eligible_round = round_fixture(%{game: eligible_game})
-      ownership_fixture(%{game: eligible_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Non-public game
-      private_game = game_fixture(%{
-        name: "Private Company",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("3000000"),
-        is_public: false,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user.id
+      private_game =
+        game_fixture(%{
+          name: "Private Company",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("3000000"),
+          is_public: false,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user.id
+        })
+
+      _private_round = round_fixture(%{game: private_game})
+
+      ownership_fixture(%{
+        game: private_game,
+        entity_name: "Founder",
+        percentage: Decimal.new("50.0")
       })
-      private_round = round_fixture(%{game: private_game})
-      ownership_fixture(%{game: private_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Non-leaderboard eligible game
-      ineligible_game = game_fixture(%{
-        name: "Non-eligible Company",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("4000000"),
-        is_public: true,
-        is_leaderboard_eligible: false,
-        status: :completed,
-        user_id: user.id
+      ineligible_game =
+        game_fixture(%{
+          name: "Non-eligible Company",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("4000000"),
+          is_public: true,
+          is_leaderboard_eligible: false,
+          status: :completed,
+          user_id: user.id
+        })
+
+      _ineligible_round = round_fixture(%{game: ineligible_game})
+
+      ownership_fixture(%{
+        game: ineligible_game,
+        entity_name: "Founder",
+        percentage: Decimal.new("50.0")
       })
-      ineligible_round = round_fixture(%{game: ineligible_game})
-      ownership_fixture(%{game: ineligible_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Not completed game
-      incomplete_game = game_fixture(%{
-        name: "Incomplete Company",
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :in_progress,
-        user_id: user.id
+      incomplete_game =
+        game_fixture(%{
+          name: "Incomplete Company",
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :in_progress,
+          user_id: user.id
+        })
+
+      _incomplete_round = round_fixture(%{game: incomplete_game})
+
+      ownership_fixture(%{
+        game: incomplete_game,
+        entity_name: "Founder",
+        percentage: Decimal.new("50.0")
       })
-      incomplete_round = round_fixture(%{game: incomplete_game})
-      ownership_fixture(%{game: incomplete_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Failed game
-      failed_game = game_fixture(%{
-        name: "Failed Company",
-        exit_type: :shutdown,
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :failed,
-        user_id: user.id
+      failed_game =
+        game_fixture(%{
+          name: "Failed Company",
+          exit_type: :shutdown,
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :failed,
+          user_id: user.id
+        })
+
+      _failed_round = round_fixture(%{game: failed_game})
+
+      ownership_fixture(%{
+        game: failed_game,
+        entity_name: "Founder",
+        percentage: Decimal.new("50.0")
       })
-      failed_round = round_fixture(%{game: failed_game})
-      ownership_fixture(%{game: failed_game, entity_name: "Founder", percentage: Decimal.new("50.0")})
 
       # Get leaderboard data
       entries = Games.list_leaderboard_data()
@@ -783,18 +886,19 @@ defmodule StartupGame.GamesTest do
       # Create a game without explicit founder ownership
       user = user_fixture(%{email: "test@example.com"})
 
-      game = game_fixture(%{
-        name: "No Founder",
-        exit_type: :acquisition,
-        exit_value: Decimal.new("1000000"),
-        is_public: true,
-        is_leaderboard_eligible: true,
-        status: :completed,
-        user_id: user.id
-      })
+      game =
+        game_fixture(%{
+          name: "No Founder",
+          exit_type: :acquisition,
+          exit_value: Decimal.new("1000000"),
+          is_public: true,
+          is_leaderboard_eligible: true,
+          status: :completed,
+          user_id: user.id
+        })
 
       # Create a round but don't create founder ownership
-      round = round_fixture(%{game: game})
+      _round = round_fixture(%{game: game})
 
       # Get leaderboard data - should use default 50% for yield calculation
       [entry] = Games.list_leaderboard_data()
@@ -824,7 +928,9 @@ defmodule StartupGame.GamesTest do
         %{entity_name: "Investor", percentage: Decimal.new("20.00")}
       ]
 
-      assert {:ok, updated_ownerships} = Games.update_ownership_structure(new_ownerships, game, round)
+      assert {:ok, updated_ownerships} =
+               Games.update_ownership_structure(new_ownerships, game, round)
+
       assert length(updated_ownerships) == 2
 
       # Check that ownerships were updated correctly
@@ -889,9 +995,12 @@ defmodule StartupGame.GamesTest do
 
       # Check that exit change was recorded
       changes = Games.list_game_ownership_changes(game.id)
-      assert length(changes) == 3  # Founder dilution, VC initial, Angel exit
+      # Founder dilution, VC initial, Angel exit
+      assert length(changes) == 3
 
-      angel_exit = Enum.find(changes, fn c -> c.entity_name == "Angel" and c.change_type == :exit end)
+      angel_exit =
+        Enum.find(changes, fn c -> c.entity_name == "Angel" and c.change_type == :exit end)
+
       assert angel_exit != nil
       assert Decimal.equal?(angel_exit.previous_percentage, Decimal.new("20.00"))
       assert Decimal.equal?(angel_exit.new_percentage, Decimal.new("0.00"))

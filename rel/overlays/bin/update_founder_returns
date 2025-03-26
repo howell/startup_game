@@ -1,0 +1,12 @@
+#!/bin/sh
+# Runs the founder_return update task
+
+set -e
+
+RELEASE_NAME="startup_game"
+RELEASE_ROOT="${RELEASE_ROOT:-$(cd "$(dirname "$0")/.." && pwd)}"
+
+release_ctl="$RELEASE_ROOT/bin/$RELEASE_NAME"
+
+# Run the task
+"$release_ctl" eval 'StartupGame.Release.update_founder_returns()'
