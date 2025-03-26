@@ -232,7 +232,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       first_round = List.first(updated_rounds)
       assert first_round.response == "accept"
 
-      assert_receive %{event: "llm_complete", payload: _} = _msg
+      assert_receive %{event: "llm_complete", payload: _} = _msg, 100
 
       Process.sleep(20)
 
