@@ -29,6 +29,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
           creation_stage={@creation_stage}
           temp_name={@temp_name}
           provider_preference={@provider_preference}
+          include_provider_selector={true}
         />
       </:state_panel>
 
@@ -37,6 +38,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
           creation_stage={@creation_stage}
           temp_name={@temp_name}
           provider_preference={@provider_preference}
+          include_provider_selector={false}
         />
       </:mobile_state_panel>
 
@@ -77,6 +79,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :creation_stage, :atom, required: true
   attr :temp_name, :string, default: nil
   attr :provider_preference, :atom, required: true
+  attr :include_provider_selector, :boolean, default: false
 
   defp creation_state_panel(assigns) do
     ~H"""
@@ -102,10 +105,12 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
           </div>
         </div>
 
-        <ProviderSelector.provider_selector
-          provider_preference={@provider_preference}
-          creation_mode={true}
-        />
+        <%= if @include_provider_selector do %>
+          <ProviderSelector.provider_selector
+            provider_preference={@provider_preference}
+            creation_mode={true}
+          />
+        <% end %>
 
         <div class="bg-white rounded-lg shadow-md p-4">
           <h2 class="text-lg font-semibold mb-3">Startup Journey</h2>
