@@ -350,4 +350,35 @@ defmodule StartupGame.Accounts do
       {:error, :user, changeset, _} -> {:error, changeset}
     end
   end
+
+  @doc """
+  Deletes a user account.
+
+  ## Examples
+
+      iex> delete_user(user, "valid password")
+      {:ok, %User{}}
+
+      iex> delete_user(user, "invalid password")
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def delete_user(user, password) do
+    # Verify the user's password first
+    changeset = User.validate_current_password(%Ecto.Changeset{data: user}, password)
+
+    if changeset.valid? do
+      # Delete all user tokens
+      Ecto.Multi.new()
+      |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
+      |> Ecto.Multi.delete(:user, user)
+      |> Repo.transaction()
+      |> case do
+        {:ok, %{user: user}} -> {:ok, user}
+        {:error, :user, changeset, _} -> {:error, changeset}
+      end
+    else
+      {:error, changeset}
+    end
+  end
 end
