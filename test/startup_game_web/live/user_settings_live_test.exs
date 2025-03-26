@@ -7,12 +7,15 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
 
   describe "Settings page" do
     test "renders settings page", %{conn: conn} do
-      {:ok, _lv, html} =
+      {:ok, lv, html} =
         conn
         |> log_in_user(user_fixture())
         |> live(~p"/users/settings")
 
-      assert html =~ "Change Email"
+      assert html =~ "Profile Information"
+
+      # Click on the Security tab to see the Change Password section
+      html = lv |> element("button", "Security") |> render_click()
       assert html =~ "Change Password"
     end
 
@@ -61,7 +64,7 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
           "user" => %{"email" => "with spaces"}
         })
 
-      assert result =~ "Change Email"
+      assert result =~ "Profile Information"
       assert result =~ "must have the @ sign and no spaces"
     end
 
@@ -76,7 +79,7 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
         })
         |> render_submit()
 
-      assert result =~ "Change Email"
+      assert result =~ "Profile Information"
       assert result =~ "did not change"
       assert result =~ "is not valid"
     end
@@ -93,6 +96,9 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
       new_password = valid_user_password()
 
       {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Click on the Security tab to access the password form
+      lv |> element("button", "Security") |> render_click()
 
       form =
         form(lv, "#password_form", %{
@@ -121,6 +127,9 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
     test "renders errors with invalid data (phx-change)", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users/settings")
 
+      # Click on the Security tab to access the password form
+      lv |> element("button", "Security") |> render_click()
+
       result =
         lv
         |> element("#password_form")
@@ -139,6 +148,9 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
 
     test "renders errors with invalid data (phx-submit)", %{conn: conn} do
       {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Click on the Security tab to access the password form
+      lv |> element("button", "Security") |> render_click()
 
       result =
         lv

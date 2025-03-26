@@ -42,10 +42,7 @@ defmodule StartupGameWeb.UserLoginLive do
 
           <div class="flex items-center justify-between">
             <.input field={@form[:remember_me]} type="checkbox" label="Keep me logged in" />
-            <.link
-              href={~p"/users/reset_password"}
-              class="text-sm text-silly-blue hover:underline"
-            >
+            <.link href={~p"/users/reset_password"} class="text-sm text-silly-blue hover:underline">
               Forgot your password?
             </.link>
           </div>

@@ -4,12 +4,6 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   alias StartupGame.Accounts
 
-  # Common input field styling
-  @input_class "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-silly-blue focus:border-silly-blue"
-  @button_class "bg-silly-blue text-white font-medium py-2 px-4 rounded-md hover:bg-silly-blue/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-silly-blue"
-  @danger_button_class "bg-red-600 text-white font-medium py-2 px-4 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-  @card_class "bg-white rounded-lg shadow-md p-6"
-
   # Tab navigation component
   attr :active_tab, :string, required: true
 
@@ -55,7 +49,7 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   def profile_info_section(assigns) do
     ~H"""
-    <div class={@card_class}>
+    <div class={card_class()}>
       <div class="mb-4">
         <h2 class="text-xl font-semibold">Profile Information</h2>
         <p class="text-gray-600 text-sm mt-1">
@@ -75,7 +69,7 @@ defmodule StartupGameWeb.UserSettingsLive do
           type="email"
           label="Email"
           phx-debounce="300"
-          class={@input_class}
+          class={input_class()}
           required
         />
 
@@ -87,22 +81,19 @@ defmodule StartupGameWeb.UserSettingsLive do
           label="Current password"
           value={@email_form_current_password}
           phx-debounce="300"
-          class={@input_class}
+          class={input_class()}
           required
         />
 
         <:actions>
-          <.button
-            phx-disable-with="Saving..."
-            class={@button_class}
-          >
+          <.button phx-disable-with="Saving..." class={button_class()}>
             Save Changes
           </.button>
         </:actions>
       </.simple_form>
 
       <div class="mt-4 text-sm text-gray-500">
-        Account created on <%= format_date(@current_user.inserted_at) %>
+        Account created on {format_date(@current_user.inserted_at)}
       </div>
     </div>
     """
@@ -116,7 +107,7 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   def password_change_section(assigns) do
     ~H"""
-    <div class={@card_class}>
+    <div class={card_class()}>
       <div class="mb-4">
         <h2 class="text-xl font-semibold">Change Password</h2>
         <p class="text-gray-600 text-sm mt-1">
@@ -147,7 +138,7 @@ defmodule StartupGameWeb.UserSettingsLive do
           label="New Password"
           placeholder="Enter your new password"
           phx-debounce="300"
-          class={@input_class}
+          class={input_class()}
           required
         />
 
@@ -157,7 +148,7 @@ defmodule StartupGameWeb.UserSettingsLive do
           label="Confirm New Password"
           placeholder="Confirm your new password"
           phx-debounce="300"
-          class={@input_class}
+          class={input_class()}
           required
         />
 
@@ -169,15 +160,12 @@ defmodule StartupGameWeb.UserSettingsLive do
           id="current_password_for_password"
           value={@current_password}
           phx-debounce="300"
-          class={@input_class}
+          class={input_class()}
           required
         />
 
         <:actions>
-          <.button
-            phx-disable-with="Changing password..."
-            class={@button_class}
-          >
+          <.button phx-disable-with="Changing password..." class={button_class()}>
             Change Password
           </.button>
         </:actions>
@@ -191,7 +179,7 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   def danger_zone_section(assigns) do
     ~H"""
-    <div class={"#{@card_class} border border-red-200"}>
+    <div class={"#{card_class()} border border-red-200"}>
       <div class="mb-4">
         <h2 class="text-xl font-semibold text-red-600">Danger Zone</h2>
         <p class="text-gray-600 text-sm mt-1">
@@ -199,11 +187,7 @@ defmodule StartupGameWeb.UserSettingsLive do
         </p>
       </div>
 
-      <.button
-        phx-click="show_delete_modal"
-        type="button"
-        class={@danger_button_class}
-      >
+      <.button phx-click="show_delete_modal" type="button" class={danger_button_class()}>
         Delete Account
       </.button>
 
@@ -232,7 +216,7 @@ defmodule StartupGameWeb.UserSettingsLive do
             label="Enter your password to confirm"
             placeholder="Your current password"
             required
-            class={@input_class}
+            class={input_class()}
           />
 
           <div class="flex flex-col sm:flex-row gap-2 mt-4">
@@ -243,10 +227,7 @@ defmodule StartupGameWeb.UserSettingsLive do
             >
               Cancel
             </.button>
-            <.button
-              type="submit"
-              class={"sm:flex-1 #{@danger_button_class}"}
-            >
+            <.button type="submit" class={"sm:flex-1 #{danger_button_class()}"}>
               Delete Account
             </.button>
           </div>
@@ -258,13 +239,6 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   # Main render function
   def render(assigns) do
-    assigns = assign(assigns,
-      input_class: @input_class,
-      button_class: @button_class,
-      danger_button_class: @danger_button_class,
-      card_class: @card_class
-    )
-
     ~H"""
     <div class="min-h-screen flex flex-col">
       <main class="flex-1 py-8 px-4 bg-gray-50">
@@ -427,5 +401,22 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   defp format_date(datetime) do
     Calendar.strftime(datetime, "%B %d, %Y")
+  end
+
+  # Common input field styling
+  defp input_class do
+    "w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-silly-blue focus:border-silly-blue"
+  end
+
+  defp button_class do
+    "bg-silly-blue text-white font-medium py-2 px-4 rounded-md hover:bg-silly-blue/90 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-silly-blue"
+  end
+
+  defp danger_button_class do
+    "bg-red-600 text-white font-medium py-2 px-4 rounded-md hover:bg-red-700 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+  end
+
+  defp card_class do
+    "bg-white rounded-lg shadow-md p-6"
   end
 end
