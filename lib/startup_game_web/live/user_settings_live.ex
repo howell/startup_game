@@ -4,6 +4,9 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   alias StartupGame.Accounts
   alias StartupGame.Accounts.User
+  alias StartupGameWeb.UserSettings.EmailForm
+
+  require Logger
 
   # Tab navigation component
   attr :active_tab, :string, required: true
@@ -97,7 +100,6 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   # Email section component
   attr :email_form, :any, required: true
-  attr :email_form_current_password, :string, default: nil
   attr :current_user, :any, required: true
 
   def email_section(assigns) do
@@ -110,6 +112,11 @@ defmodule StartupGameWeb.UserSettingsLive do
         </p>
       </div>
 
+      <div class="mb-4 p-3 bg-gray-50 rounded-md">
+        <div class="text-sm font-medium text-gray-700">Current Email Address</div>
+        <div class="mt-1 text-gray-900">{@current_user.email}</div>
+      </div>
+
       <.simple_form
         for={@email_form}
         id="email_form"
@@ -120,7 +127,16 @@ defmodule StartupGameWeb.UserSettingsLive do
         <.input
           field={@email_form[:email]}
           type="email"
-          label="Email"
+          label="New Email Address"
+          phx-debounce="300"
+          class={input_class()}
+          required
+        />
+
+        <.input
+          field={@email_form[:email_confirmation]}
+          type="email"
+          label="Confirm New Email Address"
           phx-debounce="300"
           class={input_class()}
           required
@@ -128,11 +144,8 @@ defmodule StartupGameWeb.UserSettingsLive do
 
         <.input
           field={@email_form[:current_password]}
-          name="current_password"
-          id="current_password_for_email"
           type="password"
           label="Current password"
-          value={@email_form_current_password}
           phx-debounce="300"
           class={input_class()}
           required
@@ -307,11 +320,7 @@ defmodule StartupGameWeb.UserSettingsLive do
                 username_form_current_password={@username_form_current_password}
                 current_user={@current_user}
               />
-              <.email_section
-                email_form={@email_form}
-                email_form_current_password={@email_form_current_password}
-                current_user={@current_user}
-              />
+              <.email_section email_form={@email_form} current_user={@current_user} />
             </div>
           <% else %>
             <div class="space-y-6">
@@ -346,17 +355,17 @@ defmodule StartupGameWeb.UserSettingsLive do
 
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
-    email_changeset = Accounts.change_user_email(user)
+    # Create an empty email form
+    empty_email_form = %EmailForm{email: "", email_confirmation: ""}
     username_changeset = User.username_changeset(user, %{})
     password_changeset = Accounts.change_user_password(user)
 
     socket =
       socket
       |> assign(:current_password, nil)
-      |> assign(:email_form_current_password, nil)
       |> assign(:username_form_current_password, nil)
       |> assign(:current_email, user.email)
-      |> assign(:email_form, to_form(email_changeset))
+      |> assign(:email_form, to_form(EmailForm.changeset(empty_email_form, %{}, user)))
       |> assign(:username_form, to_form(username_changeset))
       |> assign(:password_form, to_form(password_changeset))
       |> assign(:trigger_submit, false)
@@ -381,7 +390,8 @@ defmodule StartupGameWeb.UserSettingsLive do
       |> Map.put(:action, :validate)
       |> to_form()
 
-    {:noreply, assign(socket, username_form: username_form, username_form_current_password: password)}
+    {:noreply,
+     assign(socket, username_form: username_form, username_form_current_password: password)}
   end
 
   def handle_event("update_username", params, socket) do
@@ -391,7 +401,9 @@ defmodule StartupGameWeb.UserSettingsLive do
     case Accounts.update_user_username(user, password, user_params) do
       {:ok, _user} ->
         info = "Username updated successfully."
-        {:noreply, socket |> put_flash(:info, info) |> assign(username_form_current_password: nil)}
+
+        {:noreply,
+         socket |> put_flash(:info, info) |> assign(username_form_current_password: nil)}
 
       {:error, changeset} ->
         {:noreply, assign(socket, :username_form, to_form(Map.put(changeset, :action, :insert)))}
@@ -399,23 +411,32 @@ defmodule StartupGameWeb.UserSettingsLive do
   end
 
   # Email form events
-  def handle_event("validate_email", params, socket) do
-    %{"current_password" => password, "user" => user_params} = params
+  def handle_event("validate_email", %{"email_form" => params}, socket) do
+    user = socket.assigns.current_user
 
     email_form =
-      socket.assigns.current_user
-      |> Accounts.change_user_email(user_params)
+      %EmailForm{}
+      |> EmailForm.changeset(params, user)
       |> Map.put(:action, :validate)
       |> to_form()
 
-    {:noreply, assign(socket, email_form: email_form, email_form_current_password: password)}
+    {:noreply, assign(socket, email_form: email_form)}
   end
 
-  def handle_event("update_email", params, socket) do
-    %{"current_password" => password, "user" => user_params} = params
+  def handle_event("update_email", %{"email_form" => params}, socket) do
     user = socket.assigns.current_user
 
-    case Accounts.apply_user_email(user, password, user_params) do
+    # Safely extract only the fields we need
+    email_form = %EmailForm{
+      email: params["email"],
+      email_confirmation: params["email_confirmation"],
+      current_password: params["current_password"]
+    }
+
+    # Add logging for security events
+    Logger.info("Email change attempt for user #{user.id}")
+
+    case EmailForm.apply_email_change(email_form, user) do
       {:ok, applied_user} ->
         Accounts.deliver_user_update_email_instructions(
           applied_user,
@@ -423,11 +444,17 @@ defmodule StartupGameWeb.UserSettingsLive do
           &url(~p"/users/settings/confirm_email/#{&1}")
         )
 
-        info = "A link to confirm your email change has been sent to the new address."
-        {:noreply, socket |> put_flash(:info, info) |> assign(email_form_current_password: nil)}
+        Logger.info("Email change confirmation sent for user #{user.id}")
+
+        {:noreply,
+         socket
+         |> put_flash(
+           :info,
+           "A link to confirm your email change has been sent to the new address."
+         )}
 
       {:error, changeset} ->
-        {:noreply, assign(socket, :email_form, to_form(Map.put(changeset, :action, :insert)))}
+        {:noreply, assign(socket, :email_form, to_form(changeset))}
     end
   end
 

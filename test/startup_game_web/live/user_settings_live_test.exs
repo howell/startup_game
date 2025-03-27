@@ -44,8 +44,11 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
       result =
         lv
         |> form("#email_form", %{
-          "current_password" => password,
-          "user" => %{"email" => new_email}
+          "email_form" => %{
+            "email" => new_email,
+            "email_confirmation" => new_email,
+            "current_password" => password
+          }
         })
         |> render_submit()
 
@@ -60,29 +63,33 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
         lv
         |> element("#email_form")
         |> render_change(%{
-          "action" => "update_email",
-          "current_password" => "invalid",
-          "user" => %{"email" => "with spaces"}
+          "email_form" => %{
+            "email" => "with spaces",
+            "email_confirmation" => "with spaces",
+            "current_password" => "invalid"
+          }
         })
 
       assert result =~ "Email Address"
       assert result =~ "must have the @ sign and no spaces"
     end
 
-    test "renders errors with invalid data (phx-submit)", %{conn: conn, user: user} do
+    test "renders errors with invalid data (phx-submit)", %{conn: conn, user: _user} do
       {:ok, lv, _html} = live(conn, ~p"/users/settings")
 
       result =
         lv
         |> form("#email_form", %{
-          "current_password" => "invalid",
-          "user" => %{"email" => user.email}
+          "email_form" => %{
+            "email" => "different@example.com",
+            "email_confirmation" => "different@example.com",
+            "current_password" => "invalidpassword"
+          }
         })
         |> render_submit()
 
-      assert result =~ "Email Address"
-      assert result =~ "did not change"
-      assert result =~ "is not valid"
+      assert result =~ "different@example.com"
+      assert result =~ "is incorrect"
     end
   end
 
