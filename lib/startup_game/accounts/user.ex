@@ -9,6 +9,7 @@ defmodule StartupGame.Accounts.User do
   @type t() :: %__MODULE__{
           id: Ecto.UUID.t(),
           email: String.t(),
+          username: String.t() | nil,
           password: String.t(),
           hashed_password: String.t(),
           current_password: String.t(),
@@ -21,6 +22,7 @@ defmodule StartupGame.Accounts.User do
   @foreign_key_type :binary_id
   schema "users" do
     field :email, :string
+    field :username, :string
     field :password, :string, virtual: true, redact: true
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
@@ -54,9 +56,17 @@ defmodule StartupGame.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :password])
+    |> cast(attrs, [:email, :username, :password])
     |> validate_email(opts)
+    |> validate_username(opts)
     |> validate_password(opts)
+  end
+
+  defp validate_username(changeset, _opts) do
+    changeset
+    |> validate_length(:username, min: 3, max: 20)
+    |> unsafe_validate_unique(:username, StartupGame.Repo)
+    |> unique_constraint(:username)
   end
 
   defp validate_email(changeset, opts) do
@@ -106,16 +116,18 @@ defmodule StartupGame.Accounts.User do
   end
 
   @doc """
-  A user changeset for changing the email.
+  A user changeset for changing the email and username.
 
   It requires the email to change otherwise an error is added.
   """
   def email_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email])
+    |> cast(attrs, [:email, :username])
     |> validate_email(opts)
+    |> validate_username(opts)
     |> case do
       %{changes: %{email: _}} = changeset -> changeset
+      %{changes: %{username: _}} = changeset -> changeset
       %{} = changeset -> add_error(changeset, :email, "did not change")
     end
   end

@@ -53,7 +53,7 @@ defmodule StartupGameWeb.UserSettingsLive do
       <div class="mb-4">
         <h2 class="text-xl font-semibold">Profile Information</h2>
         <p class="text-gray-600 text-sm mt-1">
-          Update your email address
+          Update your profile information
         </p>
       </div>
 
@@ -64,6 +64,14 @@ defmodule StartupGameWeb.UserSettingsLive do
         phx-change="validate_email"
         class="space-y-4"
       >
+        <.input
+          field={@email_form[:username]}
+          type="text"
+          label="Username"
+          phx-debounce="300"
+          class={input_class()}
+        />
+
         <.input
           field={@email_form[:email]}
           type="email"

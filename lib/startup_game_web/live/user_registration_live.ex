@@ -12,7 +12,7 @@ defmodule StartupGameWeb.UserRegistrationLive do
         <div class="text-center mb-6">
           <h1 class="text-2xl font-bold">Create an account</h1>
           <p class="text-gray-600 mt-1">
-            Enter your email below to create your account
+            Enter your details below to create your account
           </p>
         </div>
 
@@ -29,6 +29,15 @@ defmodule StartupGameWeb.UserRegistrationLive do
           <.error :if={@check_errors}>
             Oops, something went wrong! Please check the errors below.
           </.error>
+
+          <.input
+            field={@form[:username]}
+            type="text"
+            label="Username"
+            placeholder="Choose a username"
+            phx-debounce="300"
+            class="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-silly-blue focus:border-silly-blue"
+          />
 
           <.input
             field={@form[:email]}

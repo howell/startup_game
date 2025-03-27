@@ -41,6 +41,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
       {:ok, lv, _html} = live(conn, ~p"/users/register")
 
       email = unique_user_email()
+      username = "testuser#{System.unique_integer([:positive])}"
       password = "valid_password12345"
 
       # Submit the form with valid values
@@ -49,6 +50,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
       |> render_submit(%{
         user: %{
           "email" => email,
+          "username" => username,
           "password" => password,
           "password_confirmation" => password
         }
@@ -79,6 +81,7 @@ defmodule StartupGameWeb.UserRegistrationLiveTest do
       |> form("#registration_form",
         user: %{
           "email" => user.email,
+          "username" => "uniqueusername",
           "password" => "valid_password",
           "password_confirmation" => "valid_password"
         }
