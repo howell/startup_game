@@ -5,6 +5,7 @@ defmodule StartupGameWeb.LeaderboardWidget do
 
   use StartupGameWeb, :html
   alias StartupGame.Games
+  alias StartupGameWeb.GameLive.Helpers.GameFormatters
 
   attr :class, :string, default: ""
   attr :limit, :integer, default: 5
@@ -70,7 +71,7 @@ defmodule StartupGameWeb.LeaderboardWidget do
                 </td>
                 <td class="px-4 py-3 whitespace-nowrap">
                   <div class="text-sm text-gray-900 font-medium">
-                    ${format_number(entry.exit_value)}
+                    ${GameFormatters.format_money(entry.exit_value)}
                   </div>
                 </td>
               </tr>
@@ -80,12 +81,5 @@ defmodule StartupGameWeb.LeaderboardWidget do
       </div>
     </div>
     """
-  end
-
-  # Helper function to format large numbers with commas
-  defp format_number(number) do
-    number
-    |> Decimal.to_string()
-    |> String.replace(~r/(\d)(?=(\d{3})+(?!\d))/, "\\1,")
   end
 end
