@@ -6,7 +6,7 @@ defmodule StartupGameWeb.GameLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
-    games = Games.list_user_games(user.id) |> Enum.sort_by(& &1.inserted_at, :desc)
+    games = fetch_games(user.id)
 
     {:ok, assign(socket, :games, games)}
   end
@@ -57,10 +57,14 @@ defmodule StartupGameWeb.GameLive.Index do
       {:ok, _updated_game} = Games.update_game(game, %{field_atom => !current_value})
 
       # Refresh the games list
-      games = Games.list_user_games(socket.assigns.current_user.id)
+      games = fetch_games(socket.assigns.current_user.id)
       {:noreply, assign(socket, games: games)}
     else
       {:noreply, socket}
     end
+  end
+
+  defp fetch_games(user_id) do
+    Games.list_user_games(user_id) |> Enum.sort_by(& &1.inserted_at, :desc)
   end
 end
