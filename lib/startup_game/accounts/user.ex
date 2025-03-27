@@ -116,19 +116,32 @@ defmodule StartupGame.Accounts.User do
   end
 
   @doc """
-  A user changeset for changing the email and username.
+  A user changeset for changing the email.
 
   It requires the email to change otherwise an error is added.
   """
   def email_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :username])
+    |> cast(attrs, [:email])
     |> validate_email(opts)
-    |> validate_username(opts)
     |> case do
       %{changes: %{email: _}} = changeset -> changeset
-      %{changes: %{username: _}} = changeset -> changeset
       %{} = changeset -> add_error(changeset, :email, "did not change")
+    end
+  end
+
+  @doc """
+  A user changeset for changing the username.
+
+  It requires the username to change otherwise an error is added.
+  """
+  def username_changeset(user, attrs, opts \\ []) do
+    user
+    |> cast(attrs, [:username])
+    |> validate_username(opts)
+    |> case do
+      %{changes: %{username: _}} = changeset -> changeset
+      %{} = changeset -> add_error(changeset, :username, "did not change")
     end
   end
 

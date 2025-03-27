@@ -12,7 +12,8 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
         |> log_in_user(user_fixture())
         |> live(~p"/users/settings")
 
-      assert html =~ "Profile Information"
+      assert html =~ "Username"
+      assert html =~ "Email Address"
 
       # Click on the Security tab to see the Change Password section
       html = lv |> element("button", "Security") |> render_click()
@@ -64,7 +65,7 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
           "user" => %{"email" => "with spaces"}
         })
 
-      assert result =~ "Profile Information"
+      assert result =~ "Email Address"
       assert result =~ "must have the @ sign and no spaces"
     end
 
@@ -79,7 +80,7 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
         })
         |> render_submit()
 
-      assert result =~ "Profile Information"
+      assert result =~ "Email Address"
       assert result =~ "did not change"
       assert result =~ "is not valid"
     end

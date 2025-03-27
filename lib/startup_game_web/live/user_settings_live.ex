@@ -3,6 +3,7 @@ defmodule StartupGameWeb.UserSettingsLive do
   import StartupGameWeb.CoreComponents
 
   alias StartupGame.Accounts
+  alias StartupGame.Accounts.User
 
   # Tab navigation component
   attr :active_tab, :string, required: true
@@ -42,18 +43,70 @@ defmodule StartupGameWeb.UserSettingsLive do
     """
   end
 
-  # Profile information section component
+  # Username section component
+  attr :username_form, :any, required: true
+  attr :username_form_current_password, :string, default: nil
+  attr :current_user, :any, required: true
+
+  def username_section(assigns) do
+    ~H"""
+    <div class={card_class()}>
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold">Username</h2>
+        <p class="text-gray-600 text-sm mt-1">
+          Update your username
+        </p>
+      </div>
+
+      <.simple_form
+        for={@username_form}
+        id="username_form"
+        phx-submit="update_username"
+        phx-change="validate_username"
+        class="space-y-4"
+      >
+        <.input
+          field={@username_form[:username]}
+          type="text"
+          label="Username"
+          phx-debounce="300"
+          class={input_class()}
+        />
+
+        <.input
+          field={@username_form[:current_password]}
+          name="current_password"
+          id="current_password_for_username"
+          type="password"
+          label="Current password"
+          value={@username_form_current_password}
+          phx-debounce="300"
+          class={input_class()}
+          required
+        />
+
+        <:actions>
+          <.button phx-disable-with="Updating username..." class={button_class()}>
+            Update Username
+          </.button>
+        </:actions>
+      </.simple_form>
+    </div>
+    """
+  end
+
+  # Email section component
   attr :email_form, :any, required: true
   attr :email_form_current_password, :string, default: nil
   attr :current_user, :any, required: true
 
-  def profile_info_section(assigns) do
+  def email_section(assigns) do
     ~H"""
     <div class={card_class()}>
       <div class="mb-4">
-        <h2 class="text-xl font-semibold">Profile Information</h2>
+        <h2 class="text-xl font-semibold">Email Address</h2>
         <p class="text-gray-600 text-sm mt-1">
-          Update your profile information
+          Update your email address
         </p>
       </div>
 
@@ -64,14 +117,6 @@ defmodule StartupGameWeb.UserSettingsLive do
         phx-change="validate_email"
         class="space-y-4"
       >
-        <.input
-          field={@email_form[:username]}
-          type="text"
-          label="Username"
-          phx-debounce="300"
-          class={input_class()}
-        />
-
         <.input
           field={@email_form[:email]}
           type="email"
@@ -94,8 +139,8 @@ defmodule StartupGameWeb.UserSettingsLive do
         />
 
         <:actions>
-          <.button phx-disable-with="Saving..." class={button_class()}>
-            Save Changes
+          <.button phx-disable-with="Updating email..." class={button_class()}>
+            Update Email
           </.button>
         </:actions>
       </.simple_form>
@@ -256,11 +301,18 @@ defmodule StartupGameWeb.UserSettingsLive do
           <.settings_tab_bar active_tab={@active_tab} />
 
           <%= if @active_tab == "profile" do %>
-            <.profile_info_section
-              email_form={@email_form}
-              email_form_current_password={@email_form_current_password}
-              current_user={@current_user}
-            />
+            <div class="space-y-6">
+              <.username_section
+                username_form={@username_form}
+                username_form_current_password={@username_form_current_password}
+                current_user={@current_user}
+              />
+              <.email_section
+                email_form={@email_form}
+                email_form_current_password={@email_form_current_password}
+                current_user={@current_user}
+              />
+            </div>
           <% else %>
             <div class="space-y-6">
               <.password_change_section
@@ -295,14 +347,17 @@ defmodule StartupGameWeb.UserSettingsLive do
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
     email_changeset = Accounts.change_user_email(user)
+    username_changeset = User.username_changeset(user, %{})
     password_changeset = Accounts.change_user_password(user)
 
     socket =
       socket
       |> assign(:current_password, nil)
       |> assign(:email_form_current_password, nil)
+      |> assign(:username_form_current_password, nil)
       |> assign(:current_email, user.email)
       |> assign(:email_form, to_form(email_changeset))
+      |> assign(:username_form, to_form(username_changeset))
       |> assign(:password_form, to_form(password_changeset))
       |> assign(:trigger_submit, false)
       |> assign(:active_tab, "profile")
@@ -314,6 +369,33 @@ defmodule StartupGameWeb.UserSettingsLive do
   # Tab navigation
   def handle_event("set_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, :active_tab, tab)}
+  end
+
+  # Username form events
+  def handle_event("validate_username", params, socket) do
+    %{"current_password" => password, "user" => user_params} = params
+
+    username_form =
+      socket.assigns.current_user
+      |> User.username_changeset(user_params)
+      |> Map.put(:action, :validate)
+      |> to_form()
+
+    {:noreply, assign(socket, username_form: username_form, username_form_current_password: password)}
+  end
+
+  def handle_event("update_username", params, socket) do
+    %{"current_password" => password, "user" => user_params} = params
+    user = socket.assigns.current_user
+
+    case Accounts.update_user_username(user, password, user_params) do
+      {:ok, _user} ->
+        info = "Username updated successfully."
+        {:noreply, socket |> put_flash(:info, info) |> assign(username_form_current_password: nil)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :username_form, to_form(Map.put(changeset, :action, :insert)))}
+    end
   end
 
   # Email form events

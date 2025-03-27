@@ -145,6 +145,33 @@ defmodule StartupGame.Accounts do
   end
 
   @doc """
+  Updates the user username.
+
+  ## Examples
+
+      iex> update_user_username(user, "valid password", %{username: "newusername"})
+      {:ok, %User{}}
+
+      iex> update_user_username(user, "invalid password", %{username: "newusername"})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_user_username(user, password, attrs) do
+    changeset =
+      user
+      |> User.username_changeset(attrs)
+      |> User.validate_current_password(password)
+
+    Ecto.Multi.new()
+    |> Ecto.Multi.update(:user, changeset)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      {:error, :user, changeset, _} -> {:error, changeset}
+    end
+  end
+
+  @doc """
   Updates the user email using the given token.
 
   If the token matches, the user email is updated and the token is deleted.
