@@ -92,6 +92,19 @@ defmodule StartupGame.AccountsTest do
       assert is_nil(user.confirmed_at)
       assert is_nil(user.password)
     end
+
+    test "sets default visibility to private" do
+      email = unique_user_email()
+      {:ok, user} = Accounts.register_user(valid_user_attributes(email: email))
+      assert user.default_game_visibility == :private
+    end
+
+    test "allows setting custom visibility" do
+      email = unique_user_email()
+      attrs = valid_user_attributes(email: email, default_game_visibility: :public)
+      {:ok, user} = Accounts.register_user(attrs)
+      assert user.default_game_visibility == :public
+    end
   end
 
   describe "change_user_registration/2" do
@@ -503,6 +516,37 @@ defmodule StartupGame.AccountsTest do
   describe "inspect/2 for the User module" do
     test "does not include password" do
       refute inspect(%User{password: "123456"}) =~ "password: \"123456\""
+    end
+  end
+
+  describe "change_user_visibility_settings/2" do
+    test "returns a changeset" do
+      user = user_fixture()
+      assert %Ecto.Changeset{} = changeset = Accounts.change_user_visibility_settings(user)
+      assert changeset.required == [:default_game_visibility]
+    end
+
+    test "update_user_visibility_settings/2 with valid data updates the user" do
+      user = user_fixture()
+      # default value
+      assert user.default_game_visibility == :private
+
+      assert {:ok, %User{} = updated_user} =
+               Accounts.update_user_visibility_settings(user, %{default_game_visibility: :public})
+
+      assert updated_user.default_game_visibility == :public
+    end
+
+    test "update_user_visibility_settings/2 with invalid data returns error changeset" do
+      user = user_fixture()
+
+      assert {:error, %Ecto.Changeset{}} =
+               Accounts.update_user_visibility_settings(user, %{
+                 default_game_visibility: :invalid_value
+               })
+
+      # unchanged
+      assert user.default_game_visibility == :private
     end
   end
 end

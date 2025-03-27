@@ -201,6 +201,8 @@ defmodule StartupGame.Games do
   """
   def create_new_game(attrs, %User{} = user) do
     # Set default values for a new game
+    public? = user.default_game_visibility == :public
+
     attrs =
       Map.merge(
         %{
@@ -209,8 +211,8 @@ defmodule StartupGame.Games do
           # $1,000 per month burn rate
           burn_rate: 1_000.0,
           status: :in_progress,
-          is_public: false,
-          is_leaderboard_eligible: false,
+          is_public: public?,
+          is_leaderboard_eligible: public?,
           exit_value: 0,
           exit_type: :none,
           user_id: user.id

@@ -424,4 +424,33 @@ defmodule StartupGame.Accounts do
       {:error, changeset}
     end
   end
+
+  @doc """
+  Returns an `%Ecto.Changeset{}` for changing the user visibility settings.
+
+  ## Examples
+
+      iex> change_user_visibility_settings(user)
+      %Ecto.Changeset{data: %User{}}
+  """
+  def change_user_visibility_settings(%User{} = user, attrs \\ %{}) do
+    User.visibility_changeset(user, attrs)
+  end
+
+  @doc """
+  Updates the user's default game visibility setting.
+
+  ## Examples
+
+      iex> update_user_visibility_settings(user, %{default_game_visibility: :public})
+      {:ok, %User{}}
+
+      iex> update_user_visibility_settings(user, %{default_game_visibility: :invalid})
+      {:error, %Ecto.Changeset{}}
+  """
+  def update_user_visibility_settings(%User{} = user, attrs) do
+    user
+    |> User.visibility_changeset(attrs)
+    |> Repo.update()
+  end
 end

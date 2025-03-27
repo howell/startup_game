@@ -240,6 +240,78 @@ defmodule StartupGameWeb.UserSettingsLive do
     """
   end
 
+  # Visibility settings section component
+  attr :visibility_form, :any, required: true
+  attr :current_user, :any, required: true
+
+  def visibility_settings_section(assigns) do
+    ~H"""
+    <div class={card_class()}>
+      <div class="mb-4">
+        <h2 class="text-xl font-semibold">Game Visibility Settings</h2>
+        <p class="text-gray-600 text-sm mt-1">
+          Control how your completed games are shared
+        </p>
+      </div>
+
+      <.simple_form
+        for={@visibility_form}
+        id="visibility_form"
+        phx-submit="update_visibility"
+        class="space-y-4"
+      >
+        <div class="space-y-2">
+          <label class="block text-sm font-medium text-gray-700">
+            Default visibility for completed games
+          </label>
+
+          <div class="mt-2 space-y-2">
+            <label class="inline-flex items-center">
+              <input
+                type="radio"
+                name={@visibility_form[:default_game_visibility].name}
+                value="public"
+                checked={to_string(@visibility_form[:default_game_visibility].value) == "public"}
+                phx-click="set_visibility"
+                phx-value-visibility="public"
+                class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
+              />
+              <span class="ml-2 text-sm text-gray-700">
+                Public - Share my games on the leaderboard (if eligible)
+              </span>
+            </label>
+
+            <label class="inline-flex items-center">
+              <input
+                type="radio"
+                name={@visibility_form[:default_game_visibility].name}
+                value="private"
+                checked={to_string(@visibility_form[:default_game_visibility].value) == "private"}
+                phx-click="set_visibility"
+                phx-value-visibility="private"
+                class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
+              />
+              <span class="ml-2 text-sm text-gray-700">
+                Private - Keep my games private by default
+              </span>
+            </label>
+          </div>
+        </div>
+
+        <div class="mt-2 text-sm text-gray-500">
+          This setting controls the default visibility of your completed games. You can still change the visibility of individual games later.
+        </div>
+
+        <:actions>
+          <.button phx-disable-with="Updating settings..." class={button_class()}>
+            Update Visibility Settings
+          </.button>
+        </:actions>
+      </.simple_form>
+    </div>
+    """
+  end
+
   # Danger zone section component
   attr :show_delete_modal, :boolean, default: false
 
@@ -321,6 +393,10 @@ defmodule StartupGameWeb.UserSettingsLive do
                 current_user={@current_user}
               />
               <.email_section email_form={@email_form} current_user={@current_user} />
+              <.visibility_settings_section
+                visibility_form={@visibility_form}
+                current_user={@current_user}
+              />
             </div>
           <% else %>
             <div class="space-y-6">
@@ -330,7 +406,6 @@ defmodule StartupGameWeb.UserSettingsLive do
                 trigger_submit={@trigger_submit}
                 current_email={@current_email}
               />
-
               <.danger_zone_section show_delete_modal={@show_delete_modal} />
             </div>
           <% end %>
@@ -359,6 +434,7 @@ defmodule StartupGameWeb.UserSettingsLive do
     empty_email_form = %EmailForm{email: "", email_confirmation: ""}
     username_changeset = User.username_changeset(user, %{})
     password_changeset = Accounts.change_user_password(user)
+    visibility_changeset = Accounts.change_user_visibility_settings(user)
 
     socket =
       socket
@@ -368,6 +444,7 @@ defmodule StartupGameWeb.UserSettingsLive do
       |> assign(:email_form, to_form(EmailForm.changeset(empty_email_form, %{}, user)))
       |> assign(:username_form, to_form(username_changeset))
       |> assign(:password_form, to_form(password_changeset))
+      |> assign(:visibility_form, to_form(visibility_changeset))
       |> assign(:trigger_submit, false)
       |> assign(:active_tab, "profile")
       |> assign(:show_delete_modal, false)
@@ -486,6 +563,35 @@ defmodule StartupGameWeb.UserSettingsLive do
 
       {:error, changeset} ->
         {:noreply, assign(socket, password_form: to_form(changeset))}
+    end
+  end
+
+  # Visibility settings form events
+  def handle_event("set_visibility", %{"visibility" => visibility}, socket) do
+    visibility_form =
+      socket.assigns.current_user
+      |> Accounts.change_user_visibility_settings(%{default_game_visibility: visibility})
+      |> to_form()
+
+    {:noreply, assign(socket, :visibility_form, visibility_form)}
+  end
+
+  def handle_event("update_visibility", %{"user" => user_params}, socket) do
+    user = socket.assigns.current_user
+
+    case Accounts.update_user_visibility_settings(user, user_params) do
+      {:ok, user} ->
+        info = "Game visibility settings updated successfully."
+        visibility_form = user |> Accounts.change_user_visibility_settings() |> to_form()
+
+        {:noreply,
+         socket
+         |> put_flash(:info, info)
+         |> assign(:visibility_form, visibility_form)
+         |> assign(:current_user, user)}
+
+      {:error, changeset} ->
+        {:noreply, assign(socket, :visibility_form, to_form(changeset))}
     end
   end
 

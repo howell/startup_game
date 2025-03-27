@@ -14,6 +14,7 @@ defmodule StartupGame.Accounts.User do
           hashed_password: String.t(),
           current_password: String.t(),
           confirmed_at: DateTime.t(),
+          default_game_visibility: :public | :private,
           inserted_at: DateTime.t(),
           updated_at: DateTime.t()
         }
@@ -27,6 +28,7 @@ defmodule StartupGame.Accounts.User do
     field :hashed_password, :string, redact: true
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime_usec
+    field :default_game_visibility, Ecto.Enum, values: [:public, :private], default: :private
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -56,7 +58,7 @@ defmodule StartupGame.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :username, :password])
+    |> cast(attrs, [:email, :username, :password, :default_game_visibility])
     |> validate_email(opts)
     |> validate_username(opts)
     |> validate_password(opts)
@@ -199,5 +201,14 @@ defmodule StartupGame.Accounts.User do
     else
       add_error(changeset, :current_password, "is not valid")
     end
+  end
+
+  @doc """
+  A user changeset for updating visibility settings.
+  """
+  def visibility_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:default_game_visibility])
+    |> validate_required([:default_game_visibility])
   end
 end

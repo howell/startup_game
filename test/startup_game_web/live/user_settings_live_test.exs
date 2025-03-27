@@ -227,4 +227,117 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
       assert message == "You must log in to access this page."
     end
   end
+
+  describe "Visibility settings" do
+    setup :register_and_log_in_user
+
+    test "renders visibility settings form", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/users/settings")
+
+      # Check that both radio buttons are present
+      assert has_element?(view, "input[type='radio'][value='public']")
+      assert has_element?(view, "input[type='radio'][value='private']")
+
+      # Check that private is selected by default (schema default)
+      assert has_element?(
+               view,
+               "input[type='radio'][value='private'][checked]"
+             )
+    end
+
+    test "updates visibility settings successfully", %{conn: conn, user: user} do
+      {:ok, view, _html} = live(conn, ~p"/users/settings")
+
+      # Submit form with valid data
+      assert view
+             |> form("#visibility_form", %{
+               "user" => %{"default_game_visibility" => "public"}
+             })
+             |> render_submit()
+
+      # Flash message should appear
+      assert render(view) =~ "Game visibility settings updated successfully"
+
+      # Verify the database was updated
+      updated_user = Accounts.get_user!(user.id)
+      assert updated_user.default_game_visibility == :public
+
+      # Verify the form reflects the new value
+      assert has_element?(
+               view,
+               "input[type='radio'][value='public'][checked]"
+             )
+    end
+
+    test "maintains visibility setting after update", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/users/settings")
+
+      # Change to public
+      assert view
+             |> form("#visibility_form", %{
+               "user" => %{"default_game_visibility" => "public"}
+             })
+             |> render_submit()
+
+      # Verify it stays public
+      assert has_element?(
+               view,
+               "input[type='radio'][value='public'][checked]"
+             )
+
+      # Change back to private
+      assert view
+             |> form("#visibility_form", %{
+               "user" => %{"default_game_visibility" => "private"}
+             })
+             |> render_submit()
+
+      # Verify it stays private
+      assert has_element?(
+               view,
+               "input[type='radio'][value='private'][checked]"
+             )
+    end
+
+    test "handles radio button change events correctly", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/users/settings")
+
+      # Simulate clicking the public radio button
+      assert view
+             |> element("input[type='radio'][value='public']")
+             |> render_click()
+
+      # Verify the form data was updated
+      assert has_element?(
+               view,
+               "input[type='radio'][value='public'][checked]"
+             )
+
+      # Simulate clicking the private radio button
+      assert view
+             |> element("input[type='radio'][value='private']")
+             |> render_click()
+
+      # Verify the form data was updated
+      assert has_element?(
+               view,
+               "input[type='radio'][value='private'][checked]"
+             )
+    end
+
+    test "preserves visibility setting after navigation", %{conn: conn, user: user} do
+      # First set the visibility to public
+      {:ok, _user} =
+        Accounts.update_user_visibility_settings(user, %{default_game_visibility: :public})
+
+      # Navigate to settings page
+      {:ok, view, _html} = live(conn, ~p"/users/settings")
+
+      # Verify the public radio button is checked
+      assert has_element?(
+               view,
+               "input[type='radio'][value='public'][checked]"
+             )
+    end
+  end
 end

@@ -1,6 +1,7 @@
 defmodule StartupGame.GamesTest do
   use StartupGame.DataCase
 
+  alias StartupGame.Accounts
   alias StartupGame.Games
   alias StartupGame.Games.Game
   alias StartupGame.Games.Round
@@ -1004,6 +1005,68 @@ defmodule StartupGame.GamesTest do
       assert angel_exit != nil
       assert Decimal.equal?(angel_exit.previous_percentage, Decimal.new("20.00"))
       assert Decimal.equal?(angel_exit.new_percentage, Decimal.new("0.00"))
+    end
+  end
+
+  describe "create_new_game/2" do
+    test "creates a game with user's default visibility settings (private)" do
+      user = user_fixture()
+      # default value
+      assert user.default_game_visibility == :private
+
+      {:ok, game} =
+        Games.create_new_game(
+          %{
+            name: "Test Game",
+            description: "A test game"
+          },
+          user
+        )
+
+      assert game.is_public == false
+      assert game.is_leaderboard_eligible == false
+    end
+
+    test "creates a game with user's default visibility settings (public)" do
+      {:ok, user} =
+        Accounts.update_user_visibility_settings(
+          user_fixture(),
+          %{default_game_visibility: :public}
+        )
+
+      assert user.default_game_visibility == :public
+
+      {:ok, game} =
+        Games.create_new_game(
+          %{
+            name: "Test Game",
+            description: "A test game"
+          },
+          user
+        )
+
+      assert game.is_public == true
+      assert game.is_leaderboard_eligible == true
+    end
+
+    test "allows overriding visibility settings in game attributes" do
+      # defaults to private
+      user = user_fixture()
+      assert user.default_game_visibility == :private
+
+      {:ok, game} =
+        Games.create_new_game(
+          %{
+            name: "Test Game",
+            description: "A test game",
+            is_public: true,
+            is_leaderboard_eligible: true
+          },
+          user
+        )
+
+      assert game.is_public == true
+      assert game.is_leaderboard_eligible == true
     end
   end
 end
