@@ -6,7 +6,7 @@ defmodule StartupGameWeb.GameLive.Index do
   @impl true
   def mount(_params, _session, socket) do
     user = socket.assigns.current_user
-    games = Games.list_user_games(user.id)
+    games = Games.list_user_games(user.id) |> Enum.sort_by(& &1.inserted_at, :desc)
 
     {:ok, assign(socket, :games, games)}
   end
