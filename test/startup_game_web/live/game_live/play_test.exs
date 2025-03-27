@@ -2,7 +2,7 @@ defmodule StartupGameWeb.GameLive.PlayTest do
   use StartupGameWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import StartupGame.AccountsFixtures
+  import StartupGame.{AccountsFixtures, GamesFixtures}
 
   alias StartupGame.Games
 
@@ -10,12 +10,13 @@ defmodule StartupGameWeb.GameLive.PlayTest do
     name: "Test Game",
     description: "A test game description",
     cash_on_hand: 10_000.0,
-    burn_rate: 1000.0
+    burn_rate: 1000.0,
+    start?: true
   }
 
   defp create_user_and_game(_) do
     user = user_fixture()
-    {:ok, game} = Games.create_new_game(@create_attrs, user)
+    game = game_fixture(@create_attrs, user)
     %{user: user, game: game}
   end
 
