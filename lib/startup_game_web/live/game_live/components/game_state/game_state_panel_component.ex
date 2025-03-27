@@ -17,6 +17,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
   attr :is_visible, :boolean, default: true
   attr :ownerships, :list, required: true
   attr :rounds, :list, required: true
+  attr :id_prefix, :string, default: "main"
 
   def game_state_panel(assigns) do
     ~H"""
@@ -29,6 +30,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
           <OwnershipComponent.ownership_section ownerships={@ownerships} />
           <ProviderSelector.provider_selector game={@game} />
           <.recent_events_section rounds={@rounds} />
+          <.visibility_settings_section game={@game} id_prefix={@id_prefix} />
         </div>
       </div>
     </div>
@@ -79,6 +81,52 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
             </div>
           <% end %>
         <% end %>
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders the visibility settings section
+  """
+  attr :game, :map, required: true
+  attr :id_prefix, :string, default: "main"
+
+  def visibility_settings_section(assigns) do
+    ~H"""
+    <div>
+      <h3 class="text-sm font-semibold text-foreground/70 mb-3">VISIBILITY SETTINGS</h3>
+      <div class="space-y-2">
+        <div class="flex items-center justify-between p-2 bg-white/50 rounded-lg">
+          <span class="text-sm">Public Game</span>
+          <div class="form-control">
+            <input
+              id={"game-public-toggle-#{@id_prefix}"}
+              type="checkbox"
+              checked={@game.is_public}
+              phx-click="toggle_visibility"
+              phx-value-field="is_public"
+              class="toggle toggle-sm toggle-primary"
+            />
+          </div>
+        </div>
+        <div class="flex items-center justify-between p-2 bg-white/50 rounded-lg">
+          <span class="text-sm">Leaderboard Eligible</span>
+          <div class="form-control">
+            <input
+              id={"game-leaderboard-toggle-#{@id_prefix}"}
+              type="checkbox"
+              checked={@game.is_leaderboard_eligible}
+              phx-click="toggle_visibility"
+              phx-value-field="is_leaderboard_eligible"
+              class="toggle toggle-sm toggle-primary"
+              disabled={!@game.is_public}
+            />
+          </div>
+        </div>
+        <div class="text-xs text-foreground/50 mt-1">
+          Public games can be viewed by others. Eligible games appear on the leaderboard when completed.
+        </div>
       </div>
     </div>
     """

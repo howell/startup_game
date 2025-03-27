@@ -117,6 +117,23 @@ defmodule StartupGameWeb.GameLive.Play do
     PlayHandler.handle_provider_change(socket, provider)
   end
 
+  @impl true
+  def handle_event("toggle_visibility", %{"field" => field}, socket) do
+    # Handle visibility toggle for the current game
+    field_atom = String.to_existing_atom(field)
+    current_value = Map.get(socket.assigns.game, field_atom)
+
+    # Toggle the value
+    {:ok, updated_game} =
+      StartupGame.Games.update_game(
+        socket.assigns.game,
+        %{field_atom => !current_value}
+      )
+
+    # Update the socket assigns with the updated game
+    {:noreply, assign(socket, game: updated_game)}
+  end
+
   # Info handlers delegate to the StreamHandler
   @impl true
   @spec handle_info(map(), t()) :: {:noreply, t()}

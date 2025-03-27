@@ -31,6 +31,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           is_visible={true}
           ownerships={@ownerships}
           rounds={@rounds}
+          id_prefix="main"
         />
       </:state_panel>
 
@@ -40,6 +41,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           is_visible={true}
           ownerships={@ownerships}
           rounds={@rounds}
+          id_prefix="mobile"
         />
       </:mobile_state_panel>
 
