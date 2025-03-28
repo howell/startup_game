@@ -1,5 +1,5 @@
 defmodule StartupGameWeb.LeaderboardLiveTest do
-  use StartupGameWeb.ConnCase
+  use StartupGameWeb.ConnCase, async: true
 
   import Phoenix.LiveViewTest
   import StartupGame.AccountsFixtures
@@ -198,6 +198,29 @@ defmodule StartupGameWeb.LeaderboardLiveTest do
         |> Enum.map(&String.trim/1)
 
       assert companies == ["Company C", "Company A", "Company B"]
+    end
+
+    test "renders the leaderboard with game links", %{conn: conn, games: [game_a, game_b, game_c]} do
+      {:ok, view, html} = live(conn, ~p"/leaderboard")
+
+      # Assert that the page title is present
+      assert html =~ "Startup Success Leaderboard"
+
+      # Assert that the game's name is rendered
+      assert html =~ "Company A"
+      assert html =~ "Company B"
+      assert html =~ "Company C"
+
+      # Assert that there's a link to the game view page
+      assert has_element?(view, "a[href='/games/view/#{game_a.id}']", "Company A")
+      assert has_element?(view, "a[href='/games/view/#{game_b.id}']", "Company B")
+      assert has_element?(view, "a[href='/games/view/#{game_c.id}']", "Company C")
+
+      c_url = ~p"/games/view/#{game_c.id}"
+
+      # Click the company name link and verify navigation
+      assert {:error, {:live_redirect, %{to: ^c_url}}} =
+               view |> element("a", "Company C") |> render_click()
     end
   end
 end

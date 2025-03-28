@@ -106,7 +106,8 @@ defmodule StartupGame.Games do
         company_name: game.name,
         exit_value: game.exit_value,
         yield: yield,
-        user_id: game.user_id
+        user_id: game.user_id,
+        game_id: game.id
       }
     end)
   end

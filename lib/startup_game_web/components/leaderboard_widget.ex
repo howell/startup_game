@@ -251,7 +251,11 @@ defmodule StartupGameWeb.LeaderboardWidget do
         <.table_cell>@{@entry.username}</.table_cell>
       </.row_cell>
       <.row_cell>
-        <.table_cell>{@entry.company_name}</.table_cell>
+        <.table_cell>
+          <.link navigate={~p"/games/view/#{@entry.game_id}"} class="text-silly-blue hover:underline">
+            {@entry.company_name}
+          </.link>
+        </.table_cell>
       </.row_cell>
       <.row_cell>
         <.table_cell>
