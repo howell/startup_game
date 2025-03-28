@@ -20,7 +20,8 @@ defmodule StartupGame.GamesFixtures do
         attrs[:name] || "Test Startup",
         attrs[:description] || "A test startup company",
         user,
-        attrs[:provider] || StaticScenarioProvider
+        attrs[:provider] || StaticScenarioProvider,
+        attrs
       )
 
     game

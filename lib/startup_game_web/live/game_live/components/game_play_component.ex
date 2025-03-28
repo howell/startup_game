@@ -21,6 +21,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   attr :partial_content, :string, default: ""
   attr :streaming_type, :atom, default: nil
   attr :is_mobile_state_visible, :boolean, default: false
+  attr :is_view_only, :boolean, default: false
 
   def game_play(assigns) do
     ~H"""
@@ -32,6 +33,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           ownerships={@ownerships}
           rounds={@rounds}
           id_prefix="main"
+          is_view_only={@is_view_only}
         />
       </:state_panel>
 
@@ -42,6 +44,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           ownerships={@ownerships}
           rounds={@rounds}
           id_prefix="mobile"
+          is_view_only={@is_view_only}
         />
       </:mobile_state_panel>
 
@@ -53,6 +56,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           streaming={@streaming}
           streaming_type={@streaming_type}
           partial_content={@partial_content}
+          is_view_only={@is_view_only}
         />
       </:content_area>
     </GameLayoutComponent.game_layout>

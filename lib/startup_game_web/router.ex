@@ -89,6 +89,8 @@ defmodule StartupGameWeb.Router do
       live "/users/confirm/:token", UserConfirmationLive, :edit
       live "/users/confirm", UserConfirmationInstructionsLive, :new
       live "/leaderboard", LeaderboardLive, :index
+      # Public game view route
+      live "/games/view/:id", GameLive.View, :view
     end
   end
 end

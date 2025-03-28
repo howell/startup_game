@@ -18,6 +18,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
   attr :ownerships, :list, required: true
   attr :rounds, :list, required: true
   attr :id_prefix, :string, default: "main"
+  attr :is_view_only, :boolean, default: false
 
   def game_state_panel(assigns) do
     ~H"""
@@ -28,9 +29,11 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
         <div class="space-y-6">
           <FinancesComponent.finances_section game={@game} ownerships={@ownerships} />
           <OwnershipComponent.ownership_section ownerships={@ownerships} />
-          <ProviderSelector.provider_selector game={@game} />
+          <%= unless @is_view_only do %>
+            <ProviderSelector.provider_selector game={@game} />
+            <.visibility_settings_section game={@game} id_prefix={@id_prefix} />
+          <% end %>
           <.recent_events_section rounds={@rounds} />
-          <.visibility_settings_section game={@game} id_prefix={@id_prefix} />
         </div>
       </div>
     </div>

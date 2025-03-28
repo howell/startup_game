@@ -17,6 +17,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
   attr :streaming, :boolean, default: false
   attr :streaming_type, :atom, default: nil
   attr :partial_content, :string, default: ""
+  attr :is_view_only, :boolean, default: false
 
   def chat_interface(assigns) do
     ~H"""
@@ -31,19 +32,34 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
         />
       </div>
 
-      <%= if @game.status == :in_progress do %>
-        <!-- Response form at bottom -->
-        <div class="mt-4 p-4 border-t">
-          <div class="mx-auto w-full">
-            <ResponseForm.response_form
-              placeholder="How do you want to respond?"
-              value={@response}
-              disabled={@streaming}
-            />
+      <%= cond do %>
+        <% @is_view_only -> %>
+          <div class="p-4 border-t text-center">
+            <p class="text-md text-gray-600">
+              <%= if @game.status == :in_progress do %>
+                Game in progress.
+                <.link navigate={~p"/games/play/#{@game.id}"} class="text-silly-blue hover:underline">
+                  Click here to play
+                </.link>
+                if this is your game.
+              <% else %>
+                Game {GameFormatters.game_end_status(@game)}. {GameFormatters.game_end_message(@game)}
+              <% end %>
+            </p>
           </div>
-        </div>
-      <% else %>
-        <.game_end_message game={@game} />
+        <% @game.status == :in_progress -> %>
+          <!-- Response form at bottom -->
+          <div class="mt-4 p-4 border-t">
+            <div class="mx-auto w-full">
+              <ResponseForm.response_form
+                placeholder="How do you want to respond?"
+                value={@response}
+                disabled={@streaming}
+              />
+            </div>
+          </div>
+        <% true -> %>
+          <.game_end_message game={@game} />
       <% end %>
     </div>
     """
