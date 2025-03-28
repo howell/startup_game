@@ -24,12 +24,13 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec create_game(String.t(), String.t(), User.t(), module() | nil) :: game_result()
+  @spec create_game(String.t(), String.t(), User.t(), module() | nil, map()) :: game_result()
   def create_game(
         name,
         description,
         %User{} = user,
-        provider \\ StartupGame.Engine.LLMScenarioProvider
+        provider \\ StartupGame.Engine.LLMScenarioProvider,
+        attrs \\ %{}
       ) do
     # Create in-memory game state without initial scenario
     game_state =
@@ -51,17 +52,23 @@ defmodule StartupGame.GameService do
         nil
       end
 
-    # Persist to database
-    case Games.create_new_game(
-           %{
-             name: name,
-             description: description,
-             cash_on_hand: game_state.cash_on_hand,
-             burn_rate: game_state.burn_rate,
-             provider_preference: provider_preference
-           },
-           user
-         ) do
+    # Persist to database with additional attributes
+    game_attrs =
+      Map.merge(
+        %{
+          name: name,
+          description: description,
+          cash_on_hand: game_state.cash_on_hand,
+          burn_rate: game_state.burn_rate,
+          provider_preference: provider_preference,
+          is_public: attrs[:is_public] || user.default_game_visibility == :public,
+          is_leaderboard_eligible:
+            attrs[:is_leaderboard_eligible] || user.default_game_visibility == :public
+        },
+        Map.take(attrs, [:is_public, :is_leaderboard_eligible])
+      )
+
+    case Games.create_new_game(game_attrs, user) do
       {:ok, game} ->
         {:ok, %{game: game, game_state: game_state}}
 
@@ -253,7 +260,8 @@ defmodule StartupGame.GameService do
   Asynchronously recovers a missing outcome by restarting the streaming process.
   This is used when a user disconnects during outcome generation and then reconnects.
   """
-  @spec recover_missing_outcome_async(Ecto.UUID.t(), String.t()) :: {:ok, String.t()} | {:error, any()}
+  @spec recover_missing_outcome_async(Ecto.UUID.t(), String.t()) ::
+          {:ok, String.t()} | {:error, any()}
   def recover_missing_outcome_async(game_id, response_text) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       provider = determine_provider(game)

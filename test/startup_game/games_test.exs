@@ -9,6 +9,7 @@ defmodule StartupGame.GamesTest do
   alias StartupGame.Games.OwnershipChange
 
   import StartupGame.AccountsFixtures
+  import StartupGame.GamesFixtures, only: [game_fixture_with_ownership: 2]
 
   # Fixtures for testing
 
@@ -906,6 +907,26 @@ defmodule StartupGame.GamesTest do
 
       # Verify default 50% yield is calculated
       assert Decimal.equal?(entry.yield, Decimal.new("500000"))
+    end
+
+    test "list_leaderboard_data/1 respects existing founder_return/ownership structure" do
+      user = user_fixture(%{username: "user", default_game_visibility: :public})
+
+      game_fixture_with_ownership(
+        %{
+          name: "Company A",
+          status: :completed,
+          exit_type: :acquisition,
+          exit_value: Decimal.new("3000000"),
+          percentage: Decimal.new("50.0"),
+          founder_return: Decimal.new("1500000")
+        },
+        user
+      )
+
+      entries = Games.list_leaderboard_data()
+      assert length(entries) == 1
+      assert hd(entries).yield == Decimal.new("1500000")
     end
   end
 

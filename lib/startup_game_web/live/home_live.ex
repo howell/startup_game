@@ -4,6 +4,7 @@ defmodule StartupGameWeb.HomeLive do
   import StartupGameWeb.Components.Home.{
     HeroSection,
     HowItWorksSection,
+    LeaderboardSection,
     TestimonialsSection,
     CTASection,
     Footer
@@ -19,6 +20,7 @@ defmodule StartupGameWeb.HomeLive do
       <.hero_section />
       <.how_it_works_section />
       <.live_component module={StartupGameWeb.Components.Home.GamePreviewSection} id="game_preview" />
+      <.leaderboard_section />
       <.testimonials_section />
       <.cta_section />
       <.footer />

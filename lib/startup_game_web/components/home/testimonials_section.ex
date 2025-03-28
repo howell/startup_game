@@ -8,7 +8,7 @@ defmodule StartupGameWeb.Components.Home.TestimonialsSection do
 
   def testimonials_section(assigns) do
     ~H"""
-    <section id="testimonials" class="py-20 px-4">
+    <section id="testimonials" class="py-20 px-4 bg-gray-50">
       <div class="container mx-auto max-w-6xl">
         <div class="text-center mb-16">
           <h2 class="heading-lg mb-4">What Players Say</h2>

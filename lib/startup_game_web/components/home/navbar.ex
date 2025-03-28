@@ -26,7 +26,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             SillyCon<span class="text-silly-accent">Valley</span>.lol
           </span>
         </.link>
-
+        
     <!-- Desktop Navigation -->
         <nav class="hidden md:flex items-center gap-8">
           <%= if @is_home_page do %>
@@ -42,6 +42,12 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               class="text-foreground/80 hover:text-foreground transition-colors font-medium"
             >
               Features
+            </a>
+            <a
+              href="#leaderboard"
+              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
+            >
+              Leaderboard
             </a>
             <a
               href="#testimonials"
@@ -101,7 +107,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
               </.link>
             <% end %>
           <% end %>
-
+          
     <!-- User Authentication -->
           <div class="flex items-center">
             <%= if @current_user do %>
@@ -138,7 +144,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             <% end %>
           </div>
         </nav>
-
+        
     <!-- Mobile Navigation Toggle -->
         <button
           class="md:hidden silly-button-secondary !p-2"
@@ -152,7 +158,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <.icon name="hero-x-mark" class="h-6 w-6 hidden" id="menu-close-icon" />
         </button>
       </div>
-
+      
     <!-- Mobile Navigation Menu -->
       <div
         id="mobile-menu"
@@ -179,6 +185,16 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             }
           >
             Features
+          </a>
+          <a
+            href="#leaderboard"
+            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            phx-click={
+              JS.hide(to: "#mobile-menu")
+              |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+            }
+          >
+            Leaderboard
           </a>
           <a
             href="#testimonials"
@@ -280,7 +296,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
           <% end %>
         <% end %>
-
+        
     <!-- Mobile User Authentication -->
         <%= if @current_user do %>
           <div class="border-t border-gray-100 mt-2 pt-2">

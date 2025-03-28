@@ -223,13 +223,13 @@ defmodule StartupGame.Games do
     Repo.transaction(fn ->
       with {:ok, game} <- create_game(attrs),
            # Create initial ownership record (founder owns 100%)
-           {:ok, _ownership} <-
+           {:ok, ownership} <-
              create_ownership(%{
                entity_name: "Founder",
                percentage: 100.0,
                game_id: game.id
              }) do
-        game
+        %{game | ownerships: [ownership]}
       else
         {:error, changeset} -> Repo.rollback(changeset)
       end

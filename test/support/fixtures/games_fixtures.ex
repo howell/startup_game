@@ -29,11 +29,12 @@ defmodule StartupGame.GamesFixtures do
   end
 
   defp maybe_set_finances(game, attrs) do
-    if attrs[:cash_on_hand] || attrs[:burn_rate] do
+    if attrs[:cash_on_hand] || attrs[:burn_rate] || attrs[:founder_return] do
       {:ok, updated_game} =
         Games.update_game(game, %{
           cash_on_hand: attrs[:cash_on_hand] || game.cash_on_hand,
-          burn_rate: attrs[:burn_rate] || game.burn_rate
+          burn_rate: attrs[:burn_rate] || game.burn_rate,
+          founder_return: attrs[:founder_return] || game.founder_return
         })
 
       updated_game
@@ -55,8 +56,11 @@ defmodule StartupGame.GamesFixtures do
   Creates a game with a specific status.
   """
   def game_fixture_with_status(status, attrs \\ %{}, user \\ nil) do
-    game = game_fixture(attrs, user)
+    game_fixture(attrs, user)
+    |> complete_game(status, attrs)
+  end
 
+  def complete_game(game, status, attrs \\ %{}) do
     {:ok, updated_game} =
       case status do
         :completed ->
@@ -72,6 +76,21 @@ defmodule StartupGame.GamesFixtures do
       end
 
     updated_game
+  end
+
+  @doc """
+  Creates a complete game with a specific founder ownership percentage.
+  """
+  def game_fixture_with_ownership(attrs \\ %{}, user \\ nil) do
+    game = game_fixture(attrs, user)
+
+    {:ok, ownership} =
+      Games.update_ownership(hd(game.ownerships), %{
+        percentage: attrs[:percentage] || Decimal.new("50.0")
+      })
+
+    %{game | ownerships: [ownership]}
+    |> complete_game(attrs[:status] || :completed, attrs)
   end
 
   @doc """

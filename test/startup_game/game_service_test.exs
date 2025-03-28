@@ -42,6 +42,45 @@ defmodule StartupGame.GameServiceTest do
       [first_round] = rounds
       assert first_round.situation != nil
     end
+
+    test "should respect is_public and is_leaderboard_eligible preferences", %{user: user} do
+      # Create game with public and leaderboard eligible attributes
+      {:ok, %{game: game}} =
+        GameService.create_game(
+          "Public Startup",
+          "Testing public visibility",
+          user,
+          StaticScenarioProvider,
+          %{is_public: true, is_leaderboard_eligible: true}
+        )
+
+      # Verify that these values are respected
+      assert game.is_public == true
+      assert game.is_leaderboard_eligible == true
+
+      # Create another game with default values
+      {:ok, %{game: default_game}} =
+        GameService.create_game(
+          "Default Startup",
+          "Testing default visibility",
+          user,
+          StaticScenarioProvider
+        )
+
+      # Verify defaults are false
+      assert default_game.is_public == false
+      assert default_game.is_leaderboard_eligible == false
+    end
+
+    test "should respect user's default_game_visibility preference" do
+      user = AccountsFixtures.user_fixture(%{default_game_visibility: :public})
+
+      {:ok, %{game: game}} =
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+
+      assert game.is_public == true
+      assert game.is_leaderboard_eligible == true
+    end
   end
 
   describe "load_game/1" do
@@ -582,17 +621,22 @@ defmodule StartupGame.GameServiceTest do
   describe "async recovery functions" do
     setup do
       user = AccountsFixtures.user_fixture()
-      {:ok, %{game: game}} = GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+
+      {:ok, %{game: game}} =
+        GameService.create_and_start_game("Test Startup", "Testing", user, StaticScenarioProvider)
+
       %{user: user, game: game}
     end
 
     test "recover_missing_outcome_async starts streaming for incomplete round", %{game: game} do
       # Update the last round to have a response but no outcome
       round = List.last(game.rounds)
-      {:ok, _} = Games.update_round(round, %{
-        response: "accept",
-        outcome: nil
-      })
+
+      {:ok, _} =
+        Games.update_round(round, %{
+          response: "accept",
+          outcome: nil
+        })
 
       # Call the function to start async recovery
       result = GameService.recover_missing_outcome_async(game.id, "accept")
