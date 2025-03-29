@@ -279,8 +279,13 @@ defmodule StartupGameWeb.LeaderboardWidget do
   @doc """
   Calculates the percentage of yield relative to exit value.
   """
+  @spec calculate_percentage(Decimal.t(), Decimal.t()) :: String.t()
   def calculate_percentage(yield, exit_value) do
-    percentage = Decimal.div(yield, exit_value) |> Decimal.mult(Decimal.new(100))
-    Decimal.round(percentage, 1) |> Decimal.to_string()
+    if Decimal.eq?(exit_value, Decimal.new(0)) do
+      "0"
+    else
+      percentage = Decimal.div(yield, exit_value) |> Decimal.mult(Decimal.new(100))
+      Decimal.round(percentage, 1) |> Decimal.to_string()
+    end
   end
 end
