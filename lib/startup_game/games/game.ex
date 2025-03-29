@@ -12,26 +12,30 @@ defmodule StartupGame.Games.Game do
   import Ecto.Changeset
 
   @type t :: %__MODULE__{
-    id: Ecto.UUID.t(),
-    name: String.t(),
-    description: String.t(),
-    status: :in_progress | :completed | :failed,
-    cash_on_hand: Decimal.t(),
-    burn_rate: Decimal.t(),
-    is_public: boolean(),
-    is_leaderboard_eligible: boolean(),
-    exit_value: Decimal.t(),
-    exit_type: :none | :acquisition | :ipo | :shutdown,
-    founder_return: Decimal.t(),
-    provider_preference: String.t() | nil,
-    user_id: Ecto.UUID.t(),
-    user: StartupGame.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
-    rounds: [StartupGame.Games.Round.t()] | Ecto.Association.NotLoaded.t(),
-    ownerships: [StartupGame.Games.Ownership.t()] | Ecto.Association.NotLoaded.t(),
-    ownership_changes: [StartupGame.Games.OwnershipChange.t()] | Ecto.Association.NotLoaded.t(),
-    inserted_at: DateTime.t(),
-    updated_at: DateTime.t()
-  }
+          id: Ecto.UUID.t(),
+          name: String.t(),
+          description: String.t(),
+          status: status(),
+          cash_on_hand: Decimal.t(),
+          burn_rate: Decimal.t(),
+          is_public: boolean(),
+          is_leaderboard_eligible: boolean(),
+          exit_value: Decimal.t(),
+          exit_type: exit_type(),
+          founder_return: Decimal.t(),
+          provider_preference: String.t() | nil,
+          user_id: Ecto.UUID.t(),
+          user: StartupGame.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
+          rounds: [StartupGame.Games.Round.t()] | Ecto.Association.NotLoaded.t(),
+          ownerships: [StartupGame.Games.Ownership.t()] | Ecto.Association.NotLoaded.t(),
+          ownership_changes:
+            [StartupGame.Games.OwnershipChange.t()] | Ecto.Association.NotLoaded.t(),
+          inserted_at: DateTime.t(),
+          updated_at: DateTime.t()
+        }
+
+  @type status :: :in_progress | :completed | :failed
+  @type exit_type :: :none | :acquisition | :ipo | :shutdown
 
   schema "games" do
     field :name, :string
@@ -57,7 +61,20 @@ defmodule StartupGame.Games.Game do
   @doc false
   def changeset(game, attrs) do
     game
-    |> cast(attrs, [:name, :description, :status, :cash_on_hand, :burn_rate, :is_public, :is_leaderboard_eligible, :exit_value, :exit_type, :founder_return, :user_id, :provider_preference])
+    |> cast(attrs, [
+      :name,
+      :description,
+      :status,
+      :cash_on_hand,
+      :burn_rate,
+      :is_public,
+      :is_leaderboard_eligible,
+      :exit_value,
+      :exit_type,
+      :founder_return,
+      :user_id,
+      :provider_preference
+    ])
     |> validate_required([:name, :description, :cash_on_hand, :burn_rate, :user_id])
   end
 end

@@ -828,8 +828,7 @@ defmodule StartupGame.Games do
       {:ok, %Game{}}
 
   """
-  def complete_game(%Game{} = game, exit_type, exit_value)
-      when exit_type in [:acquisition, :ipo] do
+  def complete_game(%Game{} = game, exit_type, exit_value) do
     # Preload ownerships if not already loaded
     game_with_ownerships =
       if Ecto.assoc_loaded?(game.ownerships) do
