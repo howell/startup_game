@@ -102,7 +102,7 @@ defmodule StartupGame.Games do
         end
 
       %{
-        username: game.user.email |> String.split("@") |> hd(),
+        username: game.user.username || game.user.email |> String.split("@") |> hd(),
         company_name: game.name,
         exit_value: game.exit_value,
         yield: yield,

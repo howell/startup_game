@@ -518,7 +518,7 @@ defmodule StartupGame.GamesTest do
   describe "leaderboard data" do
     test "list_leaderboard_data/1 returns formatted leaderboard entries" do
       # Create user and completed game with known exit value and ownership
-      user = user_fixture(%{email: "test@example.com"})
+      user = user_fixture(%{email: "test@example.com", username: "boo"})
 
       game =
         game_fixture(%{
@@ -545,7 +545,7 @@ defmodule StartupGame.GamesTest do
       [entry] = Games.list_leaderboard_data()
 
       # Verify the entry has the expected fields and values
-      assert entry.username == "test"
+      assert entry.username == "boo"
       assert entry.company_name == "Test Company"
       assert Decimal.equal?(entry.exit_value, Decimal.new("2000000"))
       # 60% of exit value
