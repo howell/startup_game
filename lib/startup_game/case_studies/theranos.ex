@@ -9,7 +9,7 @@ defmodule StartupGame.CaseStudies.Theranos do
   def case_study do
     %{
       user: %{
-        name: "eholmes"
+        name: "lizzyh"
       },
       company: "Theranos",
       description:
