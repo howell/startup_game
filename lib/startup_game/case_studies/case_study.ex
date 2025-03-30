@@ -7,6 +7,8 @@ defmodule StartupGame.CaseStudies.CaseStudy do
   alias StartupGame.Accounts
   alias StartupGame.Accounts.User
   alias StartupGame.Engine.Demo.StaticScenarioProvider
+  alias StartupGame.Repo
+  require Logger
 
   @type t() :: %{
           user: user_spec(),
@@ -30,6 +32,35 @@ defmodule StartupGame.CaseStudies.CaseStudy do
         }
 
   @doc """
+  Create a case study and the corresponding user.
+  If the user already exists, delete it and any of their associated games and case studies.
+  """
+  @spec create_or_replace(t()) :: {:ok, Game.t()} | {:error, String.t()}
+  def create_or_replace(case_study) do
+    Logger.info("Creating or replacing case study for #{case_study.user.name}")
+
+    case delete(case_study) do
+      {:ok, _} ->
+        Logger.info("Deleted existing user and associated games and case studies")
+
+      {:error, error} ->
+        Logger.info(
+          "Error deleting existing user and associated games and case studies: #{inspect(error)}"
+        )
+    end
+
+    case create(case_study) do
+      {:ok, game} ->
+        Logger.info("Created case study for #{case_study.user.name}")
+        {:ok, game}
+
+      {:error, error} ->
+        Logger.error("Error creating case study for #{case_study.user.name}: #{inspect(error)}")
+        {:error, error}
+    end
+  end
+
+  @doc """
   Save a case study to the database
   """
   @spec create(t()) :: {:ok, Game.t()} | {:error, String.t()}
@@ -42,6 +73,23 @@ defmodule StartupGame.CaseStudies.CaseStudy do
     else
       {:error, error} ->
         {:error, error}
+    end
+  end
+
+  @doc """
+  Delete a case study from the database
+  """
+  @spec delete(t()) :: {:ok, any()} | {:error, String.t()}
+  def delete(case_study) do
+    case_study
+    |> get_in([:user, :name])
+    |> Accounts.get_user_by_username()
+    |> case do
+      nil ->
+        {:ok, :not_found}
+
+      user ->
+        Repo.delete(user)
     end
   end
 
