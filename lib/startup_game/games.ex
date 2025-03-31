@@ -107,7 +107,8 @@ defmodule StartupGame.Games do
         exit_value: game.exit_value,
         yield: yield,
         user_id: game.user_id,
-        game_id: game.id
+        game_id: game.id,
+        is_case_study: game.is_case_study
       }
     end)
   end

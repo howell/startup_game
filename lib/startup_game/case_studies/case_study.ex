@@ -118,7 +118,8 @@ defmodule StartupGame.CaseStudies.CaseStudy do
         cash_on_hand: Decimal.new("10000000"),
         burn_rate: Decimal.new("1000000"),
         exit_value: Decimal.new("0"),
-        founder_return: Decimal.new("0")
+        founder_return: Decimal.new("0"),
+        is_case_study: true
       },
       user
     )

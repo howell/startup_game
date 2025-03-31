@@ -20,6 +20,7 @@ defmodule StartupGame.Games.Game do
           burn_rate: Decimal.t(),
           is_public: boolean(),
           is_leaderboard_eligible: boolean(),
+          is_case_study: boolean(),
           exit_value: Decimal.t(),
           exit_type: exit_type(),
           founder_return: Decimal.t(),
@@ -45,6 +46,7 @@ defmodule StartupGame.Games.Game do
     field :burn_rate, :decimal
     field :is_public, :boolean, default: false
     field :is_leaderboard_eligible, :boolean, default: false
+    field :is_case_study, :boolean, default: false
     field :exit_value, :decimal, default: 0
     field :exit_type, Ecto.Enum, values: [:none, :acquisition, :ipo, :shutdown], default: :none
     field :founder_return, :decimal, default: 0
@@ -69,6 +71,7 @@ defmodule StartupGame.Games.Game do
       :burn_rate,
       :is_public,
       :is_leaderboard_eligible,
+      :is_case_study,
       :exit_value,
       :exit_type,
       :founder_return,
