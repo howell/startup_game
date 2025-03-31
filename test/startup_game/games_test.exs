@@ -549,7 +549,7 @@ defmodule StartupGame.GamesTest do
       assert entry.company_name == "Test Company"
       assert Decimal.equal?(entry.exit_value, Decimal.new("2000000"))
       # 60% of exit value
-      assert Decimal.equal?(entry.yield, Decimal.new("1200000"))
+      assert Decimal.equal?(entry.founder_return, Decimal.new("1200000"))
       assert entry.user_id == user.id
     end
 
@@ -671,13 +671,13 @@ defmodule StartupGame.GamesTest do
       assert Enum.map(entries, & &1.company_name) == ["Company B", "Company C", "Company A"]
     end
 
-    test "list_leaderboard_data/1 can sort by yield" do
+    test "list_leaderboard_data/1 can sort by founder_return" do
       # Create multiple games with different founder percentages and exit values
       user1 = user_fixture(%{email: "user1@example.com"})
       user2 = user_fixture(%{email: "user2@example.com"})
       user3 = user_fixture(%{email: "user3@example.com"})
 
-      # Game A: $3M exit, 40% founder ownership = $1.2M yield
+      # Game A: $3M exit, 40% founder ownership = $1.2M founder_return
       game_a =
         game_fixture(%{
           name: "Company A",
@@ -694,7 +694,7 @@ defmodule StartupGame.GamesTest do
       _round_a = round_fixture(%{game: game_a})
       ownership_fixture(%{game: game_a, entity_name: "Founder", percentage: Decimal.new("40.0")})
 
-      # Game B: $1M exit, 90% founder ownership = $0.9M yield
+      # Game B: $1M exit, 90% founder ownership = $0.9M founder_return
       game_b =
         game_fixture(%{
           name: "Company B",
@@ -711,7 +711,7 @@ defmodule StartupGame.GamesTest do
       _round_b = round_fixture(%{game: game_b})
       ownership_fixture(%{game: game_b, entity_name: "Founder", percentage: Decimal.new("90.0")})
 
-      # Game C: $2M exit, 80% founder ownership = $1.6M yield
+      # Game C: $2M exit, 80% founder ownership = $1.6M founder_return
       game_c =
         game_fixture(%{
           name: "Company C",
@@ -728,17 +728,17 @@ defmodule StartupGame.GamesTest do
       _round_c = round_fixture(%{game: game_c})
       ownership_fixture(%{game: game_c, entity_name: "Founder", percentage: Decimal.new("80.0")})
 
-      # Get leaderboard data sorted by yield desc
+      # Get leaderboard data sorted by founder_return desc
       entries = Games.list_leaderboard_data(%{sort_by: "founder_return", sort_direction: :desc})
 
       # Verify order: C, A, B
       assert length(entries) == 3
       company_names = Enum.map(entries, & &1.company_name)
-      # $1.6M yield
+      # $1.6M founder_return
       assert Enum.at(company_names, 0) == "Company C"
-      # $1.2M yield
+      # $1.2M founder_return
       assert Enum.at(company_names, 1) == "Company A"
-      # $0.9M yield
+      # $0.9M founder_return
       assert Enum.at(company_names, 2) == "Company B"
     end
 
@@ -884,7 +884,7 @@ defmodule StartupGame.GamesTest do
       assert hd(entries).company_name == "Eligible Company"
     end
 
-    test "calculate_founder_yield handles missing founder ownership" do
+    test "calculate_founder_return handles missing founder ownership" do
       # Create a game without explicit founder ownership
       user = user_fixture(%{email: "test@example.com"})
 
@@ -902,11 +902,11 @@ defmodule StartupGame.GamesTest do
       # Create a round but don't create founder ownership
       _round = round_fixture(%{game: game})
 
-      # Get leaderboard data - should use default 50% for yield calculation
+      # Get leaderboard data - should use default 50% for founder_return calculation
       [entry] = Games.list_leaderboard_data()
 
-      # Verify default 50% yield is calculated
-      assert Decimal.equal?(entry.yield, Decimal.new("500000"))
+      # Verify default 50% founder_return is calculated
+      assert Decimal.equal?(entry.founder_return, Decimal.new("500000"))
     end
 
     test "list_leaderboard_data/1 respects existing founder_return/ownership structure" do
@@ -926,7 +926,7 @@ defmodule StartupGame.GamesTest do
 
       entries = Games.list_leaderboard_data()
       assert length(entries) == 1
-      assert hd(entries).yield == Decimal.new("1500000")
+      assert hd(entries).founder_return == Decimal.new("1500000")
     end
   end
 

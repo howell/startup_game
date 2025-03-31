@@ -12,7 +12,8 @@ defmodule StartupGameWeb.LeaderboardWidget do
           class: String.t(),
           limit: non_neg_integer(),
           sort_by: String.t(),
-          sort_direction: :asc | :desc
+          sort_direction: :asc | :desc,
+          include_case_studies: boolean()
         }
 
   @doc """
@@ -25,7 +26,12 @@ defmodule StartupGameWeb.LeaderboardWidget do
       |> assign(assigns)
       |> assign(
         :leaderboard_data,
-        leaderboard_entries(assigns.limit, assigns.sort_by, assigns.sort_direction)
+        leaderboard_entries(
+          assigns.limit,
+          assigns.sort_by,
+          assigns.sort_direction,
+          Map.get(assigns, :include_case_studies, false)
+        )
       )
 
     {:ok, socket}
@@ -39,6 +45,7 @@ defmodule StartupGameWeb.LeaderboardWidget do
   attr :limit, :integer, default: 5
   attr :sort_by, :string, default: "exit_value"
   attr :sort_direction, :atom, default: :desc
+  attr :include_case_studies, :boolean, default: false
   attr :leaderboard_data, :list, required: true
   attr :myself, :any
 
@@ -57,11 +64,12 @@ defmodule StartupGameWeb.LeaderboardWidget do
     """
   end
 
-  defp leaderboard_entries(limit, sort_by, sort_direction) do
+  defp leaderboard_entries(limit, sort_by, sort_direction, include_case_studies) do
     Games.list_leaderboard_data(%{
       limit: limit,
       sort_by: sort_by,
-      sort_direction: sort_direction
+      sort_direction: sort_direction,
+      include_case_studies: include_case_studies
     })
   end
 
@@ -137,7 +145,7 @@ defmodule StartupGameWeb.LeaderboardWidget do
               myself={@myself}
             />
             <.sortable_header
-              field="yield"
+              field="founder_return"
               label="Founder Return"
               sort_by={@sort_by}
               sort_direction={@sort_direction}
@@ -265,10 +273,10 @@ defmodule StartupGameWeb.LeaderboardWidget do
       <.row_cell>
         <div>
           <.table_cell class="font-semibold">
-            ${GameFormatters.format_money(@entry.yield)}
+            ${GameFormatters.format_money(@entry.founder_return)}
           </.table_cell>
           <div class="text-xs text-gray-500">
-            {calculate_percentage(@entry.yield, @entry.exit_value)}% of exit
+            {calculate_percentage(@entry.founder_return, @entry.exit_value)}% of exit
           </div>
         </div>
       </.row_cell>

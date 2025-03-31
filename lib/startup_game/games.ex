@@ -75,46 +75,123 @@ defmodule StartupGame.Games do
     sort_by = Map.get(params, :sort_by, "exit_value")
     sort_direction = Map.get(params, :sort_direction, :desc)
     limit = Map.get(params, :limit, 50)
+    include_case_studies = Map.get(params, :include_case_studies, false)
 
     # Replace "yield" with "founder_return" in sort_by if needed
     sort_by = if sort_by == "yield", do: "founder_return", else: sort_by
 
-    # Get eligible games with users and ownerships
-    games =
+    case_studies = if include_case_studies, do: case_studies(limit: limit), else: []
+    case_study_count = length(case_studies)
+    regular_limit = limit - case_study_count
+
+    # Build dynamic query - we'll either filter by is_case_study or not
+    regular_games =
       Game
-      |> where([g], g.is_public == true and g.is_leaderboard_eligible == true)
+      |> where([g], g.is_public and g.is_leaderboard_eligible)
       |> where([g], g.status == :completed)
       |> where([g], g.exit_type in [:acquisition, :ipo])
+      |> where([g], not g.is_case_study)
+      |> limit(^regular_limit)
       |> preload([:user, :ownerships])
-      |> order_by([g], [{^sort_direction, field(g, ^String.to_atom(sort_by))}])
-      |> limit(^limit)
       |> Repo.all()
 
-    # Format the data, calculate yields if founder_return is not set
-    Enum.map(games, fn game ->
-      # For backward compatibility with existing games and tests
-      # If founder_return is not set or is 0, calculate it
-      yield =
-        if Decimal.compare(game.founder_return || Decimal.new(0), Decimal.new(0)) == :eq do
-          calculate_founder_yield(game)
-        else
-          game.founder_return
-        end
+    games = case_studies ++ regular_games
 
-      %{
-        username: game.user.username || game.user.email |> String.split("@") |> hd(),
-        company_name: game.name,
-        exit_value: game.exit_value,
-        yield: yield,
-        user_id: game.user_id,
-        game_id: game.id,
-        is_case_study: game.is_case_study
-      }
-    end)
+    # Format the data, calculate yields if founder_return is not set
+    games_with_founder_return =
+      Enum.map(games, fn game ->
+        # For backward compatibility with existing games and tests
+        # If founder_return is not set or is 0, calculate it
+        founder_return =
+          if Decimal.compare(game.founder_return || Decimal.new(0), Decimal.new(0)) == :eq do
+            calculate_founder_return(game)
+          else
+            game.founder_return
+          end
+
+        %{
+          username: game.user.username || game.user.email |> String.split("@") |> hd(),
+          company_name: game.name,
+          exit_value: game.exit_value,
+          founder_return: founder_return,
+          user_id: game.user_id,
+          game_id: game.id,
+          is_case_study: game.is_case_study
+        }
+      end)
+
+    sort_games(games_with_founder_return, sort_by, sort_direction)
   end
 
-  # Helper to calculate founder yield based on ownership
-  defp calculate_founder_yield(game) do
+  @doc """
+  Returns the list of case studies sorted by the given field and direction.
+  The following optional parameters are supported:
+  - `limit`: The maximum number of case studies to return. Defaults to 50.
+
+  ## Examples
+
+      iex> list_case_studies(%{sort_by: "exit_value", limit: 10})
+      [%Game{}, ...]
+
+      iex> list_case_studies(%{sort_by: "exit_value", limit: 10, sort_direction: :asc})
+      [%Game{}, ...]
+
+  """
+  @spec case_studies() :: [Game.t()]
+  @spec case_studies(Keyword.t()) :: [Game.t()]
+  def case_studies(attrs \\ []) do
+    limit = Keyword.get(attrs, :limit, 50)
+
+    Game
+    |> where([g], g.is_case_study == true)
+    |> limit(^limit)
+    |> preload([:user, :ownerships])
+    |> Repo.all()
+  end
+
+  # Helper function to sort games by the given field and direction
+  defp sort_games(games, "founder_return", direction) do
+    # For founder_return, we need to calculate it first
+    games_with_founder_return =
+      Enum.map(games, fn game ->
+        founder_return =
+          if Decimal.compare(game.founder_return || Decimal.new(0), Decimal.new(0)) == :eq do
+            calculate_founder_return(game)
+          else
+            game.founder_return
+          end
+
+        {game, founder_return}
+      end)
+
+    # Sort by founder_return
+    comparator = sort_direction_to_comparator(direction)
+
+    {sorted_games, _} =
+      Enum.sort_by(
+        games_with_founder_return,
+        fn {_game, founder_return} -> founder_return end,
+        comparator
+      )
+      |> Enum.unzip()
+
+    sorted_games
+  end
+
+  defp sort_games(games, field, direction) do
+    # For non-yield fields, sort directly by the field
+    # Map "yield" to "founder_return" for actual field name
+    field_atom = if field == "yield", do: :founder_return, else: String.to_atom(field)
+    comparator = sort_direction_to_comparator(direction)
+
+    Enum.sort_by(games, &Map.get(&1, field_atom), comparator)
+  end
+
+  defp sort_direction_to_comparator(:asc), do: &(Decimal.compare(&1, &2) != :gt)
+  defp sort_direction_to_comparator(:desc), do: &(Decimal.compare(&1, &2) == :gt)
+
+  # Helper to calculate founder return based on ownership
+  defp calculate_founder_return(game) do
     # Find the founder's ownership
     founder_ownership =
       Enum.find(game.ownerships, fn ownership ->
@@ -840,7 +917,7 @@ defmodule StartupGame.Games do
 
     # Calculate founder return
     founder_return =
-      calculate_founder_yield(%{
+      calculate_founder_return(%{
         exit_value: exit_value,
         ownerships: game_with_ownerships.ownerships
       })

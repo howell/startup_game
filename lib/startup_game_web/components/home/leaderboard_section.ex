@@ -27,6 +27,7 @@ defmodule StartupGameWeb.Components.Home.LeaderboardSection do
             sort_by="exit_value"
             sort_direction={:desc}
             limit={5}
+            include_case_studies={true}
           />
         </div>
       </div>

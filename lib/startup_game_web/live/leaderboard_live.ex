@@ -50,7 +50,7 @@ defmodule StartupGameWeb.LeaderboardLive do
         <h1 class="text-3xl font-bold text-gray-900 mb-2">Startup Success Leaderboard</h1>
         <p class="text-gray-600 text-center max-w-2xl">
           See the most successful founders and their companies in SillyConValley.
-          Sort by either exit value or founder yield to discover different success stories.
+          Sort by either exit value or founder return to discover different success stories.
         </p>
       </div>
 
@@ -61,6 +61,7 @@ defmodule StartupGameWeb.LeaderboardLive do
         sort_by="exit_value"
         sort_direction={:desc}
         limit={50}
+        include_case_studies={true}
       />
 
       <div class="mt-8 flex justify-center">

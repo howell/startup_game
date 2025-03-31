@@ -101,10 +101,10 @@ defmodule StartupGameWeb.LeaderboardLiveTest do
     test "can sort by founder_return in descending order", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/leaderboard")
 
-      # Click on founder return header to sort by yield
+      # Click on founder return header to sort by founder_return
       html =
         view
-        |> element("th[phx-value-field='yield']")
+        |> element("th[phx-value-field='founder_return']")
         |> render_click()
 
       # Check sorting (founder_return descending)
@@ -120,15 +120,15 @@ defmodule StartupGameWeb.LeaderboardLiveTest do
     test "can sort by founder_return in ascending order", %{conn: conn} do
       {:ok, view, _html} = live(conn, ~p"/leaderboard")
 
-      # Click on founder return header to sort by yield (first click for desc)
+      # Click on founder return header to sort by founder_return (first click for desc)
       view
-      |> element("th[phx-value-field='yield']")
+      |> element("th[phx-value-field='founder_return']")
       |> render_click()
 
       # Click again to toggle to ascending order
       html =
         view
-        |> element("th[phx-value-field='yield']")
+        |> element("th[phx-value-field='founder_return']")
         |> render_click()
 
       # Check sorting (founder_return ascending)
@@ -188,7 +188,7 @@ defmodule StartupGameWeb.LeaderboardLiveTest do
       # Now click on founder_return - should sort by founder_return descending: C, A, B
       html =
         view
-        |> element("th[phx-value-field='yield']")
+        |> element("th[phx-value-field='founder_return']")
         |> render_click()
 
       companies =

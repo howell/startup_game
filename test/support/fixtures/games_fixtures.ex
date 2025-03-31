@@ -30,12 +30,14 @@ defmodule StartupGame.GamesFixtures do
   end
 
   defp maybe_set_finances(game, attrs) do
-    if attrs[:cash_on_hand] || attrs[:burn_rate] || attrs[:founder_return] do
+    if attrs[:cash_on_hand] || attrs[:burn_rate] || attrs[:founder_return] ||
+         attrs[:is_case_study] do
       {:ok, updated_game} =
         Games.update_game(game, %{
           cash_on_hand: attrs[:cash_on_hand] || game.cash_on_hand,
           burn_rate: attrs[:burn_rate] || game.burn_rate,
-          founder_return: attrs[:founder_return] || game.founder_return
+          founder_return: attrs[:founder_return] || game.founder_return,
+          is_case_study: Map.get(attrs, :is_case_study, game.is_case_study)
         })
 
       updated_game
