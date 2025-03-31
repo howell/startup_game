@@ -68,7 +68,7 @@ defmodule StartupGame.CaseStudies.CaseStudy do
     with {:ok, user} <- save_user(case_study.user),
          {:ok, game} <- save_game(user, case_study),
          {:ok, _} <- save_rounds(game, case_study.rounds),
-         {:ok, game} <- Games.complete_game(game, case_study.exit_type, case_study.exit_value) do
+         {:ok, game} <- end_game(game, case_study) do
       {:ok, game}
     else
       {:error, error} ->
@@ -136,5 +136,16 @@ defmodule StartupGame.CaseStudies.CaseStudy do
           {:halt, {:error, error}}
       end
     end)
+  end
+
+  @spec end_game(Game.t(), t()) :: {:ok, Game.t()} | {:error, String.t()}
+  defp end_game(game, case_study) do
+    case case_study.status do
+      :completed ->
+        Games.complete_game(game, case_study.exit_type, case_study.exit_value)
+
+      :failed ->
+        Games.fail_game(game)
+    end
   end
 end

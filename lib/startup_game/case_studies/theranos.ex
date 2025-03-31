@@ -15,7 +15,7 @@ defmodule StartupGame.CaseStudies.Theranos do
       description:
         "Theranos is a healthcare company that claims to be able to run hundreds of tests from a single drop of blood.",
       rounds: rounds(),
-      status: :completed,
+      status: :failed,
       exit_type: :shutdown,
       exit_value: Decimal.new(0),
       founder_return: Decimal.new(0)

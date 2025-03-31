@@ -27,7 +27,7 @@ defmodule StartupGame.CaseStudies.CaseStudyTest do
       assert game.name == theranos_data.company
       assert game.description == theranos_data.description
       assert game.user_id == user.id
-      assert game.status == :completed
+      assert game.status == :failed
       assert game.exit_type == theranos_data.exit_type
       assert Decimal.equal?(game.exit_value, theranos_data.exit_value)
 
