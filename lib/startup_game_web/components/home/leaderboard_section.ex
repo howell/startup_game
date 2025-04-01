@@ -12,10 +12,9 @@ defmodule StartupGameWeb.Components.Home.LeaderboardSection do
     <section id="leaderboard" class="py-20 px-4">
       <div class="container mx-auto max-w-6xl">
         <div class="text-center mb-16">
-          <h2 class="heading-lg mb-4">Top Startup Exits</h2>
+          <h2 class="heading-lg mb-4">Take Your Place Among the Greats</h2>
           <p class="text-foreground/70 text-lg max-w-2xl mx-auto">
-            See who's crushing it in SillyConValley with the most successful exits.
-            Can you make it to the top of the leaderboard?
+            See who's crushing it in SillyConValley.
           </p>
         </div>
 
