@@ -8,9 +8,9 @@ defmodule Mix.Tasks.Game.CreateCaseStudies do
   """
   use Mix.Task
   require Logger
-  alias StartupGame.CaseStudies.{CaseStudy, Theranos, WeWork, FTX}
+  alias StartupGame.CaseStudies.{CaseStudy, Theranos, WeWork, FTX, Frank}
 
-  @case_studies [Theranos.case_study(), WeWork.case_study(), FTX.case_study()]
+  @case_studies [Theranos.case_study(), WeWork.case_study(), FTX.case_study(), Frank.case_study()]
 
   @shortdoc "Creates or replaces case studies"
   def run(_) do
