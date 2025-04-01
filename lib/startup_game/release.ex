@@ -18,6 +18,11 @@ defmodule StartupGame.Release do
     {:ok, _, _} = Ecto.Migrator.with_repo(repo, &Ecto.Migrator.run(&1, :down, to: version))
   end
 
+  def create_case_studies do
+    load_app()
+    Mix.Tasks.Game.CreateCaseStudies.run([])
+  end
+
   @doc """
   Updates the founder_return field for all completed games.
 
