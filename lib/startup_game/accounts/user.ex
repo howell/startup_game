@@ -1,5 +1,5 @@
 defmodule StartupGame.Accounts.User do
-  use Ecto.Schema
+  use StartupGame.Schema
   import Ecto.Changeset
 
   @moduledoc """
@@ -16,8 +16,11 @@ defmodule StartupGame.Accounts.User do
           confirmed_at: DateTime.t(),
           default_game_visibility: :public | :private,
           inserted_at: DateTime.t(),
-          updated_at: DateTime.t()
+          updated_at: DateTime.t(),
+          role: role()
         }
+
+  @type role() :: :user | :admin
 
   @primary_key {:id, :binary_id, autogenerate: true}
   @foreign_key_type :binary_id
@@ -29,6 +32,7 @@ defmodule StartupGame.Accounts.User do
     field :current_password, :string, virtual: true, redact: true
     field :confirmed_at, :utc_datetime_usec
     field :default_game_visibility, Ecto.Enum, values: [:public, :private], default: :private
+    field :role, Ecto.Enum, values: [:user, :admin], default: :user
 
     timestamps(type: :utc_datetime_usec)
   end
@@ -58,7 +62,7 @@ defmodule StartupGame.Accounts.User do
   """
   def registration_changeset(user, attrs, opts \\ []) do
     user
-    |> cast(attrs, [:email, :username, :password, :default_game_visibility])
+    |> cast(attrs, [:email, :username, :password, :default_game_visibility, :role])
     |> validate_email(opts)
     |> validate_username(opts)
     |> validate_password(opts)
@@ -210,5 +214,15 @@ defmodule StartupGame.Accounts.User do
     user
     |> cast(attrs, [:default_game_visibility])
     |> validate_required([:default_game_visibility])
+  end
+  @doc """
+  A user changeset for updating the role.
+  """
+  def role_changeset(user, attrs) do
+    user
+    |> cast(attrs, [:role])
+    |> validate_required([:role])
+    # Ensure role is one of the allowed values (:user, :admin)
+    |> validate_inclusion(:role, [:user, :admin])
   end
 end

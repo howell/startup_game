@@ -946,4 +946,23 @@ defmodule StartupGame.Games do
       exit_type: exit_type
     })
   end
+
+  ## Statistics Functions (Admin)
+
+  @doc """
+  Returns the total count of games.
+  """
+  def count_games do
+    Repo.aggregate(Game, :count, :id)
+  end
+
+  @doc """
+  Returns a list of the most recently created games.
+  """
+  def list_recent_games(limit \\ 5) do
+    Game
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
+  end
 end

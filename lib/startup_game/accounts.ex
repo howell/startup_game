@@ -76,6 +76,19 @@ defmodule StartupGame.Accounts do
   """
   def get_user!(id), do: Repo.get!(User, id)
 
+  @doc """
+  Returns the list of all users.
+
+  ## Examples
+
+      iex> list_users()
+      [%User{}, ...]
+
+  """
+  def list_users do
+    Repo.all(User)
+  end
+
   ## User registration
 
   @doc """
@@ -453,4 +466,66 @@ defmodule StartupGame.Accounts do
     |> User.visibility_changeset(attrs)
     |> Repo.update()
   end
+  @doc """
+  Updates a user's role. Intended for admin use.
+
+  ## Examples
+
+      iex> update_user_role(user, %{role: :admin})
+      {:ok, %User{}}
+
+      iex> update_user_role(user, %{role: :invalid})
+      {:error, %Ecto.Changeset{}}
+
+  """
+  def update_user_role(%User{} = user, attrs) do
+    user
+    |> User.role_changeset(attrs)
+    |> Repo.update()
+  end
+
+  @doc """
+  Deletes a user account without password verification. Intended for admin use.
+
+  ## Examples
+
+      iex> admin_delete_user(user)
+      {:ok, %User{}}
+
+  """
+  def admin_delete_user(%User{} = user) do
+    # Delete all user tokens first, then the user
+    Ecto.Multi.new()
+    |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
+    |> Ecto.Multi.delete(:user, user)
+    |> Repo.transaction()
+    |> case do
+      {:ok, %{user: user}} -> {:ok, user}
+      # We might get a changeset error if the user is already deleted,
+      # but for admin deletion, we can probably treat that as success or ignore.
+      # Or handle specific errors if needed.
+      {:error, :user, changeset, _} -> {:error, changeset}
+      # Handle other potential multi errors if necessary
+      {:error, step, reason, _changes} -> {:error, {step, reason}}
+    end
+  end
+
+    ## Statistics Functions (Admin)
+
+    @doc """
+    Returns the total count of users.
+    """
+    def count_users do
+      Repo.aggregate(User, :count, :id)
+    end
+
+    @doc """
+    Returns a list of the most recently registered users.
+    """
+    def list_recent_users(limit \\ 5) do
+      User
+      |> order_by(desc: :inserted_at)
+      |> limit(^limit)
+      |> Repo.all()
+    end
 end

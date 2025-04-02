@@ -2,7 +2,6 @@ defmodule StartupGameWeb.Router do
   use StartupGameWeb, :router
 
   import StartupGameWeb.UserAuth
-
   pipeline :browser do
     plug :accepts, ["html"]
     plug :fetch_session
@@ -15,6 +14,17 @@ defmodule StartupGameWeb.Router do
 
   pipeline :api do
     plug :accepts, ["json"]
+  end
+
+  pipeline :admin_browser do
+    plug :accepts, ["html"]
+    plug :fetch_session
+    plug :fetch_live_flash
+    plug :put_root_layout, html: {StartupGameWeb.Layouts, :root}
+    plug :protect_from_forgery
+    plug :put_secure_browser_headers
+    plug :fetch_current_user
+    plug StartupGameWeb.Plugs.RequireAdminAuth # Ensure user is admin
   end
 
   scope "/", StartupGameWeb do
@@ -30,6 +40,19 @@ defmodule StartupGameWeb.Router do
   # scope "/api", StartupGameWeb do
   #   pipe_through :api
   # end
+
+  ## Admin routes
+  scope "/admin", StartupGameWeb do
+    pipe_through [:admin_browser] # Use the admin pipeline
+
+    live_session :admin_authenticated,
+      on_mount: [{StartupGameWeb.UserAuth, :ensure_authenticated}] do
+      live "/", Admin.DashboardLive, :index
+      live "/users", Admin.UserManagementLive, :index
+      live "/games", Admin.GameManagementLive, :index
+      live "/users/:id", Admin.UserManagementLive, :index # Add show route placeholder
+    end
+  end
 
   # Enable LiveDashboard and Swoosh mailbox preview in development
   if Application.compile_env(:startup_game, :dev_routes) do

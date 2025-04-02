@@ -53,9 +53,9 @@ defmodule StartupGame.Games.Game do
     field :provider_preference, :string
 
     belongs_to :user, StartupGame.Accounts.User
-    has_many :rounds, StartupGame.Games.Round
-    has_many :ownerships, StartupGame.Games.Ownership
-    has_many :ownership_changes, StartupGame.Games.OwnershipChange
+    has_many :rounds, StartupGame.Games.Round, on_delete: :delete_all
+    has_many :ownerships, StartupGame.Games.Ownership, on_delete: :delete_all
+    has_many :ownership_changes, StartupGame.Games.OwnershipChange, on_delete: :delete_all
 
     timestamps()
   end
