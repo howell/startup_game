@@ -33,7 +33,7 @@ defmodule StartupGame.EngineTest do
       game_state = Engine.set_next_scenario(game_state)
 
       # Accept angel investment
-      updated_state = Engine.process_response(game_state, "accept") |> Engine.set_next_scenario()
+      updated_state = Engine.process_player_input(game_state, "accept") |> Engine.set_next_scenario()
 
       # Check that cash was updated (initial $10,000 + $100,000 from investment - $1,000 burn rate)
       assert Decimal.equal?(updated_state.cash_on_hand, Decimal.new("109000.00"))
@@ -51,7 +51,7 @@ defmodule StartupGame.EngineTest do
       # Check that round was recorded
       assert length(updated_state.rounds) == 1
       assert hd(updated_state.rounds).scenario_id == "angel_investment"
-      assert hd(updated_state.rounds).response == "accept"
+      assert hd(updated_state.rounds).player_input == "accept" # Check renamed field
 
       # Check that next scenario was set
       assert updated_state.current_scenario == "hiring_decision"
