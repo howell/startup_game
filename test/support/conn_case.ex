@@ -28,6 +28,9 @@ defmodule StartupGameWeb.ConnCase do
       import Plug.Conn
       import Phoenix.ConnTest
       import StartupGameWeb.ConnCase
+
+      # Import fixtures for setup helpers
+      alias StartupGame.AccountsFixtures
     end
   end
 
@@ -47,6 +50,19 @@ defmodule StartupGameWeb.ConnCase do
   def register_and_log_in_user(%{conn: conn}) do
     user = StartupGame.AccountsFixtures.user_fixture()
     %{conn: log_in_user(conn, user), user: user}
+  end
+
+  @doc """
+  Setup helper that registers and logs in an admin user.
+
+      setup :register_and_log_in_admin
+
+  It stores an updated connection and a registered admin user
+  (as `:admin_user`) in the test context.
+  """
+  def register_and_log_in_admin(%{conn: conn}) do
+    admin_user = StartupGame.AccountsFixtures.admin_user_fixture()
+    %{conn: log_in_user(conn, admin_user), admin_user: admin_user}
   end
 
   @doc """

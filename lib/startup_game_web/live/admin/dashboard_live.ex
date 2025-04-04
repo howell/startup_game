@@ -33,10 +33,10 @@ defmodule StartupGameWeb.Admin.DashboardLive do
       </.header>
 
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <.card title="Total Users">
+        <.card title="Total Users" id="total-users-card">
           <span class="text-2xl font-bold">{@total_users}</span>
         </.card>
-        <.card title="Total Games">
+        <.card title="Total Games" id="total-games-card">
           <span class="text-2xl font-bold">{@total_games}</span>
         </.card>
         <%!-- Add more stat cards later --%>
@@ -79,7 +79,7 @@ defmodule StartupGameWeb.Admin.DashboardLive do
   # Helper component (can be moved to core_components later if reused)
   defp card(assigns) do
     ~H"""
-    <div class="bg-white overflow-hidden shadow rounded-lg">
+    <div class="bg-white overflow-hidden shadow rounded-lg" id={@id}>
       <div class="p-5">
         <dt class="text-sm font-medium text-gray-500 truncate">
           {@title}

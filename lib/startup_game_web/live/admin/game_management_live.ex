@@ -28,7 +28,7 @@ defmodule StartupGameWeb.Admin.GameManagementLive do
         <:subtitle>View and delete games.</:subtitle>
       </.header>
 
-      <.table id="games" rows={@games}>
+      <.table id="games" rows={@games} row_id={&"game-#{&1.id}"}>
         <:col :let={game} label="Name">{game.name}</:col>
         <:col :let={game} label="Owner">{game.user.username || game.user.email}</:col>
         <:col :let={game} label="Status">{game.status}</:col>

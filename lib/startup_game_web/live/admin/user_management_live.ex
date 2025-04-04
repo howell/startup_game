@@ -25,7 +25,7 @@ defmodule StartupGameWeb.Admin.UserManagementLive do
         <:subtitle>View, edit roles, and delete users.</:subtitle>
       </.header>
 
-      <.table id="users" rows={@users}>
+      <.table id="users" rows={@users} row_id={fn user -> "user-#{user.id}" end}>
         <:col :let={user} label="Email">{user.email}</:col>
         <:col :let={user} label="Username">{user.username || "--"}</:col>
         <:col :let={user} label="Role">
