@@ -105,7 +105,7 @@ defmodule StartupGame.GamesFixtures do
     # Process multiple responses to create rounds
     Enum.reduce(1..round_count, game, fn i, game ->
       {:ok, %{game: updated_game}} =
-        GameService.process_response(game.id, "Response for round #{i}")
+        GameService.process_player_input(game.id, "Response for round #{i}")
 
       updated_game
     end)
