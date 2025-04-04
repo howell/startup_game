@@ -10,6 +10,7 @@ defmodule StartupGameWeb.GameLive.Play do
   alias StartupGameWeb.GameLive.Components.{GameCreationComponent, GamePlayComponent}
   alias StartupGameWeb.GameLive.Handlers.{CreationHandler, PlayHandler, StreamHandler}
   alias StartupGameWeb.GameLive.Helpers.SocketAssignments
+  alias StartupGame.GameService # Added
 
   @type t :: Phoenix.LiveView.Socket.t()
 
@@ -26,6 +27,8 @@ defmodule StartupGameWeb.GameLive.Play do
     socket = SocketAssignments.initialize_socket(socket, initial_round)
     socket = assign(socket, :provider_preference, default_provider_preference())
     socket = assign(socket, :is_mobile_state_visible, false)
+    # Initialize player_mode (will be properly set in handle_params/CreationHandler)
+    socket = assign(socket, :player_mode, :responding)
 
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
@@ -90,9 +93,22 @@ defmodule StartupGameWeb.GameLive.Play do
   @spec handle_event(String.t(), map(), t()) :: {:noreply, t()}
   def handle_event("submit_response", %{"response" => response}, socket) when response != "" do
     case socket.assigns.creation_stage do
-      :name_input -> CreationHandler.handle_name_input(socket, response)
-      :description_input -> CreationHandler.handle_description_input(socket, response)
-      :playing -> PlayHandler.handle_play_response(socket, response)
+      :name_input ->
+        CreationHandler.handle_name_input(socket, response)
+
+      :description_input ->
+        CreationHandler.handle_description_input(socket, response)
+
+      :playing ->
+        # Call GameService directly to process input asynchronously
+        case GameService.process_player_input_async(socket.assigns.game.id, response) do
+          {:ok, _stream_id} ->
+            # Clear response field, set streaming state
+            assign(socket, response: "", streaming: true, streaming_type: :outcome)
+
+          {:error, reason} ->
+            put_flash(socket, :error, "Error processing input: #{reason}")
+        end
     end
   end
 
@@ -132,6 +148,25 @@ defmodule StartupGameWeb.GameLive.Play do
 
     # Update the socket assigns with the updated game
     {:noreply, assign(socket, game: updated_game)}
+  end
+
+  @impl true
+  def handle_event("take_initiative", _, socket) do
+    # Update mode locally and in DB
+    socket = assign(socket, player_mode: :acting)
+    # Clear current scenario visually immediately using full module name
+    socket = update(socket, :game_state, &StartupGame.Engine.clear_current_scenario/1)
+    GameService.update_player_mode(socket.assigns.game.id, "acting")
+    {:noreply, socket}
+  end
+
+  @impl true
+  def handle_event("await_situation", _, socket) do
+    # Update mode locally and in DB, request next scenario
+    socket = assign(socket, player_mode: :responding, streaming: true, streaming_type: :scenario)
+    GameService.update_player_mode(socket.assigns.game.id, "responding")
+    GameService.request_next_scenario_async(socket.assigns.game.id)
+    {:noreply, socket}
   end
 
   # Info handlers delegate to the StreamHandler

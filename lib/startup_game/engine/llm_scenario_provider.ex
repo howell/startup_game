@@ -115,10 +115,12 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
 
     #{pov_description()}
 
+    Your task is to generate an outcome based on the player's input, considering the current game state and whether a specific scenario was presented.
+
     The outcomes you create should:
-    1. Be a logical result of the player's specific decision
-    2. Incorporate elements of humor, absurdity, and surprise
-    3. Have realistic financial impacts (cash changes, burn rate changes)
+    1. Be a logical result of the player's specific input, interpreted either as a response to the current scenario (if provided) or as a proactive action if no scenario was active.
+    2. Incorporate elements of humor, absurdity, and surprise.
+    3. Have realistic financial impacts (cash changes, burn rate changes) based on the action/response.
     4. Sometimes affect company ownership when appropriate
     5. Occasionally lead to major events like acquisition, IPO, or shutdown
     6. Be detailed and explain the consequences of the decision
@@ -126,9 +128,14 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
 
     You will receive information about:
     - The startup's name and description
-    - The current scenario the player faced
-    - The player's response/decision
-    - Current financial state and ownership
+    - The current scenario the player faced (This might be empty or null if the player is taking a proactive action instead of responding to a situation).
+    - The player's input/action/response.
+    - Current financial state and ownership.
+    - Game history (previous rounds).
+
+    **Determine the player's intent:**
+    - If a `current scenario` is provided, interpret the `player's input` primarily as a response to that scenario.
+    - If `current scenario` is empty/null, interpret the `player's input` as a proactive action the founder wants to take based on the overall game state. Generate a logical outcome for that action.
 
     Generate a response in TWO PARTS:
 
@@ -159,7 +166,21 @@ defmodule StartupGame.Engine.LLMScenarioProvider do
 
     #{PromptExamples.format_outcome_examples()}
 
-    If there are no ownership changes, set "ownership_changes" to null.
+    **Example for Proactive Action:**
+
+    *Player Input:* "Let's hire a senior backend engineer."
+    *Narrative:* "Alright, boss! After a grueling interview process involving coding challenges on a Commodore 64 and a 'cultural fit' test judged by my pet hamster, we've hired Brenda 'Bitshifter' Jones. She demands a top salary and a corner office with a window overlooking the dumpster, but her skills are legendary. Our burn rate just went up significantly, but hopefully, our backend performance will skyrocket!"
+    *JSON:*
+    ---JSON DATA---
+    {
+      "cash_change": 0,
+      "burn_rate_change": 15000,
+      "ownership_changes": null,
+      "exit_type": "none",
+      "exit_value": null
+    }
+
+    If there are no ownership changes, set "ownership_changes" to null or an empty array `[]`.
     If there is no exit event, set "exit_type" to "none" and omit "exit_value".
     """
   end

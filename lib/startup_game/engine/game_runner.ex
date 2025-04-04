@@ -30,58 +30,55 @@ defmodule StartupGame.Engine.GameRunner do
     {game_state, situation}
   end
 
+  # make_choice/2 removed as it was just an alias for make_response
+
   @doc """
-  Processes a player's choice and returns the updated game state and next situation.
+  Processes a player's input (response or action) and returns the updated game state and next situation.
   Returns nil for the situation if the game has ended.
-  This function is maintained for backward compatibility.
+  Returns the same game state with an error message if the input couldn't be interpreted.
 
   ## Examples
 
-      iex> GameRunner.make_choice(game_state, "accept")
+      iex> GameRunner.process_input(game_state, "I choose option A")
       {%GameState{...}, %{situation: "You need to hire..."}}
 
-  """
-  @spec make_choice(GameState.t(), String.t()) ::
-          {GameState.t(), %{situation: String.t()} | nil}
-  def make_choice(game_state, choice_id) do
-    # Use make_response internally for consistency
-    make_response(game_state, choice_id)
-  end
-
-  @doc """
-  Processes a player's text response and returns the updated game state and next situation.
-  Returns nil for the situation if the game has ended.
-  Returns the same game state with an error message if the response couldn't be interpreted.
-
-  ## Examples
-
-      iex> GameRunner.make_response(game_state, "I choose option A")
-      {%GameState{...}, %{situation: "You need to hire..."}}
-
-      iex> GameRunner.make_response(game_state, "I want to negotiate better terms")
+      iex> GameRunner.process_input(game_state, "I want to negotiate better terms")
       {%GameState{...}, %{situation: "A venture capital firm..."}}
 
-  """
-  @spec make_response(GameState.t(), String.t()) ::
-          {GameState.t(), %{situation: String.t()} | nil}
-  def make_response(game_state, response_text) do
-    updated_state = Engine.process_response(game_state, response_text)
+      iex> GameRunner.process_input(game_state_without_scenario, "Hire a marketing manager")
+      {%GameState{...}, %{situation: "A new challenge arises..."}}
 
-    # Check if there was an error interpreting the response
+  """
+  @spec process_input(GameState.t(), String.t()) ::
+          {GameState.t(), %{situation: String.t()} | nil}
+  def process_input(game_state, player_input) do
+    # Process the input using the Engine
+    updated_state = Engine.process_player_input(game_state, player_input)
+
+    # Check if there was an error processing the input
     if updated_state.error_message do
-      # Return the same game state and situation, but with the error message
-      situation = Engine.get_current_situation(updated_state)
-      situation = Map.put(situation, :error, updated_state.error_message)
+      # Return the state with the error message and the *original* situation
+      # (or nil if there wasn't one)
+      situation =
+        if game_state.current_scenario_data do
+          Engine.get_current_situation(game_state)
+          |> Map.put(:error, updated_state.error_message)
+        else
+          %{error: updated_state.error_message}
+        end
+
       {updated_state, situation}
     else
-      updated_state = Engine.set_next_scenario(updated_state)
-      # Process normally
-      if updated_state.status == :in_progress && updated_state.current_scenario do
-        situation = Engine.get_current_situation(updated_state)
-        {updated_state, situation}
+      # Input processed successfully, try to set the next scenario
+      final_state = Engine.set_next_scenario(updated_state)
+
+      # Determine the next situation to present
+      if final_state.status == :in_progress && final_state.current_scenario do
+        situation = Engine.get_current_situation(final_state)
+        {final_state, situation}
       else
-        # Game has ended
-        {updated_state, nil}
+        # Game has ended or no next scenario
+        {final_state, nil}
       end
     end
   end
@@ -133,33 +130,29 @@ defmodule StartupGame.Engine.GameRunner do
 
   ## Examples
 
-      iex> GameRunner.run_game("TechNova", "AI-powered project management", ["accept", "experienced", "settle", "counter"])
+      iex> GameRunner.run_game("TechNova", "AI-powered project management", ["accept", "experienced", "settle", "counter"], StaticScenarioProvider)
       %GameState{status: :completed, exit_type: :acquisition, ...}
 
-      iex> GameRunner.run_game("TechNova", "AI-powered project management", ["I accept the offer", "Hire the experienced developer"], provider, true)
+      iex> GameRunner.run_game("TechNova", "AI-powered project management", ["I accept the offer", "Hire the experienced developer"], LLMScenarioProvider)
       %GameState{status: :completed, exit_type: :acquisition, ...}
 
   """
-  @spec run_game(String.t(), String.t(), [String.t()], ScenarioProvider.behaviour(), boolean()) ::
+  @spec run_game(String.t(), String.t(), [String.t()], ScenarioProvider.behaviour()) ::
           GameState.t()
-  def run_game(name, description, inputs, provider, use_text_responses \\ false) do
-    {game_state, _} = start_game(name, description, provider)
+  def run_game(name, description, inputs, provider) do
+    {game_state, _initial_situation} = start_game(name, description, provider)
 
-    Enum.reduce_while(inputs, game_state, fn input, state ->
-      # Process the input based on the mode (text response or choice ID)
-      {updated_state, situation} = process_input(state, input, use_text_responses)
+    Enum.reduce_while(inputs, game_state, fn input, current_state ->
+      # Process the input using the main process_input function
+      {updated_state, situation_or_nil} = process_input(current_state, input)
 
       # Determine whether to continue or halt based on the situation
-      determine_continuation(updated_state, situation)
+      determine_continuation(updated_state, situation_or_nil)
     end)
   end
 
-  # Helper to process an input based on the mode
-  defp process_input(state, input, true), do: make_response(state, input)
-  defp process_input(state, input, false), do: make_choice(state, input)
-
   # Helper to determine whether to continue or halt based on the situation
-  # Game has ended
+  # Game has ended or no next situation
   defp determine_continuation(state, nil), do: {:halt, state}
   # Check for error key in the situation map using Map.get instead of pattern matching
   defp determine_continuation(state, situation) do

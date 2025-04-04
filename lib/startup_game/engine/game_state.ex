@@ -17,7 +17,7 @@ defmodule StartupGame.Engine.GameState do
   @type round_entry :: %{
           scenario_id: String.t(),
           situation: String.t(),
-          response: String.t() | nil,
+          player_input: String.t() | nil,
           outcome: String.t() | nil,
           cash_change: Decimal.t() | nil,
           burn_rate_change: Decimal.t() | nil,

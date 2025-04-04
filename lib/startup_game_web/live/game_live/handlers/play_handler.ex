@@ -8,53 +8,32 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
 
   alias StartupGame.GameService
   alias StartupGame.Games
-  alias StartupGame.StreamingService
+  # alias StartupGame.StreamingService # Removed - not used directly here anymore
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
 
   @type socket :: Phoenix.LiveView.Socket.t()
 
-  @doc """
-  Handles player responses during gameplay.
-  """
-  @spec handle_play_response(socket(), String.t()) :: {:noreply, socket()}
-  def handle_play_response(socket, response) when response != "" do
-    game_id = socket.assigns.game_id
-
-    # Create a temporary round entry for the response
-    updated_round = Games.list_game_rounds(game_id) |> List.last() |> Map.put(:response, response)
-
-    # Start the async response processing
-    case GameService.process_response_async(game_id, response) do
-      {:ok, stream_id} ->
-        # Subscribe to the streaming topic
-        StreamingService.subscribe(game_id)
-
-        socket =
-          socket
-          |> SocketAssignments.assign_streaming(stream_id, :outcome)
-          |> assign(:response, "")
-          |> assign(:rounds, [updated_round])
-
-        {:noreply, socket}
-
-      {:error, reason} ->
-        ErrorHandler.handle_game_error(socket, :response_processing, reason)
-    end
-  end
+  # handle_play_response/2 removed as this logic is now handled directly in GameLive.Play
 
   @doc """
   Handles provider preference changes during gameplay.
   """
   @spec handle_provider_change(socket(), String.t()) :: {:noreply, socket()}
-  def handle_provider_change(socket, provider) do
+  def handle_provider_change(socket, provider_string) do
     game = socket.assigns.game
+    provider_atom = String.to_existing_atom(provider_string)
 
-    case StartupGame.Games.update_provider_preference(game, provider) do
+    # Use update_game similar to toggle_visibility
+    case StartupGame.Games.update_game(game, %{provider_preference: provider_string}) do
       {:ok, updated_game} ->
+        # Also update the in-memory game_state's provider
+        updated_game_state = %{socket.assigns.game_state | scenario_provider: provider_atom}
+
         {:noreply,
          socket
          |> assign(:game, updated_game)
-         |> Phoenix.LiveView.put_flash(:info, "Scenario provider updated to #{provider}")}
+         |> assign(:game_state, updated_game_state) # Update game_state as well
+          |> Phoenix.LiveView.put_flash(:info, "Scenario provider updated to #{provider_string}")}
 
       {:error, reason} ->
         ErrorHandler.handle_game_error(socket, :provider_change, reason)
@@ -83,46 +62,28 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
   end
 
   @doc """
-  Finalizes a streamed outcome and potentially starts the next round.
+  Finalizes a streamed outcome. Does NOT start the next round.
   """
   @spec finalize_outcome(socket(), String.t(), map()) :: {:noreply, socket()}
   def finalize_outcome(socket, game_id, outcome) do
-    # We received an outcome - finalize it first
-    {:ok, %{game: updated_game, game_state: updated_state}} =
-      GameService.finalize_streamed_outcome(game_id, outcome)
+    # Finalize the outcome in the GameService
+    case GameService.finalize_streamed_outcome(game_id, outcome) do
+      {:ok, %{game: updated_game, game_state: updated_state}} ->
+        # Update the socket with the finalized outcome and game state
+        socket =
+          socket
+          |> SocketAssignments.assign_game_data(
+            updated_game,
+            updated_state,
+            Games.list_game_rounds(game_id),
+            Games.list_game_ownerships(game_id)
+          )
+          |> SocketAssignments.reset_streaming()
 
-    # Update the socket with the finalized outcome
-    socket =
-      socket
-      |> SocketAssignments.assign_game_data(
-        updated_game,
-        updated_state,
-        Games.list_game_rounds(game_id),
-        Games.list_game_ownerships(game_id)
-      )
-      |> SocketAssignments.reset_streaming()
+        {:noreply, socket}
 
-    # Only start the next round if the game is still in progress
-    if updated_state.status == :in_progress do
-      # Start streaming the next scenario
-      case GameService.start_next_round_async(updated_game, updated_state) do
-        {:ok, new_stream_id} ->
-          # Ensure we're subscribed to the streaming topic
-          StreamingService.subscribe(game_id)
-
-          # Update socket for the new streaming scenario
-          socket =
-            socket
-            |> SocketAssignments.assign_streaming(new_stream_id, :scenario)
-
-          {:noreply, socket}
-
-        {:error, reason} ->
-          ErrorHandler.handle_game_error(socket, :general, "Error starting next round: #{inspect(reason)}")
-      end
-    else
-      # Game is over, no need to start next round
-      {:noreply, socket}
+      {:error, reason} ->
+        ErrorHandler.handle_game_error(socket, :general, "Error finalizing outcome: #{inspect(reason)}")
     end
   end
 end

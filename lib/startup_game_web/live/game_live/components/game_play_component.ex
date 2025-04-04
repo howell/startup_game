@@ -57,6 +57,8 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           streaming_type={@streaming_type}
           partial_content={@partial_content}
           is_view_only={@is_view_only}
+          player_mode={@player_mode}
+          game_state={@game_state}
         />
       </:content_area>
     </GameLayoutComponent.game_layout>

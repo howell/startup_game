@@ -76,66 +76,78 @@ defmodule StartupGame.Engine do
   end
 
   @doc """
-  Processes a player's response and advances the game state.
+  Clears the current scenario from the game state.
+  This is used when the player decides to take initiative instead of responding.
+  """
+  @spec clear_current_scenario(GameState.t()) :: GameState.t()
+  def clear_current_scenario(game_state) do
+    %{game_state | current_scenario: nil, current_scenario_data: nil}
+  end
+
+  @doc """
+  Processes a player's input (either a response to a scenario or a proactive action)
+  and advances the game state.
 
   ## Examples
 
-      iex> Engine.process_response(game_state, "I accept the offer")
+      iex> Engine.process_player_input(game_state, "I accept the offer")
       %GameState{...}
 
-      iex> Engine.process_response(game_state, "I'd like to negotiate better terms")
+      iex> Engine.process_player_input(game_state, "I'd like to negotiate better terms")
+      %GameState{...}
+
+      iex> Engine.process_player_input(game_state_without_scenario, "Hire a marketing manager")
       %GameState{...}
 
   """
-  @spec process_response(GameState.t(), String.t()) :: GameState.t()
-  def process_response(game_state, response_text) do
+  @spec process_player_input(GameState.t(), String.t()) :: GameState.t()
+  def process_player_input(game_state, player_input) do
     provider = game_state.scenario_provider
-    scenario = game_state.current_scenario_data
+    scenario = game_state.current_scenario_data # May be nil
 
     # Clear any previous error message
     game_state = %{game_state | error_message: nil}
 
-    if scenario do
-      # Generate outcome based on the response
-      case provider.generate_outcome(game_state, scenario, response_text) do
-        {:ok, outcome} ->
-          # Process the outcome
-          process_outcome(game_state, scenario, outcome, response_text)
+    # Generate outcome based on the input and current context (scenario or lack thereof)
+    case provider.generate_outcome(game_state, scenario, player_input) do
+      {:ok, outcome} ->
+        # Apply the outcome effects
+        apply_outcome_effects(game_state, outcome, player_input)
 
-        {:error, reason} ->
-          # Add an error to the game state
-          %{game_state | error_message: reason}
-      end
-    else
-      %{game_state | error_message: "No scenario available"}
+      {:error, reason} ->
+        # Add an error to the game state
+        %{game_state | error_message: reason}
     end
   end
 
-  # Helper function to process an outcome
   @doc """
-  Applies an outcome to the game state without requiring a scenario or response text.
-  This is used for streaming responses where the outcome is generated asynchronously.
+  Applies an outcome to the game state.
+  This is used for finalizing streamed responses where the outcome is generated asynchronously.
 
   ## Examples
 
-      iex> Engine.apply_outcome(game_state, outcome)
+      iex> Engine.apply_outcome(game_state, outcome, player_input)
       %GameState{...}
   """
   @spec apply_outcome(GameState.t(), Scenario.outcome(), String.t()) :: GameState.t()
-  def apply_outcome(game_state, outcome, response_text) do
-    scenario = game_state.current_scenario_data
-
-    process_outcome(game_state, scenario, outcome, response_text)
+  def apply_outcome(game_state, outcome, player_input) do
+    apply_outcome_effects(game_state, outcome, player_input)
   end
 
-  @spec process_outcome(GameState.t(), Scenario.t(), Scenario.outcome(), String.t()) ::
-          GameState.t()
-  defp process_outcome(game_state, scenario, outcome, response_text) do
+  # --- Private Helper Functions ---
+
+  # Applies the effects of an outcome to the game state
+  @spec apply_outcome_effects(GameState.t(), Scenario.outcome(), String.t()) :: GameState.t()
+  defp apply_outcome_effects(game_state, outcome, player_input) do
+    # Get current scenario info for the round record, if available
+    scenario_id = if game_state.current_scenario_data, do: game_state.current_scenario_data.id
+    situation = if game_state.current_scenario_data, do: game_state.current_scenario_data.situation
+
     # Create the round entry
     round = %{
-      scenario_id: scenario.id,
-      situation: scenario.situation,
-      response: response_text,
+      scenario_id: scenario_id,
+      situation: situation, # Will be nil if it was a proactive action
+      player_input: player_input,
       outcome: outcome.text,
       cash_change: outcome.cash_change,
       burn_rate_change: outcome.burn_rate_change,
@@ -149,8 +161,6 @@ defmodule StartupGame.Engine do
     |> check_game_end(outcome)
     |> Map.put(:rounds, game_state.rounds ++ [round])
   end
-
-  # Helper functions
 
   @spec update_finances(GameState.t(), map()) :: GameState.t()
   defp update_finances(game_state, outcome) do

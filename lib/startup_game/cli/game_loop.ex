@@ -38,8 +38,8 @@ defmodule StartupGame.CLI.GameLoop do
     # Get user response
     response = Utils.get_response(game_state.current_scenario_data)
 
-    # Process the response
-    {updated_state, next_situation} = GameRunner.make_response(game_state, response)
+    # Process the response using the updated GameRunner function
+    {updated_state, next_situation} = GameRunner.process_input(game_state, response)
 
     # Display the outcome of the last round
     Utils.display_outcome(updated_state)

@@ -25,6 +25,7 @@ defmodule StartupGame.Games.Game do
           exit_type: exit_type(),
           founder_return: Decimal.t(),
           provider_preference: String.t() | nil,
+          current_player_mode: player_mode(),
           user_id: Ecto.UUID.t(),
           user: StartupGame.Accounts.User.t() | Ecto.Association.NotLoaded.t(),
           rounds: [StartupGame.Games.Round.t()] | Ecto.Association.NotLoaded.t(),
@@ -37,6 +38,7 @@ defmodule StartupGame.Games.Game do
 
   @type status :: :in_progress | :completed | :failed
   @type exit_type :: :none | :acquisition | :ipo | :shutdown
+  @type player_mode() :: :responding | :acting
 
   schema "games" do
     field :name, :string
@@ -51,6 +53,7 @@ defmodule StartupGame.Games.Game do
     field :exit_type, Ecto.Enum, values: [:none, :acquisition, :ipo, :shutdown], default: :none
     field :founder_return, :decimal, default: 0
     field :provider_preference, :string
+    field :current_player_mode, Ecto.Enum, values: [:responding, :acting], default: :responding
 
     belongs_to :user, StartupGame.Accounts.User
     has_many :rounds, StartupGame.Games.Round, on_delete: :delete_all
@@ -76,7 +79,8 @@ defmodule StartupGame.Games.Game do
       :exit_type,
       :founder_return,
       :user_id,
-      :provider_preference
+      :provider_preference,
+      :current_player_mode
     ])
     |> validate_required([:name, :description, :cash_on_hand, :burn_rate, :user_id])
   end

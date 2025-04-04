@@ -9,8 +9,10 @@ defmodule StartupGame.GameService do
   alias StartupGame.Engine.Scenario
   alias StartupGame.Engine
   alias StartupGame.Games
+  alias StartupGame.Games.Game
   alias StartupGame.Accounts.User
   alias StartupGame.Engine.GameState
+  require Logger
 
   @type game_result :: {:ok, %{game: Games.Game.t(), game_state: GameState.t()}} | {:error, any()}
 
@@ -24,13 +26,15 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec create_game(String.t(), String.t(), User.t(), module() | nil, map()) :: game_result()
+  @spec create_game(String.t(), String.t(), User.t(), module() | nil, map(), Game.player_mode()) ::
+          game_result()
   def create_game(
         name,
         description,
         %User{} = user,
         provider \\ StartupGame.Engine.LLMScenarioProvider,
-        attrs \\ %{}
+        attrs \\ %{},
+        initial_player_mode \\ :responding
       ) do
     # Create in-memory game state without initial scenario
     game_state =
@@ -61,11 +65,14 @@ defmodule StartupGame.GameService do
           cash_on_hand: game_state.cash_on_hand,
           burn_rate: game_state.burn_rate,
           provider_preference: provider_preference,
+          # Add initial mode
+          current_player_mode: initial_player_mode,
           is_public: attrs[:is_public] || user.default_game_visibility == :public,
           is_leaderboard_eligible:
             attrs[:is_leaderboard_eligible] || user.default_game_visibility == :public
         },
-        Map.take(attrs, [:is_public, :is_leaderboard_eligible])
+        # Allow override
+        Map.take(attrs, [:is_public, :is_leaderboard_eligible, :current_player_mode])
       )
 
     case Games.create_new_game(game_attrs, user) do
@@ -90,7 +97,16 @@ defmodule StartupGame.GameService do
   @spec start_game(Ecto.UUID.t()) :: game_result()
   def start_game(game_id) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      start_next_round(game, game_state)
+      # Decide whether to start the first round based on initial mode
+      if game.current_player_mode == :responding do
+        request_next_scenario_async(game_id)
+        # Note: The caller (e.g., LiveView) will need to handle the async result
+        # Return the loaded state immediately
+        {:ok, %{game: game, game_state: game_state}}
+      else
+        # Player starts in acting mode, no initial scenario needed
+        {:ok, %{game: game, game_state: game_state}}
+      end
     end
   end
 
@@ -141,22 +157,22 @@ defmodule StartupGame.GameService do
   end
 
   @doc """
-  Processes a player response, updates the game state, and persists changes to the database.
+  Processes a player input (response or action), updates the game state, and persists changes.
+  Does NOT automatically trigger the next round.
 
   ## Examples
 
-      iex> GameService.process_response(game_id, "I'll invest in marketing")
+      iex> GameService.process_player_input(game_id, "I'll invest in marketing")
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec process_response(Ecto.UUID.t(), String.t()) :: game_result()
-  def process_response(game_id, response_text) do
+  @spec process_player_input(Ecto.UUID.t(), String.t()) :: game_result()
+  def process_player_input(game_id, player_input) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id),
          %Engine.GameState{error_message: nil} = updated_game_state <-
-           Engine.process_response(game_state, response_text),
-         {:ok, %{game: updated_game, game_state: final_state}} <-
-           save_round_result(game, updated_game_state) do
-      handle_progress(updated_game, final_state)
+           Engine.process_player_input(game_state, player_input) do
+      # Save the result, but don't trigger the next round here
+      save_round_result(game, updated_game_state)
     else
       %Engine.GameState{error_message: msg} -> {:error, msg}
       error -> error
@@ -164,93 +180,89 @@ defmodule StartupGame.GameService do
   end
 
   @doc """
-  Asynchronously processes a player response by streaming the LLM results.
+  Asynchronously processes a player input by streaming the LLM results for the outcome.
   Returns immediately with a stream_id that can be used to track progress.
 
   The LiveView can subscribe to "llm_stream:{game_id}" to receive updates.
   """
-  @spec process_response_async(Ecto.UUID.t(), String.t()) :: {:ok, String.t()} | {:error, any()}
-  def process_response_async(game_id, response_text) do
+  @spec process_player_input_async(Ecto.UUID.t(), String.t()) ::
+          {:ok, String.t()} | {:error, any()}
+  def process_player_input_async(game_id, player_input) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      # Update the last round record with the player's input *before* starting async
       last_round = List.last(game.rounds)
-      Games.update_round(last_round, %{response: response_text})
+      Games.update_round(last_round, %{player_input: player_input})
+
       provider = determine_provider(game)
 
+      # Call the provider, passing the current scenario (which might be nil)
       provider.generate_outcome_async(
         game_state,
         game_id,
         game_state.current_scenario_data,
-        response_text
+        player_input
       )
     end
   end
 
   @doc """
-  Asynchronously starts the next round by streaming the LLM results.
+  Asynchronously requests the next scenario by streaming the LLM results.
   Returns immediately with a stream_id that can be used to track progress.
 
   The LiveView can subscribe to "llm_stream:{game_id}" to receive updates.
   """
-  @spec start_next_round_async(Games.Game.t(), GameState.t()) ::
-          {:ok, String.t()} | {:error, any()}
-  def start_next_round_async(game, game_state) do
-    provider = determine_provider(game)
-    provider.get_next_scenario_async(game_state, game.id, game_state.current_scenario)
+  @spec request_next_scenario_async(Ecto.UUID.t()) :: {:ok, String.t()} | {:error, any()}
+  def request_next_scenario_async(game_id) do
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
+      provider = determine_provider(game)
+      provider.get_next_scenario_async(game_state, game.id, game_state.current_scenario)
+    end
   end
 
   @doc """
-  Finalizes a streamed response by saving it to the database.
-  This is called once the complete response is received.
-
-  This function does NOT automatically start the next round. Instead, it just
-  finalizes the outcome and returns. The caller is responsible for starting the
-  next round if needed.
+  Finalizes a streamed outcome by saving it to the database.
+  This is called once the complete outcome is received from the stream.
+  Does NOT automatically start the next round.
   """
   @spec finalize_streamed_outcome(Ecto.UUID.t(), Scenario.outcome()) :: game_result()
   def finalize_streamed_outcome(game_id, outcome) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      # Update the game state with the outcome
-      response = List.last(game.rounds).response
-      updated_game_state = Engine.apply_outcome(game_state, outcome, response)
+      # Retrieve the player input that triggered this outcome from the last round record
+      player_input = List.last(game.rounds).player_input
 
-      # Save the results to the database without starting the next round
+      # Apply the outcome to the in-memory state
+      updated_game_state = Engine.apply_outcome(game_state, outcome, player_input)
+
+      # Save the results to the database
       save_round_result(game, updated_game_state)
     end
   end
 
-  @doc """
-  Starts the next round after an outcome has been finalized.
-  This function should be called after finalize_streamed_outcome
-  to progress the game to the next round.
-  """
-  @spec start_next_round_after_outcome(Ecto.UUID.t()) :: game_result()
-  def start_next_round_after_outcome(game_id) do
-    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      handle_progress(game, game_state)
-    end
-  end
+  # start_next_round_after_outcome/1 removed - logic moved to LiveView StreamHandler
 
   @doc """
-  Finalizes a streamed scenario by saving it to the database.
-  This is called once the complete scenario is received.
+  Finalizes a streamed scenario by creating a new round in the database.
+  This is called once the complete scenario is received from the stream.
   """
-  @spec finalize_streamed_scenario(Ecto.UUID.t(), map()) :: game_result()
+  @spec finalize_streamed_scenario(Ecto.UUID.t(), Scenario.t()) :: game_result()
   def finalize_streamed_scenario(game_id, scenario) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      # Update the game state with the new scenario
+      # Update the in-memory game state with the new scenario
       updated_game_state = %{
         game_state
         | current_scenario: scenario.id,
           current_scenario_data: scenario
       }
 
-      # Create a new round in the database
+      # Create a new round record in the database for this scenario
       {:ok, round} =
         Games.create_round(%{
           situation: scenario.situation,
           game_id: game.id
+          # player_input and outcome will be filled later
         })
 
+      # Return the updated game struct (with the new round) and the updated game state
       {:ok,
        %{game: %Games.Game{game | rounds: game.rounds ++ [round]}, game_state: updated_game_state}}
     end
@@ -258,11 +270,11 @@ defmodule StartupGame.GameService do
 
   @doc """
   Asynchronously recovers a missing outcome by restarting the streaming process.
-  This is used when a user disconnects during outcome generation and then reconnects.
+  Requires the original player input that needs reprocessing.
   """
   @spec recover_missing_outcome_async(Ecto.UUID.t(), String.t()) ::
           {:ok, String.t()} | {:error, any()}
-  def recover_missing_outcome_async(game_id, response_text) do
+  def recover_missing_outcome_async(game_id, player_input) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       provider = determine_provider(game)
 
@@ -270,58 +282,39 @@ defmodule StartupGame.GameService do
       provider.generate_outcome_async(
         game_state,
         game_id,
+        # Pass current scenario context
         game_state.current_scenario_data,
-        response_text
+        player_input
       )
     end
   end
 
+  # recover_next_scenario_async/1 removed - recovery handled by LiveView calling request_next_scenario_async
+
+  # handle_progress/2 removed - logic moved to LiveView StreamHandler
+  # start_next_round/2 removed - logic moved to LiveView StreamHandler and request_next_scenario_async
+
   @doc """
-  Asynchronously recovers a missing next scenario by restarting the streaming process.
-  This is used when a user disconnects after outcome but before next scenario generation.
+  Updates the player mode for a given game.
   """
-  @spec recover_next_scenario_async(Ecto.UUID.t()) :: {:ok, String.t()} | {:error, any()}
-  def recover_next_scenario_async(game_id) do
-    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      # Use the existing async function for consistency
-      start_next_round_async(game, game_state)
+  @spec update_player_mode(Ecto.UUID.t(), String.t() | atom()) ::
+          {:ok, Games.Game.t()} | {:error, any()}
+  def update_player_mode(game_id, new_mode) do
+    # Ensure mode is an atom for DB update if it's a string
+    mode_atom = if is_binary(new_mode), do: String.to_existing_atom(new_mode), else: new_mode
+
+    with %Games.Game{} = game <- Games.get_game!(game_id) do
+      Games.update_game(game, %{current_player_mode: mode_atom})
     end
   end
 
-  defp handle_progress(game, game_state) do
-    if game_state.status == :in_progress do
-      start_next_round(game, game_state)
-    else
-      {:ok, %{game: game, game_state: game_state}}
-    end
-  end
-
-  @spec start_next_round(Games.Game.t(), GameState.t()) :: game_result()
-  def start_next_round(game, game_state) do
-    game_state = Engine.set_next_scenario(game_state)
-
-    scenario = game_state.current_scenario_data
-
-    if scenario do
-      {:ok, round} =
-        Games.create_round(%{
-          situation: scenario.situation,
-          game_id: game.id
-        })
-
-      {:ok, %{game: %Games.Game{game | rounds: game.rounds ++ [round]}, game_state: game_state}}
-    else
-      {:error, "Failed to generate next scenario"}
-    end
-  end
-
-  # Private functions
+  # --- Private functions ---
 
   # Builds in-memory game state from database records
   @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()]) ::
           GameState.t()
   defp build_game_state_from_db(game, ownerships) do
-    {current_scenario, current_scenario_data, previous_rounds} =
+    {current_scenario_id, current_scenario_data, previous_rounds} =
       determine_current_and_previous_rounds(game)
 
     %GameState{
@@ -336,10 +329,12 @@ defmodule StartupGame.GameService do
         Enum.map(ownerships, fn o ->
           %{entity_name: o.entity_name, percentage: o.percentage}
         end),
+      # Note: This doesn't include the *very last* round if it's awaiting input
       rounds: previous_rounds,
       scenario_provider: determine_provider(game),
-      current_scenario: current_scenario,
+      current_scenario: current_scenario_id,
       current_scenario_data: current_scenario_data
+      # error_message is transient, not loaded from DB
     }
   end
 
@@ -350,40 +345,59 @@ defmodule StartupGame.GameService do
   @spec determine_current_and_previous_rounds(Games.Game.t()) ::
           {String.t() | nil, Engine.Scenario.t() | nil, [GameState.round_entry()]}
   def determine_current_and_previous_rounds(game) do
-    game_rounds = build_rounds_from_db(game.rounds)
+    # Sort rounds by insertion order just in case
+    db_rounds = Enum.sort_by(game.rounds, & &1.inserted_at)
+    game_state_rounds = build_rounds_from_db(db_rounds)
 
-    case {game.status, game_rounds} do
+    case {game.status, db_rounds} do
+      # No rounds yet
       {_, []} ->
-        {nil, nil, game_rounds}
+        {nil, nil, []}
 
-      {:in_progress, _} ->
-        last_round = List.last(game_rounds)
+      # Game in progress, check the last round
+      {:in_progress, [_ | _] = all_db_rounds} ->
+        last_db_round = List.last(all_db_rounds)
 
-        {last_round.scenario_id,
-         %Engine.Scenario{
-           id: last_round.scenario_id,
-           situation: last_round.situation,
-           type: :other
-         }, List.delete_at(game_rounds, -1)}
+        # If the last round has no outcome yet, it represents the current scenario
+        if is_nil(last_db_round.outcome) do
+          current_scenario_id = "round_#{last_db_round.id}"
 
-      _other ->
-        {nil, nil, game_rounds}
+          current_scenario_data = %Engine.Scenario{
+            id: current_scenario_id,
+            situation: last_db_round.situation,
+            # Type might need to be inferred or stored if important
+            type: :other
+          }
+
+          # Previous rounds are all but the last one
+          # Use explicit step
+          previous_rounds = Enum.slice(game_state_rounds, 0..-2//-1)
+          {current_scenario_id, current_scenario_data, previous_rounds}
+        else
+          # Last round is complete, no current scenario active (player should be in 'acting' mode or game ended)
+          {nil, nil, game_state_rounds}
+        end
+
+      # Game finished, all rounds are previous rounds
+      # Prefix unused variable
+      {_, _all_db_rounds} ->
+        {nil, nil, game_state_rounds}
     end
   end
 
   # Converts database rounds to in-memory rounds format
   @spec build_rounds_from_db([Games.Round.t()]) :: [GameState.round_entry()]
-  defp build_rounds_from_db(rounds) do
-    Enum.map(rounds, fn round ->
+  defp build_rounds_from_db(db_rounds) do
+    Enum.map(db_rounds, fn round ->
       %{
         # Generate a scenario ID based on round ID
         scenario_id: "round_#{round.id}",
         situation: round.situation,
-        response: round.response,
+        # Use renamed field
+        player_input: round.player_input,
         outcome: round.outcome,
         cash_change: round.cash_change,
         burn_rate_change: round.burn_rate_change,
-        # Would need to load ownership_changes
         ownership_changes: nil
       }
     end)
@@ -393,13 +407,23 @@ defmodule StartupGame.GameService do
   @spec determine_provider(Games.Game.t()) :: module()
   defp determine_provider(game) do
     case game.provider_preference do
+      # Default to LLMScenarioProvider if no preference is set
       nil ->
-        # Default to LLMScenarioProvider if no preference is set
         StartupGame.Engine.LLMScenarioProvider
 
-      provider when is_binary(provider) ->
-        # Convert the string to a module atom
-        String.to_existing_atom(provider)
+      # Convert the string to a module atom
+      provider_string when is_binary(provider_string) ->
+        try do
+          String.to_existing_atom(provider_string)
+        rescue
+          ArgumentError ->
+            # Fallback if atom conversion fails (e.g., invalid preference string)
+            Logger.warning(
+              "Invalid provider preference '#{provider_string}', falling back to default."
+            )
+
+            StartupGame.Engine.LLMScenarioProvider
+        end
     end
   end
 
@@ -439,29 +463,48 @@ defmodule StartupGame.GameService do
   defp save_last_round(multi, _game, %GameState{rounds: []}), do: multi
 
   defp save_last_round(multi, game, game_state) do
-    round_record = List.last(game.rounds)
-    last_round = List.last(game_state.rounds)
+    # Find the corresponding DB round record for the last round in game_state
+    last_gs_round = List.last(game_state.rounds)
+    # Assuming scenario_id format "round_DB_ID"
+    db_round_id = String.trim_leading(last_gs_round.scenario_id, "round_")
 
-    Ecto.Multi.run(multi, :round, fn _repo, _changes ->
-      Games.update_round(
-        round_record,
-        %{
-          response: last_round.response,
-          outcome: last_round.outcome,
-          cash_change: last_round.cash_change,
-          burn_rate_change: last_round.burn_rate_change,
-          game_id: game.id
-        }
+    round_record = Enum.find(game.rounds, fn r -> r.id == db_round_id end)
+
+    # If we found the matching DB round (should always happen if state is consistent)
+    if round_record do
+      Ecto.Multi.run(multi, :round, fn _repo, _changes ->
+        Games.update_round(
+          round_record,
+          %{
+            # Update player_input (might have been set earlier in async flow)
+            player_input: last_gs_round.player_input,
+            # Set the outcome details
+            outcome: last_gs_round.outcome,
+            cash_change: last_gs_round.cash_change,
+            burn_rate_change: last_gs_round.burn_rate_change
+            # game_id is already set
+          }
+        )
+      end)
+      |> Ecto.Multi.run(:ownerships, fn _repo, %{round: updated_round_record} ->
+        # Pass the updated round record to process_ownership_changes
+        process_ownership_changes(
+          last_gs_round.ownership_changes,
+          game,
+          game_state,
+          # Use the result from the previous multi step
+          updated_round_record
+        )
+      end)
+    else
+      # Log an error or handle inconsistency if the round wasn't found
+      Logger.error(
+        "Could not find matching DB round for game state round: #{inspect(last_gs_round)}"
       )
-    end)
-    |> Ecto.Multi.run(:ownerships, fn _repo, %{round: round} ->
-      process_ownership_changes(
-        last_round.ownership_changes,
-        game,
-        game_state,
-        round
-      )
-    end)
+
+      # Add an error step to the multi to halt the transaction
+      Ecto.Multi.error(multi, :round_mismatch, "Could not find DB round to update")
+    end
   end
 
   defp process_ownership_changes(nil, _game, _game_state, _round), do: {:ok, nil}
@@ -485,9 +528,13 @@ defmodule StartupGame.GameService do
         status: game_state.status,
         exit_type: game_state.exit_type,
         exit_value: game_state.exit_value
+        # Persist current player mode from game state if needed, though it's often updated separately
+        # current_player_mode: game_state.current_player_mode # Assuming GameState holds this, which it doesn't currently
       })
       |> case do
+        # Pass the round through
         {:ok, updated_game} -> {:ok, {updated_game, round}}
+        # Propagate error
         error -> error
       end
     end)

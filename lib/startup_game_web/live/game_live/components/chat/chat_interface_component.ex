@@ -1,6 +1,6 @@
 defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
   @moduledoc """
-  Component for rendering the chat interface with header, messages, and response form.
+   Component for rendering the chat interface with header, messages, and response form.
   """
   use StartupGameWeb, :html
 
@@ -18,6 +18,8 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
   attr :streaming_type, :atom, default: nil
   attr :partial_content, :string, default: ""
   attr :is_view_only, :boolean, default: false
+  attr :player_mode, :atom, required: true # Added
+  attr :game_state, :map, required: true # Added
 
   def chat_interface(assigns) do
     ~H"""
@@ -29,6 +31,8 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           streaming={@streaming}
           streaming_type={@streaming_type}
           partial_content={@partial_content}
+          player_mode={@player_mode}
+          game_state={@game_state}
         />
       </div>
 
@@ -48,11 +52,36 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
             </p>
           </div>
         <% @game.status == :in_progress -> %>
-          <!-- Response form at bottom -->
+          <!-- Response form and mode buttons at bottom -->
           <div class="mt-4 p-4 border-t">
-            <div class="mx-auto w-full">
+            <div class="mx-auto w-full space-y-3">
+              <!-- Mode Switching Buttons -->
+              <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
+                <button
+                  :if={@player_mode == :responding and @game_state.current_scenario_data}
+                  phx-click="take_initiative"
+                  class="silly-button-secondary px-3 py-1"
+                  disabled={@streaming}
+                >
+                  Take Initiative Instead
+                </button>
+                <button
+                  :if={@player_mode == :acting}
+                  phx-click="await_situation"
+                  class="silly-button-secondary px-3 py-1"
+                  disabled={@streaming}
+                >
+                  Await Next Situation
+                </button>
+              </div>
+
+              <!-- Response Input Form -->
               <ResponseForm.response_form
-                placeholder="How do you want to respond?"
+                placeholder={
+                  if @player_mode == :responding and @game_state.current_scenario_data,
+                    do: "Respond to the situation above...",
+                    else: "What action will you take?"
+                }
                 value={@response}
                 disabled={@streaming}
               />

@@ -53,14 +53,22 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     user = socket.assigns.current_user
     name = socket.assigns.temp_name
     provider = socket.assigns.provider_preference
+    # Get initial mode from assigns, default if not set yet (UI needs update later)
+    initial_mode = socket.assigns[:initial_player_mode] || :responding
 
     case GameService.create_game(
            name,
-           response,
+           response, # This is the description
            user,
-           provider
+           provider,
+           %{}, # Empty attrs for now
+           initial_mode
          ) do
       {:ok, %{game: game, game_state: game_state}} ->
+        # Game created, now start it (which might trigger async scenario)
+        GameService.start_game(game.id)
+
+        # Assign game data and set player mode based on the created game's mode
         socket =
           socket
           |> SocketAssignments.assign_game_data(
@@ -104,6 +112,8 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
           |> assign(:game_id, id)
           |> assign(:response, "")
           |> assign(:creation_stage, :playing)
+          # Initialize player_mode from the loaded game
+          |> assign(:player_mode, game.current_player_mode)
 
         # Recovery check for game in progress
         socket =
@@ -162,15 +172,15 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     last_round = List.last(game.rounds)
 
     cond do
-      # Case 1: Last round has a response but no outcome
+      # Case 1: Last round has player_input but no outcome
       needs_outcome_recovery?(last_round) ->
         recover_missing_outcome(socket, game_id, last_round)
 
-      # Case 2: All rounds complete but game is still in progress
-      needs_scenario_recovery?(game.rounds) ->
+      # Case 2: Last round has outcome, game is in progress, and mode is :responding
+      needs_scenario_recovery?(game, last_round) ->
         recover_next_scenario(socket, game_id)
 
-      # Case 3: Game state is consistent, no recovery needed
+      # Case 3: Game state is consistent (or player is in :acting mode), no recovery needed
       true ->
         socket
     end
@@ -178,26 +188,31 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
 
   @spec needs_outcome_recovery?(Round.t() | nil) :: boolean()
   defp needs_outcome_recovery?(nil), do: false
-  defp needs_outcome_recovery?(round), do: round.response && !round.outcome
+  # Use player_input field
+  defp needs_outcome_recovery?(round), do: round.player_input && !round.outcome
 
-  @spec needs_scenario_recovery?([Round.t()]) :: boolean()
-  defp needs_scenario_recovery?(rounds), do: Enum.all?(rounds, & &1.outcome)
+  @spec needs_scenario_recovery?(StartupGame.Games.Game.t(), Round.t() | nil) :: boolean()
+  defp needs_scenario_recovery?(_game, nil), do: false # No rounds yet
+  defp needs_scenario_recovery?(game, last_round) do
+    # Needs recovery if last round is complete, game is in progress, and mode is responding
+    last_round.outcome && game.status == :in_progress && game.current_player_mode == :responding
+  end
 
   @spec recover_missing_outcome(socket(), String.t(), Round.t()) :: socket()
   defp recover_missing_outcome(socket, game_id, round) do
     # Subscribe to streaming topic for this game
     StreamingService.subscribe(game_id)
 
-    # Start async recovery for missing outcome
-    case GameService.recover_missing_outcome_async(game_id, round.response) do
+    # Start async recovery for missing outcome using player_input
+    case GameService.recover_missing_outcome_async(game_id, round.player_input) do
       {:ok, stream_id} ->
         socket
-        |> SocketAssignments.assign_streaming(stream_id, :outcome)
-        |> Phoenix.LiveView.put_flash(:info, "Recovering your previous session...")
+        |> SocketAssignments.assign_streaming(stream_id, :outcome) # Set streaming type
+        |> Phoenix.LiveView.put_flash(:info, "Recovering previous outcome...")
 
       {:error, reason} ->
         socket
-        |> Phoenix.LiveView.put_flash(:error, "Error recovering game state: #{inspect(reason)}")
+        |> Phoenix.LiveView.put_flash(:error, "Error recovering outcome: #{inspect(reason)}")
     end
   end
 
@@ -206,11 +221,11 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     # Subscribe to streaming topic for this game
     StreamingService.subscribe(game_id)
 
-    # Start async recovery for next scenario
-    case GameService.recover_next_scenario_async(game_id) do
+    # Request next scenario using the new service function
+    case GameService.request_next_scenario_async(game_id) do
       {:ok, stream_id} ->
         socket
-        |> SocketAssignments.assign_streaming(stream_id, :scenario)
+        |> SocketAssignments.assign_streaming(stream_id, :scenario) # Set streaming type
         |> Phoenix.LiveView.put_flash(:info, "Generating next scenario...")
 
       {:error, reason} ->

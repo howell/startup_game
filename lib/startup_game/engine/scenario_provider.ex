@@ -35,20 +35,31 @@ defmodule StartupGame.Engine.ScenarioProvider do
               {:ok, stream_id()} | {:error, String.t()}
 
   @doc """
-  Generates an outcome based on the player's response text.
-  Returns {:ok, outcome} if successful, or {:error, reason} if the response couldn't be interpreted.
+  Generates an outcome based on the player's input text.
+
+  This function should interpret the `player_input` in the context of the current
+  `game_state` and the provided `scenario` (which may be `nil`). It handles both
+  direct responses to a scenario and proactive player actions.
+
+  Returns `{:ok, outcome}` if successful, or `{:error, reason}` if the input
+  couldn't be interpreted or processed.
   """
-  @callback generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
+  @callback generate_outcome(GameState.t(), Scenario.t() | nil, String.t()) ::
               {:ok, Scenario.outcome()} | {:error, String.t()}
 
   @doc """
-  Like generate_outcome, but returns a stream ID for asynchronous processing.
+  Like `generate_outcome/3`, but returns a stream ID for asynchronous processing.
+
+  This function should interpret the `player_input` in the context of the current
+  `game_state` and the provided `scenario` (which may be `nil`). It handles both
+  direct responses to a scenario and proactive player actions.
+
   Arguments:
     - game_state: The current game state
     - game_id: The ID of the current game
-    - scenario: The current scenario
-    - response_text: The player's response text
+    - scenario: The current scenario (`nil` if the player is taking proactive action without a specific situation)
+    - player_input: The player's input text
   """
-  @callback generate_outcome_async(GameState.t(), any(), Scenario.t(), String.t()) ::
+  @callback generate_outcome_async(GameState.t(), any(), Scenario.t() | nil, String.t()) ::
               {:ok, stream_id()} | {:error, String.t()}
 end

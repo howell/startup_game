@@ -45,7 +45,8 @@ defmodule StartupGame.Engine.Demo.Demo do
       Enum.reduce_while(choices, game_state, fn {choice_id, description}, state ->
         IO.puts("\n--- Player chooses: #{description} ---")
 
-        {updated_state, next_situation} = GameRunner.make_choice(state, choice_id)
+        # Use process_input instead of make_choice
+        {updated_state, next_situation} = GameRunner.process_input(state, choice_id)
         display_game_state(updated_state)
 
         # Display the last round's outcome
@@ -97,7 +98,8 @@ defmodule StartupGame.Engine.Demo.Demo do
       Enum.reduce_while(choices, game_state, fn {choice_id, description}, state ->
         IO.puts("\n--- Player chooses: #{description} ---")
 
-        {updated_state, next_situation} = GameRunner.make_choice(state, choice_id)
+        # Use process_input instead of make_choice
+        {updated_state, next_situation} = GameRunner.process_input(state, choice_id)
         display_game_state(updated_state)
 
         # Display the last round's outcome
