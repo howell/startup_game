@@ -42,7 +42,7 @@ defmodule StartupGame.GamesTest do
       attrs
       |> Enum.into(%{
         situation: "Test situation",
-        response: "Test response",
+        player_input: "Test response",
         outcome: "Test outcome",
         cash_change: Decimal.new("1000.00"),
         burn_rate_change: Decimal.new("100.00"),
@@ -237,7 +237,7 @@ defmodule StartupGame.GamesTest do
 
       valid_attrs = %{
         situation: "New situation",
-        response: "New response",
+        player_input: "New response",
         outcome: "New outcome",
         cash_change: Decimal.new("2000.00"),
         burn_rate_change: Decimal.new("200.00"),
@@ -246,7 +246,7 @@ defmodule StartupGame.GamesTest do
 
       assert {:ok, %Round{} = round} = Games.create_round(valid_attrs)
       assert round.situation == "New situation"
-      assert round.response == "New response"
+      assert round.player_input == "New response"
       assert round.outcome == "New outcome"
       assert Decimal.equal?(round.cash_change, Decimal.new("2000.00"))
       assert Decimal.equal?(round.burn_rate_change, Decimal.new("200.00"))
@@ -285,12 +285,12 @@ defmodule StartupGame.GamesTest do
 
       update_attrs = %{
         situation: "Updated situation",
-        response: "Updated response"
+        player_input: "Updated response"
       }
 
       assert {:ok, %Round{} = updated_round} = Games.update_round(round, update_attrs)
       assert updated_round.situation == "Updated situation"
-      assert updated_round.response == "Updated response"
+      assert updated_round.player_input == "Updated response"
     end
 
     test "update_round/2 with invalid data returns error changeset" do
