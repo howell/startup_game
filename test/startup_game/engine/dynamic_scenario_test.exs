@@ -27,14 +27,14 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
       # Set the initial scenario
       game = Engine.set_next_scenario(game)
 
-      updated_game = Engine.process_response(game, "accept")
+      updated_game = Engine.process_player_input(game, "accept")
 
       # Check that the round was added
       assert length(updated_game.rounds) == 1
       round = List.first(updated_game.rounds)
 
       # Verify the response was recorded
-      assert round.response == "accept"
+      assert round.player_input == "accept"
 
       # Verify the outcome contains part of the response text
       assert String.contains?(round.outcome, "accept")
@@ -64,7 +64,7 @@ defmodule StartupGame.Engine.DynamicScenarioTest do
       game = Engine.set_next_scenario(game)
 
       # Process a choice
-      updated_game = Engine.process_response(game, "accept")
+      updated_game = Engine.process_player_input(game, "accept")
 
       # Check that the round was added
       assert length(updated_game.rounds) == 1
