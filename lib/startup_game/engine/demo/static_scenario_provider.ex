@@ -231,11 +231,14 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @spec get_next_scenario_id(GameState.t(), String.t() | nil) :: String.t()
   defp get_next_scenario_id(game_state, current_scenario_id) do
     # For initial scenario
-    if is_nil(current_scenario_id) do
+    if is_nil(current_scenario_id) && Enum.empty?(game_state.rounds) do
       List.first(@scenario_sequence)
     else
       # Otherwise, find the next in sequence
-      key = key_for(game_state.current_scenario_data)
+      current =
+        game_state.current_scenario_data || List.last(game_state.rounds) |> scenario_for_round()
+
+      key = key_for(current)
       current_index = Enum.find_index(@scenario_sequence, fn id -> id == key end)
 
       # Calculate the next index, looping if necessary
@@ -249,6 +252,15 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
 
       Enum.at(@scenario_sequence, next_index)
     end
+  end
+
+  @spec scenario_for_round(GameState.round_entry()) :: Scenario.t()
+  defp scenario_for_round(round) do
+    %Scenario{
+      id: round.scenario_id,
+      type: :other,
+      situation: round.situation
+    }
   end
 
   # Helper to create a scenario with its choices

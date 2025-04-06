@@ -320,11 +320,11 @@ defmodule StartupGame.Games do
 
   ## Examples
 
-      iex> update_game(game, %{field: new_value})
-      {:ok, %Game{}}
+   iex> update_game(game, %{field: new_value})
+   {:ok, %Game{}}
 
-      iex> update_game(game, %{field: bad_value})
-      {:error, %Ecto.Changeset{}}
+   iex> update_game(game, %{field: bad_value})
+   {:error, %Ecto.Changeset{}}
 
   """
   def update_game(%Game{} = game, attrs) do

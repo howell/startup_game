@@ -119,7 +119,7 @@ defmodule StartupGame.GameService do
       iex> GameService.create_and_start_game("TechNova", "AI-powered project management", user)
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
   """
-  @spec create_and_start_game(String.t(), String.t(), User.t(), module()) :: game_result
+  @spec create_and_start_game(String.t(), String.t(), User.t(), module()) :: game_result()
   def create_and_start_game(
         name,
         description,
@@ -145,10 +145,8 @@ defmodule StartupGame.GameService do
     case Games.get_game_with_associations(game_id) do
       %Games.Game{} = game ->
         ownerships = Games.list_game_ownerships(game_id)
-
         # Recreate in-memory game state from database records
         game_state = build_game_state_from_db(game, ownerships)
-
         {:ok, %{game: game, game_state: game_state}}
 
       nil ->
@@ -169,6 +167,8 @@ defmodule StartupGame.GameService do
   @spec process_player_input(Ecto.UUID.t(), String.t()) :: game_result()
   def process_player_input(game_id, player_input) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id),
+         last_round <- List.last(game.rounds),
+         _ <- Games.update_round(last_round, %{player_input: player_input}),
          %Engine.GameState{error_message: nil} = updated_game_state <-
            Engine.process_player_input(game_state, player_input) do
       # Save the result, but don't trigger the next round here
@@ -370,8 +370,8 @@ defmodule StartupGame.GameService do
           }
 
           # Previous rounds are all but the last one
-          # Use explicit step
-          previous_rounds = Enum.slice(game_state_rounds, 0..-2//-1)
+          # Use explicit step (fixed slice syntax)
+          previous_rounds = Enum.slice(game_state_rounds, 0..-2//1)
           {current_scenario_id, current_scenario_data, previous_rounds}
         else
           # Last round is complete, no current scenario active (player should be in 'acting' mode or game ended)
@@ -435,29 +435,29 @@ defmodule StartupGame.GameService do
     |> update_finances(game, game_state)
     |> StartupGame.Repo.transaction()
     |> case do
-      {:ok, %{game: {updated_game, round}}} ->
-        {:ok,
-         %{
-           game: replace_game_round(updated_game, round),
-           game_state: game_state
-         }}
+      # Adjust pattern match for Ecto.Multi.update
+      {:ok, %{game: updated_game}} ->
+        # updated_game already has the persisted state
+        {:ok, %{game: updated_game, game_state: game_state}}
 
       {:error, _operation, reason, _changes} ->
         {:error, reason}
     end
   end
 
-  @spec replace_game_round(Games.Game.t(), GameState.round_entry()) :: Games.Game.t()
-  defp replace_game_round(game, round) do
-    Enum.find_index(game.rounds, fn r -> r.id == round.id end)
-    |> case do
-      nil ->
-        game
-
-      index ->
-        %{game | rounds: List.replace_at(game.rounds, index, round)}
-    end
-  end
+  # This function is no longer needed when using Ecto.Multi.update for the game state
+  # as the updated game struct is returned directly by Repo.transaction.
+  # @spec replace_game_round(Games.Game.t(), GameState.round_entry()) :: Games.Game.t()
+  # defp replace_game_round(game, round) do
+  #   Enum.find_index(game.rounds, fn r -> r.id == round.id end)
+  #   |> case do
+  #     nil ->
+  #       game
+  #
+  #     index ->
+  #       %{game | rounds: List.replace_at(game.rounds, index, round)}
+  #   end
+  # end
 
   @spec save_last_round(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
   defp save_last_round(multi, _game, %GameState{rounds: []}), do: multi
@@ -518,25 +518,18 @@ defmodule StartupGame.GameService do
     Games.update_ownership_structure(new_ownerships, game, round)
   end
 
+  # Using Ecto.Multi.update/4 for finance update
   @spec update_finances(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
   defp update_finances(multi, game, game_state) do
-    Ecto.Multi.run(multi, :game, fn _repo, %{round: round} ->
-      # Update game financial state
-      Games.update_game(game, %{
-        cash_on_hand: game_state.cash_on_hand,
-        burn_rate: game_state.burn_rate,
-        status: game_state.status,
-        exit_type: game_state.exit_type,
-        exit_value: game_state.exit_value
-        # Persist current player mode from game state if needed, though it's often updated separately
-        # current_player_mode: game_state.current_player_mode # Assuming GameState holds this, which it doesn't currently
-      })
-      |> case do
-        # Pass the round through
-        {:ok, updated_game} -> {:ok, {updated_game, round}}
-        # Propagate error
-        error -> error
-      end
-    end)
+    changes = %{
+      cash_on_hand: game_state.cash_on_hand,
+      burn_rate: game_state.burn_rate,
+      status: game_state.status,
+      exit_type: game_state.exit_type,
+      exit_value: game_state.exit_value
+    }
+
+    # Use Multi.update with a changeset
+    Ecto.Multi.update(multi, :game, Game.changeset(game, changes))
   end
 end

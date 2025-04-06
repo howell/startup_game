@@ -101,17 +101,18 @@ defmodule StartupGame.Engine do
 
   """
   @spec process_player_input(GameState.t(), String.t()) :: GameState.t()
-  def process_player_input(game_state, player_input) do
-    provider = game_state.scenario_provider
-    scenario = game_state.current_scenario_data # May be nil
+ def process_player_input(game_state, player_input) do
+   provider = game_state.scenario_provider
+   # scenario = game_state.current_scenario_data # Remove this - use game_state directly below
 
-    # Clear any previous error message
-    game_state = %{game_state | error_message: nil}
+   # Clear any previous error message
+   game_state = %{game_state | error_message: nil}
 
-    # Generate outcome based on the input and current context (scenario or lack thereof)
-    case provider.generate_outcome(game_state, scenario, player_input) do
-      {:ok, outcome} ->
-        # Apply the outcome effects
+   # Generate outcome based on the input and current context (scenario or lack thereof)
+   # Pass game_state.current_scenario_data directly instead of the potentially stale 'scenario' variable
+   case provider.generate_outcome(game_state, game_state.current_scenario_data, player_input) do
+     {:ok, outcome} ->
+       # Apply the outcome effects
         apply_outcome_effects(game_state, outcome, player_input)
 
       {:error, reason} ->
@@ -136,12 +137,12 @@ defmodule StartupGame.Engine do
 
   # --- Private Helper Functions ---
 
-  # Applies the effects of an outcome to the game state
-  @spec apply_outcome_effects(GameState.t(), Scenario.outcome(), String.t()) :: GameState.t()
-  defp apply_outcome_effects(game_state, outcome, player_input) do
-    # Get current scenario info for the round record, if available
-    scenario_id = if game_state.current_scenario_data, do: game_state.current_scenario_data.id
-    situation = if game_state.current_scenario_data, do: game_state.current_scenario_data.situation
+   # Applies the effects of an outcome to the game state
+   @spec apply_outcome_effects(GameState.t(), Scenario.outcome(), String.t()) :: GameState.t()
+   defp apply_outcome_effects(game_state, outcome, player_input) do
+     # Get current scenario info for the round record, if available
+     scenario_id = if game_state.current_scenario_data, do: game_state.current_scenario_data.id
+     situation = if game_state.current_scenario_data, do: game_state.current_scenario_data.situation
 
     # Create the round entry
     round = %{
@@ -154,15 +155,21 @@ defmodule StartupGame.Engine do
       ownership_changes: outcome.ownership_changes
     }
 
-    game_state
-    |> update_finances(outcome)
-    |> update_ownership(outcome)
-    |> apply_burn_rate()
-    |> check_game_end(outcome)
-    |> Map.put(:rounds, game_state.rounds ++ [round])
-  end
+    # Apply updates sequentially and capture the final state
+    updated_state =
+      game_state
+      |> update_finances(outcome)
+      |> update_ownership(outcome)
+      |> apply_burn_rate()
+      |> check_game_end(outcome)
 
-  @spec update_finances(GameState.t(), map()) :: GameState.t()
+     # Add the new round entry to the *updated* state's rounds list
+      final_state_with_round = Map.put(updated_state, :rounds, updated_state.rounds ++ [round]) # Capture this
+
+      final_state_with_round # Return the final state
+    end
+
+   @spec update_finances(GameState.t(), map()) :: GameState.t()
   defp update_finances(game_state, outcome) do
     new_cash = Decimal.add(game_state.cash_on_hand, outcome.cash_change || Decimal.new("0"))
     new_burn = Decimal.add(game_state.burn_rate, outcome.burn_rate_change || Decimal.new("0"))

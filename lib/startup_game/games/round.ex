@@ -14,7 +14,7 @@ defmodule StartupGame.Games.Round do
   @type t :: %__MODULE__{
           id: Ecto.UUID.t(),
           situation: String.t(),
-          response: String.t() | nil,
+          player_input: String.t() | nil,
           outcome: String.t() | nil,
           cash_change: Decimal.t(),
           burn_rate_change: Decimal.t(),
@@ -28,7 +28,7 @@ defmodule StartupGame.Games.Round do
 
   schema "rounds" do
     field :situation, :string
-    field :response, :string
+    field :player_input, :string
     field :outcome, :string
     field :cash_change, :decimal, default: 0
     field :burn_rate_change, :decimal, default: 0
@@ -42,7 +42,15 @@ defmodule StartupGame.Games.Round do
   @doc false
   def changeset(round, attrs) do
     round
-    |> cast(attrs, [:situation, :response, :outcome, :cash_change, :burn_rate_change, :game_id])
+    # Use player_input
+    |> cast(attrs, [
+      :situation,
+      :player_input,
+      :outcome,
+      :cash_change,
+      :burn_rate_change,
+      :game_id
+    ])
     |> validate_required([:situation, :game_id])
   end
 end

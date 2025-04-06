@@ -29,7 +29,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
         %Round{
           id: "temp_name_prompt",
           situation: "What would you like to name your company?",
-          response: response,
+          player_input: response,
           inserted_at: DateTime.utc_now(),
           updated_at: DateTime.utc_now()
         },
@@ -58,10 +58,12 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
 
     case GameService.create_game(
            name,
-           response, # This is the description
+           # This is the description
+           response,
            user,
            provider,
-           %{}, # Empty attrs for now
+           # Empty attrs for now
+           %{},
            initial_mode
          ) do
       {:ok, %{game: game, game_state: game_state}} ->
@@ -192,7 +194,9 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   defp needs_outcome_recovery?(round), do: round.player_input && !round.outcome
 
   @spec needs_scenario_recovery?(StartupGame.Games.Game.t(), Round.t() | nil) :: boolean()
-  defp needs_scenario_recovery?(_game, nil), do: false # No rounds yet
+  # No rounds yet
+  defp needs_scenario_recovery?(_game, nil), do: false
+
   defp needs_scenario_recovery?(game, last_round) do
     # Needs recovery if last round is complete, game is in progress, and mode is responding
     last_round.outcome && game.status == :in_progress && game.current_player_mode == :responding
@@ -207,7 +211,8 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     case GameService.recover_missing_outcome_async(game_id, round.player_input) do
       {:ok, stream_id} ->
         socket
-        |> SocketAssignments.assign_streaming(stream_id, :outcome) # Set streaming type
+        # Set streaming type
+        |> SocketAssignments.assign_streaming(stream_id, :outcome)
         |> Phoenix.LiveView.put_flash(:info, "Recovering previous outcome...")
 
       {:error, reason} ->
@@ -225,7 +230,8 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     case GameService.request_next_scenario_async(game_id) do
       {:ok, stream_id} ->
         socket
-        |> SocketAssignments.assign_streaming(stream_id, :scenario) # Set streaming type
+        # Set streaming type
+        |> SocketAssignments.assign_streaming(stream_id, :scenario)
         |> Phoenix.LiveView.put_flash(:info, "Generating next scenario...")
 
       {:error, reason} ->
