@@ -5,6 +5,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   """
   use StartupGameWeb, :html
 
+  alias StartupGame.Games.Game
   alias StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent
   alias StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent
   alias StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent
@@ -12,7 +13,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   @doc """
   Renders the game play interface with chat, company info, and financials.
   """
-  attr :game, :map, required: true
+  attr :game, Game, required: true
   attr :game_state, :map, required: true
   attr :rounds, :list, required: true
   attr :ownerships, :list, required: true
@@ -57,7 +58,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           streaming_type={@streaming_type}
           partial_content={@partial_content}
           is_view_only={@is_view_only}
-          player_mode={@player_mode}
+          player_mode={@game.current_player_mode}
           game_state={@game_state}
         />
       </:content_area>
