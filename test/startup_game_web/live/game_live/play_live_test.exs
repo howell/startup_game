@@ -3,6 +3,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
   import Phoenix.LiveViewTest
   import StartupGame.GamesFixtures
+  import StartupGame.Test.Helpers.Streaming
 
   alias StartupGame.Games
   alias StartupGame.StreamingService
@@ -228,7 +229,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       submit_response(view, "accept")
 
-      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, _}}
+      assert_stream_complete()
       html = render(view)
       assert html =~ "accept"
 
@@ -237,7 +238,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       first_round = List.first(updated_rounds)
       assert first_round.player_input == "accept"
 
-      assert_receive %{event: "llm_complete", payload: _} = _msg, 100
+      assert_stream_complete()
 
       Process.sleep(20)
 
@@ -255,8 +256,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
-      # Subscribe to the streaming topic
-      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, {:ok, _scenario}}}, 500
+      assert_stream_complete({:ok, _scenario}, _, 500)
 
       # Get the initial situation
       initial_html = render(view)
@@ -271,11 +271,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert render(view) =~ response_text
 
       # Then outcome completion
-      assert_receive %{
-                       event: "llm_complete",
-                       payload: {:llm_complete, stream_id, {:ok, outcome}}
-                     },
-                     100
+      assert_stream_complete({:ok, outcome}, stream_id)
 
       Process.sleep(20)
 
@@ -290,11 +286,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html_after_outcome =~ "You accept the offer and receive the investment"
 
       # Finally scenario completion
-      assert_receive %{
-                       event: "llm_complete",
-                       payload: {:llm_complete, new_stream_id, {:ok, _scenario}}
-                     },
-                     100
+      assert_stream_complete({:ok, _scenario}, new_stream_id)
 
       # Should be a different stream ID
       refute new_stream_id == stream_id
@@ -391,10 +383,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # Verify recovery message is shown
       assert render(view) =~ "Resuming game"
 
-      assert_received(%{
-        event: "llm_complete",
-        payload: {:llm_complete, _, {:ok, _}}
-      })
+      assert_stream_complete({:ok, _})
 
       assert render(view) =~ "You accept the offer and receive the investment"
     end
@@ -409,7 +398,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
-      assert_receive(%{event: "llm_complete", payload: {:llm_complete, _, {:ok, _}}})
+      assert_stream_complete({:ok, _})
       # Verify recovery happened
       assert render(view) =~ "An angel investor offers $100,000 for 15% of your company."
     end
@@ -431,7 +420,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
-      assert_receive(%{event: "llm_complete", payload: {:llm_complete, _, {:ok, _}}})
+      assert_stream_complete({:ok, _})
       # Verify recovery happened
       assert render(view) =~ "You need to hire a key employee."
     end

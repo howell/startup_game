@@ -1,6 +1,7 @@
 defmodule StartupGame.GameServiceTest do
   use StartupGame.DataCase
 
+  import StartupGame.Test.Helpers.Streaming
   alias StartupGame.GameService
   alias StartupGame.Games
   alias StartupGame.Engine.Demo.StaticScenarioProvider
@@ -422,7 +423,7 @@ defmodule StartupGame.GameServiceTest do
       :ok = StreamingService.subscribe(updated_game.id)
       {:ok, _} = GameService.request_next_scenario_async(updated_game.id)
 
-      assert_receive %{event: "llm_complete", payload: {_, _, {:ok, next_scenario}}}
+      assert_stream_complete({:ok, next_scenario})
       assert next_scenario.situation =~ "You need to hire a key employee"
       {:ok, _} = GameService.finalize_streamed_scenario(updated_game.id, next_scenario)
 
