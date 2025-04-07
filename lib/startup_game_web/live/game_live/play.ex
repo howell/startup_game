@@ -74,6 +74,7 @@ defmodule StartupGameWeb.GameLive.Play do
             streaming_type={@streaming_type}
             partial_content={@partial_content}
             is_mobile_state_visible={@is_mobile_state_visible}
+            initial_player_mode={@initial_player_mode}
           />
         <% :playing -> %>
           <GamePlayComponent.game_play
@@ -126,6 +127,11 @@ defmodule StartupGameWeb.GameLive.Play do
   @impl true
   def handle_event("change_provider", %{"provider" => provider}, socket) do
     PlayHandler.handle_provider_change(socket, provider)
+  end
+
+  @impl true
+  def handle_event("set_initial_mode", %{"mode" => mode}, socket) do
+    CreationHandler.handle_initial_mode_change(socket, mode)
   end
 
   @impl true

@@ -59,6 +59,7 @@ defmodule StartupGameWeb.GameLive.Helpers.SocketAssignments do
     |> assign(:response, "")
     |> assign(:rounds, [initial_round])
     |> assign(:ownerships, [])
+    |> assign(:initial_player_mode, :responding)
     |> reset_streaming()
   end
 end

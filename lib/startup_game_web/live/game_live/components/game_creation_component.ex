@@ -20,8 +20,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :partial_content, :string, default: ""
   attr :streaming_type, :atom, default: nil
   attr :is_mobile_state_visible, :boolean, default: false
-  # Added
-  attr :initial_player_mode, :atom, default: :responding
+  attr :initial_player_mode, :atom, required: true
 
   def game_creation(assigns) do
     ~H"""
@@ -119,30 +118,32 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
         <div class="bg-white rounded-lg shadow-md p-4">
           <h3 class="text-lg font-semibold mb-3">Starting Approach</h3>
           <p class="text-sm text-gray-600 mb-3">How do you want to begin your game?</p>
-          <div class="space-y-2">
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="initial_player_mode"
-                value="responding"
-                checked={@initial_player_mode == :responding}
-                phx-change="set_initial_mode"
-                class="radio radio-sm radio-primary"
-              />
-              <span class="text-sm">Start with a situation (Recommended)</span>
-            </label>
-            <label class="flex items-center space-x-2 cursor-pointer">
-              <input
-                type="radio"
-                name="initial_player_mode"
-                value="acting"
-                checked={@initial_player_mode == :acting}
-                phx-change="set_initial_mode"
-                class="radio radio-sm radio-primary"
-              />
-              <span class="text-sm">Start by taking initiative</span>
-            </label>
-          </div>
+          <form>
+            <div class="space-y-2">
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="initial_player_mode"
+                  phx-click="set_initial_mode"
+                  phx-value-mode="responding"
+                  checked={@initial_player_mode == :responding}
+                  class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
+                />
+                <span class="text-sm">Start with a situation (Recommended)</span>
+              </label>
+              <label class="flex items-center space-x-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="initial_player_mode"
+                  phx-click="set_initial_mode"
+                  phx-value-mode="acting"
+                  checked={@initial_player_mode == :acting}
+                  class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
+                />
+                <span class="text-sm">Start by taking initiative</span>
+              </label>
+            </div>
+          </form>
         </div>
 
         <div class="bg-white rounded-lg shadow-md p-4">
