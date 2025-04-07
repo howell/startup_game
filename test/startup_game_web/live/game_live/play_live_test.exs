@@ -425,4 +425,85 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert render(view) =~ "You need to hire a key employee."
     end
   end
+
+  describe "Play LiveView - play static game from start to finish" do
+    setup :register_and_log_in_user
+
+    test "play static game from start to finish", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/games/play")
+
+      # 1. Set provider to Static
+      view
+      |> form("form[phx-submit='set_provider']", %{
+        provider: "Elixir.StartupGame.Engine.Demo.StaticScenarioProvider"
+      })
+      |> render_submit()
+
+      assert render(view) =~
+               "Scenario provider set to Elixir.StartupGame.Engine.Demo.StaticScenarioProvider"
+
+      # 2. Submit Name
+      submit_response(view, "Static Test Co")
+      assert render(view) =~ "Now, tell us what Static Test Co does."
+
+      # 3. Submit Description (starts the game)
+      submit_response(view, "A company for static testing.")
+      path = assert_patch(view)
+      assert path =~ ~r|games/play/.*|
+      assert render(view) =~ "Static Test Co"
+      game_id = Path.basename(path)
+      StreamingService.subscribe(game_id)
+
+      # --- Scenario 1: Angel Investment ---
+      # Wait for initial scenario; hard to guarantee that we will subscribe to the game ID in time to get the message
+      Process.sleep(100)
+      assert render(view) =~ "An angel investor offers $100,000 for 15% of your company."
+      # Submit response
+      submit_response(view, "accept")
+      assert render(view) =~ "accept"
+      # Wait for outcome
+      assert_stream_complete({:ok, _outcome})
+      assert render(view) =~ "You accept the offer and receive the investment."
+
+      # --- Scenario 2: Hiring Decision ---
+      # Wait for next scenario
+      assert_stream_complete({:ok, _scenario})
+      assert render(view) =~ "You need to hire a key employee."
+      # Submit response
+      submit_response(view, "experienced")
+      assert render(view) =~ "experienced"
+      # Wait for outcome
+      assert_stream_complete({:ok, _outcome})
+      assert render(view) =~ "The experienced developer brings immediate value"
+
+      # --- Scenario 3: Lawsuit ---
+      # Wait for next scenario
+      assert_stream_complete({:ok, _scenario})
+      assert render(view) =~ "Your startup has been sued by a competitor"
+      # Submit response
+      submit_response(view, "settle")
+      assert render(view) =~ "settle"
+      # Wait for outcome
+      assert_stream_complete({:ok, _outcome})
+      assert render(view) =~ "You settle the lawsuit for $50,000"
+
+      # --- Scenario 4: Acquisition Offer ---
+      # Wait for next scenario
+      assert_stream_complete({:ok, _scenario})
+      assert render(view) =~ "A larger company offers to acquire your startup for $2 million."
+      # Submit response (Accept acquisition)
+      submit_response(view, "accept")
+      assert render(view) =~ "accept"
+      # Wait for outcome (which ends the game)
+      assert_stream_complete({:ok, outcome})
+      assert outcome.exit_type == :acquisition
+
+      # 5. Check End State
+      html = render(view)
+      assert html =~ "Game Acquired!"
+      assert html =~ "Congratulations! Your company was acquired for $2.0M"
+      # Input form should be gone
+      refute html =~ "Respond to the situation"
+    end
+  end
 end
