@@ -7,6 +7,12 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
   alias StartupGame.Games
   alias StartupGame.StreamingService
 
+  defp submit_response(view, response) do
+    view
+    |> form("form[phx-submit='submit_response']", %{response: response})
+    |> render_submit()
+  end
+
   describe "Play LiveView - mount" do
     setup :register_and_log_in_user
 
@@ -42,9 +48,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       refute render(view) =~ "Provide a brief description"
 
       # Submit a company name
-      view
-      |> form("form[phx-submit='submit_response']", %{response: "Test Company"})
-      |> render_submit()
+      submit_response(view, "Test Company")
 
       # Should transition to description input
       assert render(view) =~
@@ -55,15 +59,10 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, view, _html} = live(conn, ~p"/games/play")
 
       # Submit company name
-      view
-      |> form("form[phx-submit='submit_response']", %{response: "Test Company"})
-      |> render_submit()
+      submit_response(view, "Test Company")
 
       # Submit company description
-      rendered =
-        view
-        |> form("form[phx-submit='submit_response']", %{response: "A test company description"})
-        |> render_submit()
+      rendered = submit_response(view, "A test company description")
 
       path = assert_patch(view)
       assert path =~ ~r|games/play/.*|
@@ -227,9 +226,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       StreamingService.subscribe(game.id)
 
-      view
-      |> form("form[phx-submit='submit_response']", %{response: "accept"})
-      |> render_submit()
+      submit_response(view, "accept")
 
       assert_receive %{event: "llm_complete", payload: {:llm_complete, _, _}}
       html = render(view)
@@ -269,9 +266,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # Submit a response
       response_text = "accept"
 
-      view
-      |> form("form[phx-submit='submit_response']", %{response: response_text})
-      |> render_submit()
+      submit_response(view, response_text)
 
       assert render(view) =~ response_text
 
@@ -318,9 +313,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Submit an empty response
-      view
-      |> form("form[phx-submit='submit_response']", %{response: ""})
-      |> render_submit()
+      submit_response(view, "")
 
       # Check that no new round was created
       updated_rounds = Games.list_game_rounds(game.id)
