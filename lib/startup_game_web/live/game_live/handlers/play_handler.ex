@@ -84,7 +84,6 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
         Games.list_game_rounds(game_id),
         socket.assigns.ownerships
       )
-      |> SocketAssignments.reset_streaming()
 
     {:noreply, socket}
   end
@@ -106,9 +105,13 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
             Games.list_game_rounds(game_id),
             Games.list_game_ownerships(game_id)
           )
-          |> SocketAssignments.reset_streaming()
 
-        {:noreply, socket}
+        if updated_state.status == :in_progress and
+             updated_game.current_player_mode == :responding do
+          request_next_scenario(socket)
+        else
+          {:noreply, socket}
+        end
 
       {:error, reason} ->
         ErrorHandler.handle_game_error(
@@ -116,6 +119,27 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
           :general,
           "Error finalizing outcome: #{inspect(reason)}"
         )
+    end
+  end
+
+  @spec request_next_scenario(socket()) :: {:noreply, socket()}
+  @doc """
+  Requests the next scenario from the GameService.
+  """
+  def request_next_scenario(socket) do
+    game_id = socket.assigns.game_id
+
+    # Request the next scenario from the GameService
+    case GameService.request_next_scenario_async(game_id) do
+      {:ok, stream_id} ->
+        socket =
+          socket
+          |> SocketAssignments.assign_streaming(stream_id, :scenario)
+
+        {:noreply, socket}
+
+      {:error, reason} ->
+        ErrorHandler.handle_game_error(socket, :general, reason)
     end
   end
 end

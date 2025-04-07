@@ -45,6 +45,7 @@ defmodule StartupGame.StreamingService do
   @type game_id :: Ecto.UUID.t() | String.t()
   @type stream_content :: String.t()
   @type stream_error :: String.t()
+  @type stream_result :: {:ok, term()} | {:error, String.t()}
 
   # Message types
   @type message_type :: :llm_delta | :llm_complete | :llm_error
@@ -138,7 +139,7 @@ defmodule StartupGame.StreamingService do
       :ok
 
   """
-  @spec broadcast_complete(game_id(), stream_id(), {:ok, map()} | {:error, term()}) :: :ok
+  @spec broadcast_complete(game_id(), stream_id(), stream_result()) :: :ok
   def broadcast_complete(game_id, stream_id, result) do
     StartupGameWeb.Endpoint.broadcast(
       topic_for_game(game_id),

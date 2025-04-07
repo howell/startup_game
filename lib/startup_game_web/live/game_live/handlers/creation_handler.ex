@@ -11,6 +11,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   alias StartupGame.Games.Round
   alias StartupGame.StreamingService
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
+  alias StartupGameWeb.GameLive.Handlers.PlayHandler
 
   @type socket :: Phoenix.LiveView.Socket.t()
 
@@ -225,21 +226,6 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   defp recover_next_scenario(socket, game_id) do
     # Subscribe to streaming topic for this game
     StreamingService.subscribe(game_id)
-
-    # Request next scenario using the new service function
-    case GameService.request_next_scenario_async(game_id) do
-      {:ok, stream_id} ->
-        socket
-        # Set streaming type
-        |> SocketAssignments.assign_streaming(stream_id, :scenario)
-        |> Phoenix.LiveView.put_flash(:info, "Resuming game...")
-
-      {:error, reason} ->
-        socket
-        |> Phoenix.LiveView.put_flash(
-          :error,
-          "Error resuming game: #{inspect(reason)}"
-        )
-    end
+    PlayHandler.request_next_scenario(socket) |> elem(1)
   end
 end

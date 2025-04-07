@@ -147,6 +147,7 @@ defmodule StartupGame.GameService do
         ownerships = Games.list_game_ownerships(game_id)
         # Recreate in-memory game state from database records
         game_state = build_game_state_from_db(game, ownerships)
+
         {:ok, %{game: game, game_state: game_state}}
 
       nil ->
@@ -346,7 +347,7 @@ defmodule StartupGame.GameService do
           {String.t() | nil, Engine.Scenario.t() | nil, [GameState.round_entry()]}
   def determine_current_and_previous_rounds(game) do
     # Sort rounds by insertion order just in case
-    db_rounds = Enum.sort_by(game.rounds, & &1.inserted_at)
+    db_rounds = game.rounds
     game_state_rounds = build_rounds_from_db(db_rounds)
 
     case {game.status, db_rounds} do
@@ -371,7 +372,8 @@ defmodule StartupGame.GameService do
 
           # Previous rounds are all but the last one
           # Use explicit step (fixed slice syntax)
-          previous_rounds = Enum.slice(game_state_rounds, 0..-2//1)
+          previous_rounds = List.delete_at(game_state_rounds, -1)
+
           {current_scenario_id, current_scenario_data, previous_rounds}
         else
           # Last round is complete, no current scenario active (player should be in 'acting' mode or game ended)

@@ -492,8 +492,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert_stream_complete({:ok, _scenario})
       assert render(view) =~ "A larger company offers to acquire your startup for $2 million."
       # Submit response (Accept acquisition)
-      submit_response(view, "accept")
-      assert render(view) =~ "accept"
+      submit_response(view, "counter")
+      assert render(view) =~ "counter"
       # Wait for outcome (which ends the game)
       assert_stream_complete({:ok, outcome})
       assert outcome.exit_type == :acquisition
@@ -501,7 +501,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # 5. Check End State
       html = render(view)
       assert html =~ "Game Acquired!"
-      assert html =~ "Congratulations! Your company was acquired for $2.0M"
+      assert html =~ "Congratulations! Your company was acquired for $2.5M"
       # Input form should be gone
       refute html =~ "Respond to the situation"
     end

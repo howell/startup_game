@@ -286,7 +286,6 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     # Get the choices for this scenario
     choices = Map.get(@scenario_choices, key)
 
-    # Use the base provider function
     case BaseScenarioProvider.match_response_to_choice(current, response_text, choices) do
       {:ok, choice_id} ->
         # Get the predefined outcome for this choice
