@@ -14,38 +14,10 @@ defmodule StartupGame.GameServiceTest do
     Enum.reduce(inputs, {:ok, %{game_id: game_id}}, fn input,
                                                        {:ok, %{game_id: current_game_id}} ->
       # 1. Process the current input
-      process_result = GameService.process_player_input(current_game_id, input)
-
-      case process_result do
+      case GameService.process_player_input(current_game_id, input) do
         {:ok, %{game: game_after_input, game_state: gs_after_input}} ->
-          # 2. Check if game is still in progress to fetch next scenario
-          if gs_after_input.status == :in_progress do
-            # 3. Manually fetch the next scenario using the *updated* game state
-            # Note: gs_after_input.current_scenario is the ID of the round just completed
-            next_scenario =
-              StaticScenarioProvider.get_next_scenario(
-                gs_after_input,
-                gs_after_input.current_scenario
-              )
-
-            # 4. If a next scenario exists, manually create the next round record in the DB
-            if next_scenario do
-              {:ok, _round} =
-                Games.create_round(%{
-                  situation: next_scenario.situation,
-                  game_id: game_after_input.id
-                })
-
-              # Pass the game_id for the next iteration
-              {:ok, %{game_id: game_after_input.id}}
-            else
-              # No next scenario, game likely ended or provider finished
-              {:ok, %{game_id: game_after_input.id}}
-            end
-          else
-            # Game is no longer in progress after processing input
-            {:ok, %{game_id: game_after_input.id}}
-          end
+          # 2. Handle successful processing (fetch next scenario, create round if needed)
+          handle_successful_input(game_after_input, gs_after_input)
 
         error ->
           # Stop processing on error
@@ -58,6 +30,30 @@ defmodule StartupGame.GameServiceTest do
       # Return error tuple
       error -> error
     end
+  end
+
+  # Helper for process_multiple_inputs: handles logic after successful input processing
+  defp handle_successful_input(game_after_input, gs_after_input) do
+    if gs_after_input.status == :in_progress do
+      # Fetch next scenario using the *updated* game state
+      next_scenario =
+        StaticScenarioProvider.get_next_scenario(
+          gs_after_input,
+          gs_after_input.current_scenario
+        )
+
+      # Create next round record in the DB if a scenario exists
+      if next_scenario do
+        {:ok, _round} =
+          Games.create_round(%{
+            situation: next_scenario.situation,
+            game_id: game_after_input.id
+          })
+      end
+    end
+
+    # Always pass the game_id for the next iteration or final result
+    {:ok, %{game_id: game_after_input.id}}
   end
 
   describe "create_game/6 and start_game/1" do

@@ -20,7 +20,8 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :partial_content, :string, default: ""
   attr :streaming_type, :atom, default: nil
   attr :is_mobile_state_visible, :boolean, default: false
-  attr :initial_player_mode, :atom, default: :responding # Added
+  # Added
+  attr :initial_player_mode, :atom, default: :responding
 
   def game_creation(assigns) do
     ~H"""
@@ -54,7 +55,6 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
               streaming_type={@streaming_type}
               partial_content={@partial_content}
               player_mode={:responding}
-              game_state={%{}}
             />
           </div>
 
@@ -80,7 +80,8 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   attr :creation_stage, :atom, required: true
   attr :temp_name, :string, default: nil
   attr :provider_preference, :atom, required: true
-  attr :initial_player_mode, :atom, required: true # Added
+  # Added
+  attr :initial_player_mode, :atom, required: true
   attr :include_provider_selector, :boolean, default: false
 
   defp creation_state_panel(assigns) do
@@ -113,8 +114,8 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
             creation_mode={true}
           />
         <% end %>
-
-        <!-- Initial Player Mode Selector -->
+        
+    <!-- Initial Player Mode Selector -->
         <div class="bg-white rounded-lg shadow-md p-4">
           <h3 class="text-lg font-semibold mb-3">Starting Approach</h3>
           <p class="text-sm text-gray-600 mb-3">How do you want to begin your game?</p>

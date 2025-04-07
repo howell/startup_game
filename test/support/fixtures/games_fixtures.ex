@@ -21,7 +21,8 @@ defmodule StartupGame.GamesFixtures do
         attrs[:description] || "A test startup company",
         user,
         attrs[:provider] || StaticScenarioProvider,
-        attrs
+        attrs,
+        attrs[:player_mode] || :responding
       )
 
     game

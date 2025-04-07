@@ -14,7 +14,6 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   Renders the game play interface with chat, company info, and financials.
   """
   attr :game, Game, required: true
-  attr :game_state, :map, required: true
   attr :rounds, :list, required: true
   attr :ownerships, :list, required: true
   attr :response, :string, default: ""
@@ -59,7 +58,6 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
           partial_content={@partial_content}
           is_view_only={@is_view_only}
           player_mode={@game.current_player_mode}
-          game_state={@game_state}
         />
       </:content_area>
     </GameLayoutComponent.game_layout>

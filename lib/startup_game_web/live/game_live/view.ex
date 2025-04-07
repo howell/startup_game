@@ -61,7 +61,6 @@ defmodule StartupGameWeb.GameLive.View do
     <div class="container">
       <GamePlayComponent.game_play
         game={@game}
-        game_state={@game_state}
         rounds={@rounds}
         ownerships={@ownerships}
         is_view_only={true}

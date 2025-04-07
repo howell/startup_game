@@ -6,7 +6,8 @@ defmodule StartupGameWeb.GameLive.Handlers.StreamHandler do
 
   use StartupGameWeb, :html
 
-  alias StartupGame.GameService # Added
+  # Added
+  alias StartupGame.GameService
   alias StartupGameWeb.GameLive.Handlers.PlayHandler
   alias StartupGameWeb.GameLive.Helpers.SocketAssignments
 
@@ -17,7 +18,8 @@ defmodule StartupGameWeb.GameLive.Handlers.StreamHandler do
   @doc """
   Handles LLM delta events during streaming.
   """
-  @spec handle_delta(socket(), {:llm_delta, stream_id(), any(), String.t()}) :: {:noreply, socket()}
+  @spec handle_delta(socket(), {:llm_delta, stream_id(), any(), String.t()}) ::
+          {:noreply, socket()}
   def handle_delta(socket, {:llm_delta, stream_id, _delta, display_content}) do
     if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
       # Update the display content (narrative part only)
@@ -34,7 +36,8 @@ defmodule StartupGameWeb.GameLive.Handlers.StreamHandler do
   @doc """
   Handles LLM completion events.
   """
-  @spec handle_complete(socket(), {:llm_complete, stream_id(), {:ok, map()}}) :: {:noreply, socket()}
+  @spec handle_complete(socket(), {:llm_complete, stream_id(), {:ok, map()}}) ::
+          {:noreply, socket()}
   def handle_complete(socket, {:llm_complete, stream_id, {:ok, result}}) do
     if socket.assigns.stream_id == stream_id and socket.assigns.streaming do
       process_llm_result(socket, result)
@@ -50,16 +53,18 @@ defmodule StartupGameWeb.GameLive.Handlers.StreamHandler do
   defp process_llm_result(socket, result) do
     game_id = socket.assigns.game_id
 
+    next_socket = SocketAssignments.reset_streaming(socket)
+
     case {socket.assigns.streaming_type, result} do
       {:scenario, %{situation: _} = scenario} ->
-        handle_scenario_completion(socket, game_id, scenario)
+        handle_scenario_completion(next_socket, game_id, scenario)
 
       {:outcome, %{text: _} = outcome} ->
-        handle_outcome_completion(socket, game_id, outcome)
+        handle_outcome_completion(next_socket, game_id, outcome)
 
       # Handle unexpected result types
       {streaming_type, result} ->
-        handle_unexpected_result(socket, streaming_type, result)
+        handle_unexpected_result(next_socket, streaming_type, result)
     end
   end
 
@@ -85,9 +90,17 @@ defmodule StartupGameWeb.GameLive.Handlers.StreamHandler do
     # Check player mode to decide next step
     if socket_after_outcome.assigns.player_mode == :responding do
       # If responding, automatically request the next scenario
-      GameService.request_next_scenario_async(game_id)
-      # Update socket to reflect that we are now streaming the scenario
-      {:noreply, assign(socket_after_outcome, streaming: true, streaming_type: :scenario)}
+
+      case GameService.request_next_scenario_async(game_id) do
+        {:ok, stream_id} ->
+          {:noreply,
+           SocketAssignments.assign_streaming(socket_after_outcome, stream_id, :scenario)}
+
+        {:error, reason} ->
+          # Handle error in requesting next scenario
+          {:noreply,
+           Phoenix.LiveView.put_flash(socket_after_outcome, :error, "Error: #{inspect(reason)}")}
+      end
     else
       # If acting, do nothing further, player stays in control
       {:noreply, socket_after_outcome}

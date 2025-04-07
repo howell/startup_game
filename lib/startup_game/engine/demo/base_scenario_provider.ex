@@ -36,6 +36,7 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
   end
 
   alias StartupGame.Engine.Scenario
+  alias StartupGame.StreamingService
 
   @doc """
   Matches a user's text response to a specific choice.
@@ -128,10 +129,10 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
     Task.async(fn ->
       result = mod.get_next_scenario(game_state, current_scenario_id)
 
-      StartupGameWeb.Endpoint.broadcast(
-        "llm_stream:#{game_id}",
-        "llm_complete",
-        {:llm_complete, stream_id, {:ok, result}}
+      StreamingService.broadcast_complete(
+        game_id,
+        stream_id,
+        {:ok, result}
       )
     end)
 
@@ -147,10 +148,10 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
     Task.async(fn ->
       result = mod.generate_outcome(game_state, scenario, response_text)
 
-      StartupGameWeb.Endpoint.broadcast(
-        "llm_stream:#{game_id}",
-        "llm_complete",
-        {:llm_complete, stream_id, result}
+      StreamingService.broadcast_complete(
+        game_id,
+        stream_id,
+        result
       )
     end)
 

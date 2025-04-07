@@ -8,12 +8,39 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
 
   alias StartupGame.GameService
   alias StartupGame.Games
-  # alias StartupGame.StreamingService # Removed - not used directly here anymore
+  alias StartupGame.StreamingService
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
 
   @type socket :: Phoenix.LiveView.Socket.t()
 
-  # handle_play_response/2 removed as this logic is now handled directly in GameLive.Play
+  @doc """
+  Handles player responses during gameplay.
+  """
+  @spec handle_play_response(socket(), String.t()) :: {:noreply, socket()}
+  def handle_play_response(socket, response) do
+    game_id = socket.assigns.game_id
+
+    # Create a temporary round entry for the response
+    updated_round = Games.list_game_rounds(game_id) |> List.last() |> Map.put(:response, response)
+
+    # Start the async response processing
+    StreamingService.subscribe(game_id)
+
+    case GameService.process_player_input_async(game_id, response) do
+      {:ok, stream_id} ->
+        socket =
+          socket
+          |> SocketAssignments.assign_streaming(stream_id, :outcome)
+          |> assign(:response, "")
+          |> assign(:rounds, [updated_round])
+
+        {:noreply, socket}
+
+      {:error, reason} ->
+        StreamingService.unsubscribe(game_id)
+        ErrorHandler.handle_game_error(socket, :response_processing, reason)
+    end
+  end
 
   @doc """
   Handles provider preference changes during gameplay.
@@ -32,8 +59,9 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
         {:noreply,
          socket
          |> assign(:game, updated_game)
-         |> assign(:game_state, updated_game_state) # Update game_state as well
-          |> Phoenix.LiveView.put_flash(:info, "Scenario provider updated to #{provider_string}")}
+         # Update game_state as well
+         |> assign(:game_state, updated_game_state)
+         |> Phoenix.LiveView.put_flash(:info, "Scenario provider updated to #{provider_string}")}
 
       {:error, reason} ->
         ErrorHandler.handle_game_error(socket, :provider_change, reason)
@@ -83,7 +111,11 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
         {:noreply, socket}
 
       {:error, reason} ->
-        ErrorHandler.handle_game_error(socket, :general, "Error finalizing outcome: #{inspect(reason)}")
+        ErrorHandler.handle_game_error(
+          socket,
+          :general,
+          "Error finalizing outcome: #{inspect(reason)}"
+        )
     end
   end
 end

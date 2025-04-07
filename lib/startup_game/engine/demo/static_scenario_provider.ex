@@ -279,13 +279,15 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @impl true
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
-  def generate_outcome(_game_state, scenario, response_text) do
-    key = key_for(scenario)
+  def generate_outcome(game_state, scenario, response_text) do
+    current = scenario || List.last(game_state.rounds) |> scenario_for_round()
+
+    key = key_for(current)
     # Get the choices for this scenario
     choices = Map.get(@scenario_choices, key)
 
     # Use the base provider function
-    case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
+    case BaseScenarioProvider.match_response_to_choice(current, response_text, choices) do
       {:ok, choice_id} ->
         # Get the predefined outcome for this choice
         outcome = get_outcome_for_choice(key, choice_id)

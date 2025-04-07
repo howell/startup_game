@@ -18,8 +18,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
   attr :streaming_type, :atom, default: nil
   attr :partial_content, :string, default: ""
   attr :is_view_only, :boolean, default: false
-  attr :player_mode, :atom, required: true # Added
-  attr :game_state, :map, required: true # Added
+  attr :player_mode, :atom, required: true
 
   def chat_interface(assigns) do
     ~H"""
@@ -32,7 +31,6 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           streaming_type={@streaming_type}
           partial_content={@partial_content}
           player_mode={@player_mode}
-          game_state={@game_state}
         />
       </div>
 
@@ -58,7 +56,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
               <!-- Mode Switching Buttons -->
               <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
                 <button
-                  :if={@player_mode == :responding and @game_state.current_scenario_data}
+                  :if={@player_mode == :responding}
                   phx-click="take_initiative"
                   class="silly-button-secondary px-3 py-1"
                   disabled={@streaming}
@@ -74,11 +72,11 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                   Await Next Situation
                 </button>
               </div>
-
-              <!-- Response Input Form -->
+              
+    <!-- Response Input Form -->
               <ResponseForm.response_form
                 placeholder={
-                  if @player_mode == :responding and @game_state.current_scenario_data,
+                  if @player_mode == :responding,
                     do: "Respond to the situation above...",
                     else: "What action will you take?"
                 }

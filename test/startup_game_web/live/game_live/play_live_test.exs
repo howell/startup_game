@@ -5,6 +5,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
   import StartupGame.GamesFixtures
 
   alias StartupGame.Games
+  alias StartupGame.StreamingService
 
   describe "Play LiveView - mount" do
     setup :register_and_log_in_user
@@ -25,7 +26,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     test "redirects to games index when game doesn't exist", %{conn: conn} do
       non_existent_id = "00000000-0000-0000-0000-000000000000"
 
-      assert {:error, {:redirect, %{to: "/games", flash: %{"error" => "Game not found"}}}} =
+      assert {:error, {:redirect, %{to: "/games"}}} =
                live(conn, ~p"/games/play/#{non_existent_id}")
     end
   end
@@ -37,8 +38,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, view, _html} = live(conn, ~p"/games/play")
 
       # Initial state should be name input
-      assert render(view) =~ "What would you like to name your company?"
-      refute render(view) =~ "Please provide a brief description"
+      assert render(view) =~ "What would you like to call your company?"
+      refute render(view) =~ "Provide a brief description"
 
       # Submit a company name
       view
@@ -46,8 +47,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       |> render_submit()
 
       # Should transition to description input
-      assert render(view) =~ "Please provide a brief description of what Test Company does"
-      assert render(view) =~ "Test Company"
+      assert render(view) =~
+               "Now, tell us what Test Company does. Provide a brief description of your startup"
     end
 
     test "submitting a company description creates a new game", %{conn: conn} do
@@ -103,8 +104,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       for round <- rounds do
         assert html =~ round.situation
 
-        if round.response do
-          assert html =~ round.response
+        if round.player_input do
+          assert html =~ round.player_input
         end
 
         if round.outcome do
@@ -152,10 +153,11 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
     test "shows input form for in-progress games", %{conn: conn, user: user} do
       game = game_fixture(%{status: :in_progress}, user)
+      Games.create_round(%{game_id: game.id, situation: "Test situation"})
 
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
-      assert html =~ "How do you want to respond?"
+      assert html =~ "Respond to the situation"
       assert html =~ "hero-paper-airplane"
     end
 
@@ -213,24 +215,30 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
     test "submitting a response creates a new round", %{conn: conn, user: user} do
       game = game_fixture(%{start?: true}, user)
+
+      Games.create_round(%{
+        game_id: game.id,
+        situation: "An angel investor offers $100,000 for 15% of your company."
+      })
+
       assert length(Games.list_game_rounds(game.id)) == 1
 
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
-      StartupGameWeb.Endpoint.subscribe("llm_stream:#{game.id}")
+      StreamingService.subscribe(game.id)
 
       view
       |> form("form[phx-submit='submit_response']", %{response: "accept"})
       |> render_submit()
 
-      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, _}} = _msg
+      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, _}}
       html = render(view)
       assert html =~ "accept"
 
       updated_rounds = Games.list_game_rounds(game.id)
       assert length(updated_rounds) >= 1
       first_round = List.first(updated_rounds)
-      assert first_round.response == "accept"
+      assert first_round.player_input == "accept"
 
       assert_receive %{event: "llm_complete", payload: _} = _msg, 100
 
@@ -245,12 +253,13 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _pid} = StartupGame.Mocks.LLM.MockStreamingAdapter.start_link()
 
       # Create a game with a provider that will use our mock adapter
-      game = game_fixture(%{start?: true}, user)
+      game = game_fixture(%{}, user)
 
+      StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Subscribe to the streaming topic
-      StartupGameWeb.Endpoint.subscribe("llm_stream:#{game.id}")
+      assert_receive %{event: "llm_complete", payload: {:llm_complete, _, {:ok, _scenario}}}, 500
 
       # Get the initial situation
       initial_html = render(view)
@@ -263,6 +272,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       view
       |> form("form[phx-submit='submit_response']", %{response: response_text})
       |> render_submit()
+
+      assert render(view) =~ response_text
 
       # Then outcome completion
       assert_receive %{
@@ -288,7 +299,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
                        event: "llm_complete",
                        payload: {:llm_complete, new_stream_id, {:ok, _scenario}}
                      },
-                     1000
+                     100
 
       # Should be a different stream ID
       refute new_stream_id == stream_id
@@ -301,7 +312,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
     end
 
     test "submitting an empty response does nothing", %{conn: conn, user: user} do
-      game = game_fixture(%{start?: true}, user)
+      game = game_fixture(%{start?: true, player_mode: :acting}, user)
       initial_rounds_count = length(Games.list_game_rounds(game.id))
 
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
@@ -371,41 +382,65 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
     test "starts async recovery when round has response but no outcome", %{conn: conn, user: user} do
       # Create a game with a round that has a response but no outcome
-      game = game_fixture(%{start?: true}, user)
+      game = game_fixture(%{player_mode: :responding}, user)
 
-      # Update the last round to have a response but no outcome
-      round = List.last(Games.list_game_rounds(game.id))
-
-      {:ok, _} =
-        Games.update_round(round, %{
-          response: "accept",
-          outcome: nil
-        })
+      Games.create_round(%{
+        game_id: game.id,
+        situation: "An angel investor offers $100,000 for 15% of your company.",
+        player_input: "accept",
+        outcome: nil
+      })
 
       # Connect to the LiveView
+      StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Verify recovery message is shown
-      assert render(view) =~ "Recovering your previous session"
+      assert render(view) =~ "Resuming game"
 
-      # We can't directly access view.assigns in LiveViewTest, but we can verify
-      # that the streaming UI elements are present
-      html = render(view)
-      assert html =~ "Recovering your previous session"
+      assert_received(%{
+        event: "llm_complete",
+        payload: {:llm_complete, _, {:ok, _}}
+      })
+
+      assert render(view) =~ "You accept the offer and receive the investment"
     end
 
-    test "generates next scenario when all rounds complete", %{conn: conn, user: user} do
+    test "generates initial scenario if not present and player is responding", %{
+      conn: conn,
+      user: user
+    } do
       # Create a game with all rounds complete but no current scenario
-      game = game_fixture(%{start?: true}, user)
+      game = game_fixture(%{player_mode: :responding}, user)
 
-      Games.update_round(hd(game.rounds), %{response: "accept", outcome: "Test outcome"})
-
-      # Connect to the LiveView
+      StreamingService.subscribe(game.id)
       {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
 
       assert_receive(%{event: "llm_complete", payload: {:llm_complete, _, {:ok, _}}})
       # Verify recovery happened
-      assert render(view) =~ "You need to hire a key employee"
+      assert render(view) =~ "An angel investor offers $100,000 for 15% of your company."
+    end
+
+    test "generates next scenario when all rounds complete and player is responding", %{
+      conn: conn,
+      user: user
+    } do
+      # Create a game with all rounds complete but no current scenario
+      game = game_fixture(%{player_mode: :responding}, user)
+
+      Games.create_round(%{
+        game_id: game.id,
+        situation: "An angel investor offers $100,000 for 15% of your company.",
+        player_input: "accept",
+        outcome: "outcome"
+      })
+
+      StreamingService.subscribe(game.id)
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      assert_receive(%{event: "llm_complete", payload: {:llm_complete, _, {:ok, _}}})
+      # Verify recovery happened
+      assert render(view) =~ "You need to hire a key employee."
     end
   end
 end

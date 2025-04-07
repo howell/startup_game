@@ -463,12 +463,8 @@ defmodule StartupGame.GameService do
   defp save_last_round(multi, _game, %GameState{rounds: []}), do: multi
 
   defp save_last_round(multi, game, game_state) do
-    # Find the corresponding DB round record for the last round in game_state
+    round_record = List.last(game.rounds)
     last_gs_round = List.last(game_state.rounds)
-    # Assuming scenario_id format "round_DB_ID"
-    db_round_id = String.trim_leading(last_gs_round.scenario_id, "round_")
-
-    round_record = Enum.find(game.rounds, fn r -> r.id == db_round_id end)
 
     # If we found the matching DB round (should always happen if state is consistent)
     if round_record do

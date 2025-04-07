@@ -10,7 +10,7 @@ defmodule StartupGameWeb.GameLive.Play do
   alias StartupGameWeb.GameLive.Components.{GameCreationComponent, GamePlayComponent}
   alias StartupGameWeb.GameLive.Handlers.{CreationHandler, PlayHandler, StreamHandler}
   alias StartupGameWeb.GameLive.Helpers.SocketAssignments
-  alias StartupGame.GameService # Added
+  alias StartupGame.GameService
 
   @type t :: Phoenix.LiveView.Socket.t()
 
@@ -45,7 +45,11 @@ defmodule StartupGameWeb.GameLive.Play do
   @impl true
   @spec handle_params(map(), String.t(), t()) :: {:noreply, t()}
   def handle_params(%{"id" => id}, _uri, socket) do
-    CreationHandler.handle_existing_game(socket, id)
+    if connected?(socket) do
+      CreationHandler.handle_existing_game(socket, id)
+    else
+      {:noreply, socket}
+    end
   end
 
   @impl true
@@ -74,7 +78,6 @@ defmodule StartupGameWeb.GameLive.Play do
         <% :playing -> %>
           <GamePlayComponent.game_play
             game={@game}
-            game_state={@game_state}
             rounds={@rounds}
             ownerships={@ownerships}
             response={@response}
@@ -100,15 +103,7 @@ defmodule StartupGameWeb.GameLive.Play do
         CreationHandler.handle_description_input(socket, response)
 
       :playing ->
-        # Call GameService directly to process input asynchronously
-        case GameService.process_player_input_async(socket.assigns.game.id, response) do
-          {:ok, _stream_id} ->
-            # Clear response field, set streaming state
-            assign(socket, response: "", streaming: true, streaming_type: :outcome)
-
-          {:error, reason} ->
-            put_flash(socket, :error, "Error processing input: #{reason}")
-        end
+        PlayHandler.handle_play_response(socket, response)
     end
   end
 
@@ -155,7 +150,6 @@ defmodule StartupGameWeb.GameLive.Play do
     # Update mode locally and in DB
     socket = assign(socket, player_mode: :acting)
     # Clear current scenario visually immediately using full module name
-    socket = update(socket, :game_state, &StartupGame.Engine.clear_current_scenario/1)
     GameService.update_player_mode(socket.assigns.game.id, "acting")
     {:noreply, socket}
   end

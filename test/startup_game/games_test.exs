@@ -754,19 +754,24 @@ defmodule StartupGame.GamesTest do
             {user3, "Company C", "1000000"}
           ] do
         game =
-          game_fixture(%{
-            name: name,
-            exit_type: :acquisition,
-            exit_value: Decimal.new(value),
-            is_public: true,
-            is_leaderboard_eligible: true,
-            status: :completed,
-            user_id: user.id
-          })
+          game_fixture_with_ownership(
+            %{
+              name: name,
+              exit_type: :acquisition,
+              exit_value: Decimal.new(value),
+              percentage: Decimal.new("50.0"),
+              is_public: true,
+              is_leaderboard_eligible: true,
+              status: :completed
+            },
+            user
+          )
 
         _round = round_fixture(%{game: game})
-        ownership_fixture(%{game: game, entity_name: "Founder", percentage: Decimal.new("50.0")})
       end
+
+      # not sure if this is necessary for the next query to always work
+      Process.sleep(50)
 
       # Get leaderboard data with limit of 2
       entries = Games.list_leaderboard_data(%{limit: 2})

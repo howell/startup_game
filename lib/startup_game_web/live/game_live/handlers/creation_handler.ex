@@ -119,7 +119,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
 
         # Recovery check for game in progress
         socket =
-          if game_state.status == :in_progress do
+          if game_state.status == :in_progress && !socket.assigns.streaming do
             check_game_state_consistency(socket)
           else
             socket
@@ -195,7 +195,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
 
   @spec needs_scenario_recovery?(StartupGame.Games.Game.t(), Round.t() | nil) :: boolean()
   # No rounds yet
-  defp needs_scenario_recovery?(_game, nil), do: false
+  defp needs_scenario_recovery?(game, nil), do: game.current_player_mode == :responding
 
   defp needs_scenario_recovery?(game, last_round) do
     # Needs recovery if last round is complete, game is in progress, and mode is responding
@@ -213,11 +213,11 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
         socket
         # Set streaming type
         |> SocketAssignments.assign_streaming(stream_id, :outcome)
-        |> Phoenix.LiveView.put_flash(:info, "Recovering previous outcome...")
+        |> Phoenix.LiveView.put_flash(:info, "Resuming game...")
 
       {:error, reason} ->
         socket
-        |> Phoenix.LiveView.put_flash(:error, "Error recovering outcome: #{inspect(reason)}")
+        |> Phoenix.LiveView.put_flash(:error, "Error resuming game: #{inspect(reason)}")
     end
   end
 
@@ -232,13 +232,13 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
         socket
         # Set streaming type
         |> SocketAssignments.assign_streaming(stream_id, :scenario)
-        |> Phoenix.LiveView.put_flash(:info, "Generating next scenario...")
+        |> Phoenix.LiveView.put_flash(:info, "Resuming game...")
 
       {:error, reason} ->
         socket
         |> Phoenix.LiveView.put_flash(
           :error,
-          "Error generating next scenario: #{inspect(reason)}"
+          "Error resuming game: #{inspect(reason)}"
         )
     end
   end
