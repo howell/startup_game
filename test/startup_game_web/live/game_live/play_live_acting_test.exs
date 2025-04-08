@@ -1,9 +1,10 @@
 defmodule StartupGameWeb.GameLive.PlayLiveActingTest do
+  alias StartupGame.StreamingService
   use StartupGameWeb.ConnCase
 
   import Phoenix.LiveViewTest
-  import StartupGame.GamesFixtures
   import StartupGame.Test.Helpers.Streaming
+  alias StartupGame.StreamingService
 
   alias StartupGame.Games
 
@@ -24,6 +25,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveActingTest do
     |> render_click()
   end
 
+  defp get_game_id_from_path(path), do: Path.basename(path)
+
   describe "Create a game in acting mode" do
     setup :register_and_log_in_user
 
@@ -36,15 +39,14 @@ defmodule StartupGameWeb.GameLive.PlayLiveActingTest do
       # Select "Start by taking initiative" mode
       select_acting_mode(view)
 
-      # Submit company name
-      rendered = create_game(view)
+      create_game(view)
 
       # Should redirect to the game page
       path = assert_patch(view)
       assert path =~ ~r|games/play/.*|
 
       # Extract game ID from path
-      game_id = Path.basename(path)
+      game_id = get_game_id_from_path(path)
 
       # Verify the game was created in acting mode
       game = Games.get_game!(game_id)
@@ -61,7 +63,10 @@ defmodule StartupGameWeb.GameLive.PlayLiveActingTest do
       select_acting_mode(view)
 
       # Submit company name
-      rendered = create_game(view)
+      create_game(view)
+      path = assert_patch(view)
+      game_id = get_game_id_from_path(path)
+      StreamingService.subscribe(game_id)
 
       rendered = submit_response(view, "Find an investor")
 

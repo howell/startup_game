@@ -9,7 +9,7 @@ defmodule StartupGame.GameService do
   alias StartupGame.Engine.Scenario
   alias StartupGame.Engine
   alias StartupGame.Games
-  alias StartupGame.Games.Game
+  alias StartupGame.Games.{Game, Round}
   alias StartupGame.Accounts.User
   alias StartupGame.Engine.GameState
   require Logger
@@ -182,27 +182,60 @@ defmodule StartupGame.GameService do
 
   @doc """
   Asynchronously processes a player input by streaming the LLM results for the outcome.
-  Returns immediately with a stream_id that can be used to track progress.
+  Returns immediately with a stream_id that can be used to track progress and the Round
+  that the input corresponds to.
 
   The LiveView can subscribe to "llm_stream:{game_id}" to receive updates.
   """
   @spec process_player_input_async(Ecto.UUID.t(), String.t()) ::
-          {:ok, String.t()} | {:error, any()}
+          {:ok, String.t(), Round.t()} | {:error, any()}
   def process_player_input_async(game_id, player_input) do
-    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
-      # Update the last round record with the player's input *before* starting async
-      last_round = List.last(game.rounds)
-      Games.update_round(last_round, %{player_input: player_input})
+    with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id),
+         {:ok, round} <- persist_player_input(game, player_input),
+         provider = determine_provider(game),
+         scenario_context = game_state.current_scenario_data,
+         {:ok, stream_id} <-
+           provider.generate_outcome_async(
+             game_state,
+             game_id,
+             scenario_context,
+             player_input
+           ) do
+      {:ok, stream_id, round}
+    else
+      {:error, reason} ->
+        # Log the error or handle it as needed
+        Logger.error("Failed to persist player input for game #{game_id}: #{inspect(reason)}")
+        {:error, reason}
+    end
+  end
 
-      provider = determine_provider(game)
+  # Helper function to persist player input based on mode
+  defp persist_player_input(%Game{} = game, player_input) do
+    case game.current_player_mode do
+      :responding ->
+        # Find the last round and update it
+        case List.last(game.rounds) do
+          %Games.Round{} = last_round ->
+            Games.update_round(last_round, %{player_input: player_input})
 
-      # Call the provider, passing the current scenario (which might be nil)
-      provider.generate_outcome_async(
-        game_state,
-        game_id,
-        game_state.current_scenario_data,
-        player_input
-      )
+          nil ->
+            # This shouldn't happen in responding mode if logic is correct
+            Logger.error(
+              "Attempted to update player input in :responding mode, but no last round found for game #{game.id}"
+            )
+
+            {:error, :no_round_found_in_responding_mode}
+        end
+
+      :acting ->
+        # Create a new round
+        Games.create_round(%{
+          game_id: game.id,
+          player_input: player_input,
+          # No preceding situation in acting mode
+          situation: nil
+        })
     end
   end
 

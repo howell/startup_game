@@ -18,21 +18,17 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
   """
   @spec handle_play_response(socket(), String.t()) :: {:noreply, socket()}
   def handle_play_response(socket, response) do
-    game_id = socket.assigns.game_id
+    game_id = socket.assigns.game.id
 
-    # Create a temporary round entry for the response
-    updated_round = Games.list_game_rounds(game_id) |> List.last() |> Map.put(:response, response)
-
-    # Start the async response processing
     StreamingService.subscribe(game_id)
 
     case GameService.process_player_input_async(game_id, response) do
-      {:ok, stream_id} ->
+      {:ok, stream_id, round} ->
         socket =
           socket
           |> SocketAssignments.assign_streaming(stream_id, :outcome)
           |> assign(:response, "")
-          |> assign(:rounds, [updated_round])
+          |> assign(:rounds, [round])
 
         {:noreply, socket}
 

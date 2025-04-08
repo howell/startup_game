@@ -75,7 +75,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
         <%= for i <- 1..3 do %>
           <%= if Enum.at(@rounds, -i) do %>
             <% round = Enum.at(@rounds, -i) %>
-            <div class="text-sm bg-white bg-opacity-50 rounded-lg p-2 flex items-start">
+            <div
+              :if={round.situation}
+              class="text-sm bg-white bg-opacity-50 rounded-lg p-2 flex items-start"
+            >
               <div class="bg-silly-blue/10 rounded-full p-1 mr-2 mt-0.5">
                 <.icon name="hero-star" class="h-3 w-3 text-silly-blue" />
               </div>
