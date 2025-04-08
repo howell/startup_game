@@ -295,7 +295,7 @@ defmodule StartupGame.GamesTest do
 
     test "update_round/2 with invalid data returns error changeset" do
       round = round_fixture()
-      assert {:error, %Ecto.Changeset{}} = Games.update_round(round, %{situation: nil})
+      assert {:error, %Ecto.Changeset{}} = Games.update_round(round, %{situation: 578})
       assert round.id == Games.get_round!(round.id).id
     end
 

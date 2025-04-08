@@ -13,7 +13,7 @@ defmodule StartupGame.Games.Round do
 
   @type t :: %__MODULE__{
           id: Ecto.UUID.t(),
-          situation: String.t(),
+          situation: String.t() | nil,
           player_input: String.t() | nil,
           outcome: String.t() | nil,
           cash_change: Decimal.t(),
@@ -51,6 +51,6 @@ defmodule StartupGame.Games.Round do
       :burn_rate_change,
       :game_id
     ])
-    |> validate_required([:situation, :game_id])
+    |> validate_required([:game_id])
   end
 end
