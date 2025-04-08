@@ -55,6 +55,14 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
     ]
   }
 
+  @active_player_outcome %{
+    text: "Great idea!",
+    cash_change: Decimal.new("1000.00"),
+    burn_rate_change: Decimal.new("0.00"),
+    ownership_changes: [],
+    exit_type: :none
+  }
+
   # Outcomes for each scenario and choice
   @scenario_outcomes %{
     "angel_investment" => %{
@@ -280,13 +288,36 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
   def generate_outcome(game_state, scenario, response_text) do
-    current = scenario || List.last(game_state.rounds) |> scenario_for_round()
+    current = current_scenario(game_state, scenario)
 
-    key = key_for(current)
+    if current do
+      scenario_outcome(current, response_text)
+    else
+      {:ok, @active_player_outcome}
+    end
+  end
+
+  @spec current_scenario(GameState.t(), Scenario.t() | nil) :: Scenario.t() | nil
+  defp current_scenario(game_state, nil) do
+    last = List.last(game_state.rounds)
+
+    if last && last.situation do
+      scenario_for_round(last)
+    else
+      nil
+    end
+  end
+
+  defp current_scenario(_game_state, scenario), do: scenario
+
+  @spec scenario_outcome(Scenario.t(), String.t()) ::
+          {:ok, Scenario.outcome()} | {:error, String.t()}
+  defp scenario_outcome(scenario, response_text) do
+    key = key_for(scenario)
     # Get the choices for this scenario
     choices = Map.get(@scenario_choices, key)
 
-    case BaseScenarioProvider.match_response_to_choice(current, response_text, choices) do
+    case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
       {:ok, choice_id} ->
         # Get the predefined outcome for this choice
         outcome = get_outcome_for_choice(key, choice_id)
