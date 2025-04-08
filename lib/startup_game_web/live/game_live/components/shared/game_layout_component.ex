@@ -31,12 +31,12 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
         </div>
         
     <!-- Mobile game state panel (toggleable) -->
-        <div class={if @is_mobile_state_visible, do: "block w-full", else: "hidden"}>
+        <div :if={@is_mobile_state_visible} class="block w-full">
           {render_slot(@mobile_state_panel)}
         </div>
         
     <!-- Content area -->
-        <div class={"flex-1 border border-b border-gray-200 #{if @is_mobile_state_visible, do: "hidden", else: "block"}"}>
+        <div :if={!@is_mobile_state_visible} class="flex-1 border border-b border-gray-200 block">
           {render_slot(@content_area)}
         </div>
       </div>
