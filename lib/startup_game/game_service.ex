@@ -323,11 +323,6 @@ defmodule StartupGame.GameService do
     end
   end
 
-  # recover_next_scenario_async/1 removed - recovery handled by LiveView calling request_next_scenario_async
-
-  # handle_progress/2 removed - logic moved to LiveView StreamHandler
-  # start_next_round/2 removed - logic moved to LiveView StreamHandler and request_next_scenario_async
-
   @doc """
   Updates the player mode for a given game.
   """
@@ -337,7 +332,7 @@ defmodule StartupGame.GameService do
     # Ensure mode is an atom for DB update if it's a string
     mode_atom = if is_binary(new_mode), do: String.to_existing_atom(new_mode), else: new_mode
 
-    with %Games.Game{} = game <- Games.get_game!(game_id) do
+    with %Games.Game{} = game <- Games.get_game_with_associations!(game_id) do
       Games.update_game(game, %{current_player_mode: mode_atom})
     end
   end

@@ -10,6 +10,7 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
   alias StartupGame.Games
   alias StartupGame.StreamingService
   alias StartupGameWeb.GameLive.Helpers.{SocketAssignments, ErrorHandler}
+  alias StartupGameWeb.GameLive.Handlers.CreationHandler
 
   @type socket :: Phoenix.LiveView.Socket.t()
 
@@ -133,6 +134,25 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
           |> SocketAssignments.assign_streaming(stream_id, :scenario)
 
         {:noreply, socket}
+
+      {:error, reason} ->
+        ErrorHandler.handle_game_error(socket, :general, reason)
+    end
+  end
+
+  @doc """
+  Handles switching the player mode.
+  """
+  @spec handle_switch_player_mode(socket(), String.t()) :: {:noreply, socket()}
+  def handle_switch_player_mode(socket, player_mode) do
+    game_id = socket.assigns.game.id
+
+    case GameService.update_player_mode(game_id, player_mode) do
+      {:ok, updated_game} ->
+        require Logger
+        Logger.debug("Updated game:\n\n#{inspect(updated_game, pretty: true)}")
+        socket = assign(socket, game: updated_game)
+        {:noreply, CreationHandler.check_game_state_consistency(socket)}
 
       {:error, reason} ->
         ErrorHandler.handle_game_error(socket, :general, reason)

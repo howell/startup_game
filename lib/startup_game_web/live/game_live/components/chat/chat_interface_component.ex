@@ -55,22 +55,26 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
             <div class="mx-auto w-full space-y-3">
               <!-- Mode Switching Buttons -->
               <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
-                <button
-                  :if={@player_mode == :responding}
-                  phx-click="take_initiative"
-                  class="silly-button-secondary px-3 py-1"
-                  disabled={@streaming}
-                >
-                  Take Initiative Instead
-                </button>
-                <button
-                  :if={@player_mode == :acting}
-                  phx-click="await_situation"
-                  class="silly-button-secondary px-3 py-1"
-                  disabled={@streaming}
-                >
-                  Await Next Situation
-                </button>
+                <form>
+                  <button
+                    :if={@player_mode == :responding}
+                    phx-click="switch_player_mode"
+                    phx-value-player_mode="acting"
+                    class="silly-button-secondary px-3 py-1"
+                    disabled={@streaming}
+                  >
+                    Take Initiative Instead
+                  </button>
+                  <button
+                    :if={@player_mode == :acting}
+                    phx-click="switch_player_mode"
+                    phx-value-player_mode="responding"
+                    class="silly-button-secondary px-3 py-1"
+                    disabled={@streaming}
+                  >
+                    Await Next Situation
+                  </button>
+                </form>
               </div>
               
     <!-- Response Input Form -->

@@ -10,7 +10,6 @@ defmodule StartupGameWeb.GameLive.Play do
   alias StartupGameWeb.GameLive.Components.{GameCreationComponent, GamePlayComponent}
   alias StartupGameWeb.GameLive.Handlers.{CreationHandler, PlayHandler, StreamHandler}
   alias StartupGameWeb.GameLive.Helpers.SocketAssignments
-  alias StartupGame.GameService
 
   @type t :: Phoenix.LiveView.Socket.t()
 
@@ -152,21 +151,8 @@ defmodule StartupGameWeb.GameLive.Play do
   end
 
   @impl true
-  def handle_event("take_initiative", _, socket) do
-    # Update mode locally and in DB
-    socket = assign(socket, player_mode: :acting)
-    # Clear current scenario visually immediately using full module name
-    GameService.update_player_mode(socket.assigns.game.id, "acting")
-    {:noreply, socket}
-  end
-
-  @impl true
-  def handle_event("await_situation", _, socket) do
-    # Update mode locally and in DB, request next scenario
-    socket = assign(socket, player_mode: :responding, streaming: true, streaming_type: :scenario)
-    GameService.update_player_mode(socket.assigns.game.id, "responding")
-    GameService.request_next_scenario_async(socket.assigns.game.id)
-    {:noreply, socket}
+  def handle_event("switch_player_mode", %{"player_mode" => player_mode}, socket) do
+    PlayHandler.handle_switch_player_mode(socket, player_mode)
   end
 
   # Info handlers delegate to the StreamHandler
