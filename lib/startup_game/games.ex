@@ -392,6 +392,7 @@ defmodule StartupGame.Games do
     Round
     |> where([r], r.game_id == ^game_id)
     |> order_by([r], asc: r.inserted_at)
+    |> preload([:ownership_changes])
     |> Repo.all()
   end
 

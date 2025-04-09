@@ -159,11 +159,6 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   @spec handle_initial_mode_change(socket(), String.t()) :: {:noreply, socket()}
   def handle_initial_mode_change(socket, mode) do
     initial_mode = String.to_existing_atom(mode)
-    require Logger
-
-    Logger.debug(
-      "Initial player mode changed from #{inspect(socket.assigns.initial_player_mode)} to #{inspect(initial_mode)}"
-    )
 
     {:noreply, assign(socket, :initial_player_mode, initial_mode)}
   end

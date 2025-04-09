@@ -5,6 +5,8 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
   """
   use Phoenix.Component
   alias StartupGameWeb.GameLive.Components.Shared.MessageBubble
+  alias StartupGameWeb.GameLive.Helpers.GameFormatters
+  alias StartupGameWeb.CoreComponents
 
   @doc """
   Renders the chat history with messages, responses, and outcomes.
@@ -52,6 +54,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
             timestamp={round.updated_at}
           />
         <% end %>
+        <.round_state_changes round={round} />
       <% end %>
 
       <%= if @streaming and @partial_content != "" do %>
@@ -73,4 +76,80 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
   defp message_type_for_streaming(:scenario), do: :system
   defp message_type_for_streaming(:outcome), do: :outcome
   defp message_type_for_streaming(_), do: :system
+
+  # Renders the state changes that occurred during a round.
+  attr :round, :map, required: true
+
+  defp round_state_changes(assigns) do
+    round = assigns.round
+    cash_change = format_change(round.cash_change, "Cash", "hero-banknotes")
+    burn_rate_change = format_change(round.burn_rate_change, "Burn Rate", "hero-fire", "/mo")
+
+    ownership_changes = if is_list(round.ownership_changes), do: round.ownership_changes, else: []
+
+    has_changes? =
+      !is_nil(cash_change) || !is_nil(burn_rate_change) || !Enum.empty?(ownership_changes)
+
+    assigns =
+      assign(assigns,
+        cash_change: cash_change,
+        burn_rate_change: burn_rate_change,
+        ownership_changes: ownership_changes,
+        has_changes?: has_changes?
+      )
+
+    render_round_state_changes(assigns)
+  end
+
+  defp render_round_state_changes(assigns) do
+    ~H"""
+    <div
+      :if={@has_changes?}
+      class="ml-12 mt-2 mb-4 text-sm text-foreground/70 flex flex-col md:flex-row md:items-center gap-4"
+    >
+      <%= if @cash_change do %>
+        <div class="flex items-center">
+          <CoreComponents.icon name={elem(@cash_change, 0)} class="h-3 w-3 text-silly-success" />
+          <span>{elem(@cash_change, 1)}</span>
+        </div>
+      <% end %>
+      <%= if @burn_rate_change do %>
+        <div class="flex items-center">
+          <CoreComponents.icon name={elem(@burn_rate_change, 0)} class="h-3 w-3 text-silly-accent" />
+          <span>{elem(@burn_rate_change, 1)}</span>
+        </div>
+      <% end %>
+      <%= for change <- @ownership_changes do %>
+        <div class="flex items-center">
+          <CoreComponents.icon name="hero-user-plus" class="h-3 w-3 text-silly-blue" />
+          <span>
+            {change.entity_name}: {change.previous_percentage}%
+            <.ownership_change_icon previous={change.previous_percentage} new={change.new_percentage} /> {change.new_percentage}%
+          </span>
+        </div>
+      <% end %>
+    </div>
+    """
+  end
+
+  # Helper to format a numeric change with prefix, icon, and suffix
+  defp format_change(value, label, icon_name, suffix \\ "") do
+    if value && !Decimal.equal?(value, Decimal.new(0)) do
+      prefix = if Decimal.gt?(value, 0), do: "+", else: ""
+      formatted_value = GameFormatters.format_money(value)
+      {icon_name, "#{label}: #{prefix}#{formatted_value}#{suffix}"}
+    else
+      nil
+    end
+  end
+
+  defp ownership_change_icon(assigns) do
+    ~H"""
+    <%= if Decimal.gt?(@new, @previous) do %>
+      <CoreComponents.icon name="hero-arrow-trending-up" class="h-3 w-3 text-silly-success" />
+    <% else %>
+      <CoreComponents.icon name="hero-arrow-trending-down" class="h-3 w-3 text-silly-accent" />
+    <% end %>
+    """
+  end
 end
