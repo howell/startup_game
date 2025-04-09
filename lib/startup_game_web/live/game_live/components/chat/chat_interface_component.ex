@@ -63,7 +63,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                     class="silly-button-secondary px-3 py-1"
                     disabled={@streaming}
                   >
-                    Take Initiative Instead
+                    Take the Wheel!
                   </button>
                   <button
                     :if={@player_mode == :acting}
@@ -72,7 +72,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                     class="silly-button-secondary px-3 py-1"
                     disabled={@streaming}
                   >
-                    Await Next Situation
+                    Bezos Take the Wheel!
                   </button>
                 </form>
               </div>
