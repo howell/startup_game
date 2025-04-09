@@ -7,6 +7,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
   alias StartupGameWeb.GameLive.Components.Shared.ResponseForm
   alias StartupGameWeb.GameLive.Components.Shared.ProviderSelector
   alias StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent
+  alias StartupGameWeb.GameLive.Components.Shared.Tooltips
 
   @doc """
   Renders the game creation interface for collecting company name and description.
@@ -129,7 +130,9 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
                   checked={@initial_player_mode == :responding}
                   class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
                 />
-                <span class="text-sm">Start with a situation (Recommended)</span>
+                <span class="text-sm">
+                  Start with a situation (Recommended)<Tooltips.take_the_wheel />
+                </span>
               </label>
               <label class="flex items-center space-x-2 cursor-pointer">
                 <input
@@ -140,7 +143,9 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
                   checked={@initial_player_mode == :acting}
                   class="h-4 w-4 text-silly-blue focus:ring-silly-blue"
                 />
-                <span class="text-sm">Start by taking initiative</span>
+                <span class="text-sm">
+                  Start by taking initiative<Tooltips.release_the_wheel />
+                </span>
               </label>
             </div>
           </form>

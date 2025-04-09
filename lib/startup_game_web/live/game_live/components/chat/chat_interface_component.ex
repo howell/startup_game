@@ -6,6 +6,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
 
   alias StartupGameWeb.GameLive.Components.Shared.ChatHistory
   alias StartupGameWeb.GameLive.Components.Shared.ResponseForm
+  alias StartupGameWeb.GameLive.Components.Shared.Tooltips
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
 
   @doc """
@@ -63,7 +64,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                     class="silly-button-secondary px-3 py-1"
                     disabled={@streaming}
                   >
-                    Take the Wheel!
+                    Take the Wheel!<Tooltips.take_the_wheel />
                   </button>
                   <button
                     :if={@player_mode == :acting}
@@ -72,7 +73,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                     class="silly-button-secondary px-3 py-1"
                     disabled={@streaming}
                   >
-                    Bezos Take the Wheel!
+                    Bezos Take the Wheel!<Tooltips.release_the_wheel />
                   </button>
                 </form>
               </div>
