@@ -23,6 +23,11 @@ defmodule StartupGame.Release do
     Mix.Tasks.Game.CreateCaseStudies.run([])
   end
 
+  def set_admin_role(email) do
+    load_app()
+    Mix.Tasks.Users.SetRole.run([email, "admin"])
+  end
+
   @doc """
   Updates the founder_return field for all completed games.
 
