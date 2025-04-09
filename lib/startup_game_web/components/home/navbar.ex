@@ -31,28 +31,16 @@ defmodule StartupGameWeb.Components.Home.Navbar do
         <nav class="hidden md:flex items-center gap-8">
           <%= if @is_home_page do %>
             <!-- Home Page Navigation -->
-            <a
-              href="#how-it-works"
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
+            <a href="#how-it-works" class={link_style()}>
               How It Works
             </a>
-            <a
-              href="#features"
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
+            <a href="#features" class={link_style()}>
               Features
             </a>
-            <a
-              href="#leaderboard"
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
+            <a href="#leaderboard" class={link_style()}>
               Leaderboard
             </a>
-            <a
-              href="#testimonials"
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-            >
+            <a href="#testimonials" class={link_style()}>
               Testimonials
             </a>
 
@@ -68,41 +56,28 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <% else %>
             <!-- Main Site Navigation -->
             <%= if @current_user do %>
-              <.link
-                navigate={~p"/"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <%= if @current_user.role == :admin do %>
+                <.link navigate={~p"/admin"} class={link_style()}>
+                  Admin
+                </.link>
+              <% end %>
+              <.link navigate={~p"/"} class={link_style()}>
                 Home
               </.link>
-              <.link
-                navigate={~p"/games"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <.link navigate={~p"/games"} class={link_style()}>
                 Portfolio
               </.link>
-              <.link
-                navigate={~p"/games/play"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <.link navigate={~p"/games/play"} class={link_style()}>
                 New Venture
               </.link>
-              <.link
-                navigate={~p"/leaderboard"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <.link navigate={~p"/leaderboard"} class={link_style()}>
                 Leaderboard
               </.link>
             <% else %>
-              <.link
-                navigate={~p"/"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <.link navigate={~p"/"} class={link_style()}>
                 Home
               </.link>
-              <.link
-                navigate={~p"/leaderboard"}
-                class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-              >
+              <.link navigate={~p"/leaderboard"} class={link_style()}>
                 Leaderboard
               </.link>
             <% end %>
@@ -115,26 +90,16 @@ defmodule StartupGameWeb.Components.Home.Navbar do
                 <span class="text-foreground/60 font-medium">
                   {@current_user.email}
                 </span>
-                <.link
-                  href={~p"/users/settings"}
-                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-                >
+                <.link href={~p"/users/settings"} class={link_style()}>
                   Settings
                 </.link>
-                <.link
-                  href={~p"/users/log_out"}
-                  method="delete"
-                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-                >
+                <.link href={~p"/users/log_out"} method="delete" class={link_style()}>
                   Log out
                 </.link>
               </div>
             <% else %>
               <div class="flex items-center space-x-4">
-                <.link
-                  href={~p"/users/register"}
-                  class="text-foreground/80 hover:text-foreground transition-colors font-medium"
-                >
+                <.link href={~p"/users/register"} class={link_style()}>
                   Register
                 </.link>
                 <.link href={~p"/users/log_in"} class="silly-button-secondary">
@@ -168,7 +133,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <!-- Home Page Mobile Navigation -->
           <a
             href="#how-it-works"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            class={link_style()}
             phx-click={
               JS.hide(to: "#mobile-menu")
               |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -178,7 +143,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           </a>
           <a
             href="#features"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            class={link_style() <> " p-2"}
             phx-click={
               JS.hide(to: "#mobile-menu")
               |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -188,7 +153,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           </a>
           <a
             href="#leaderboard"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            class={link_style() <> " p-2"}
             phx-click={
               JS.hide(to: "#mobile-menu")
               |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -198,7 +163,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           </a>
           <a
             href="#testimonials"
-            class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+            class={link_style() <> " p-2"}
             phx-click={
               JS.hide(to: "#mobile-menu")
               |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -220,9 +185,21 @@ defmodule StartupGameWeb.Components.Home.Navbar do
         <% else %>
           <!-- Main Site Mobile Navigation -->
           <%= if @current_user do %>
+            <%= if @current_user.role == :admin do %>
+              <.link
+                navigate={~p"/admin"}
+                class={link_style() <> " p-2"}
+                phx-click={
+                  JS.hide(to: "#mobile-menu")
+                  |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+                }
+              >
+                Admin
+              </.link>
+            <% end %>
             <.link
               navigate={~p"/"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -232,7 +209,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
             <.link
               navigate={~p"/games"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -242,7 +219,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
             <.link
               navigate={~p"/games/play"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -252,7 +229,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
             <.link
               navigate={~p"/leaderboard"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -263,7 +240,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <% else %>
             <.link
               navigate={~p"/"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -273,7 +250,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
             <.link
               navigate={~p"/leaderboard"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2"
+              class={link_style() <> " p-2"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -292,7 +269,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </div>
             <.link
               href={~p"/users/settings"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              class={link_style() <> "p-2 block"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -303,7 +280,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             <.link
               href={~p"/users/log_out"}
               method="delete"
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              class={link_style() <> "p-2 block"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -316,7 +293,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
           <div class="border-t border-gray-100 mt-2 pt-2">
             <.link
               href={~p"/users/register"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              class={link_style() <> "p-2 block"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -326,7 +303,7 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             </.link>
             <.link
               href={~p"/users/log_in"}
-              class="text-foreground/80 hover:text-foreground transition-colors font-medium p-2 block"
+              class={link_style() <> "p-2 block"}
               phx-click={
                 JS.hide(to: "#mobile-menu")
                 |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
@@ -340,4 +317,6 @@ defmodule StartupGameWeb.Components.Home.Navbar do
     </header>
     """
   end
+
+  defp link_style, do: "text-foreground/80 hover:text-foreground transition-colors font-medium"
 end
