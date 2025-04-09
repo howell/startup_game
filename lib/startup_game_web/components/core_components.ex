@@ -674,4 +674,79 @@ defmodule StartupGameWeb.CoreComponents do
   def translate_errors(errors, field) when is_list(errors) do
     for {^field, {msg, opts}} <- errors, do: translate_error({msg, opts})
   end
+
+  @doc """
+  Renders a tooltip that appears on hover (desktop) or press (mobile).
+
+  ## Examples
+
+      <.tooltip id="help-tooltip" text="This is helpful information">
+        <.icon name="hero-information-circle" />
+      </.tooltip>
+
+      <.tooltip id="feature-tooltip" text="Premium feature">
+        Feature <.icon name="hero-sparkles" class="inline h-4 w-4" />
+      </.tooltip>
+  """
+  attr :id, :string, required: true, doc: "unique id for the tooltip"
+  attr :text, :string, required: true, doc: "text to display in the tooltip"
+  attr :class, :string, default: nil, doc: "additional classes for the tooltip container"
+
+  attr :position, :string,
+    default: "top",
+    values: ["top", "bottom", "left", "right"],
+    doc: "tooltip position"
+
+  attr :rest, :global
+
+  slot :inner_block, required: true, doc: "the element that triggers the tooltip"
+
+  def tooltip(assigns) do
+    ~H"""
+    <div class="relative inline-block" {@rest}>
+      <div
+        id={@id}
+        class={["tooltip-trigger cursor-help", @class]}
+        phx-hook="Tooltip"
+        data-tooltip-text={@text}
+        data-tooltip-position={@position}
+      >
+        {render_slot(@inner_block)}
+      </div>
+    </div>
+    """
+  end
+
+  @doc """
+  Renders a standard information tooltip with an "i" icon.
+
+  ## Examples
+
+      <.info_tooltip id="help-tooltip" text="This is helpful information" />
+
+      <.info_tooltip id="feature-tooltip" text="Premium feature" position="bottom" />
+  """
+  attr :id, :string, required: true, doc: "unique id for the tooltip"
+  attr :text, :string, required: true, doc: "text to display in the tooltip"
+
+  attr :position, :string,
+    default: "top",
+    values: ["top", "bottom", "left", "right"],
+    doc: "tooltip position"
+
+  attr :class, :string, default: nil, doc: "additional classes for the icon"
+  attr :rest, :global
+
+  def info_tooltip(assigns) do
+    ~H"""
+    <.tooltip id={@id} text={@text} position={@position} {@rest}>
+      <span class={[
+        "inline-flex items-start justify-center rounded-full text-silly-blue",
+        @class
+      ]}>
+        <.icon name="hero-information-circle-mini" class="h-3 w-3 " />
+      </span>
+    </.tooltip>
+    """
+  end
 end

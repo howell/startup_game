@@ -3,3 +3,13 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
+
+/* Tooltip styles */
+.tooltip-trigger {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltip-content {
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+}

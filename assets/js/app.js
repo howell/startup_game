@@ -23,6 +23,7 @@ import {LiveSocket} from "phoenix_live_view"
 import topbar from "../vendor/topbar"
 import scroll_hooks from "./hooks/scroll";
 import chat_hooks from "./hooks/chat_hooks";
+import Tooltip from "./hooks/tooltip";
 
 let csrfToken = document.querySelector("meta[name='csrf-token']").getAttribute("content")
 let liveSocket = new LiveSocket("/live", Socket, {
@@ -30,7 +31,8 @@ let liveSocket = new LiveSocket("/live", Socket, {
   params: {_csrf_token: csrfToken},
   hooks: {
     ...scroll_hooks,
-    ...chat_hooks
+    ...chat_hooks,
+    Tooltip
   }
 })
 
