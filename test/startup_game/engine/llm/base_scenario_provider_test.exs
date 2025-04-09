@@ -83,7 +83,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
         rounds: [
           %{
             situation: "Previous situation",
-            response: "Previous response",
+            player_input: "Previous response",
             outcome: "Previous outcome",
             cash_change: Decimal.new("10000")
           }
@@ -104,41 +104,56 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
 
     test "returns nil when the game should end", %{game_state: game_state} do
       # Create a game state that should end (15 rounds)
-      game_state = %{game_state | rounds: List.duplicate(
-        %{
-          situation: "Previous situation",
-          response: "Previous response",
-          outcome: "Previous outcome",
-          cash_change: Decimal.new("10000")
-        },
-        15
-      )}
+      game_state = %{
+        game_state
+        | rounds:
+            List.duplicate(
+              %{
+                situation: "Previous situation",
+                player_input: "Previous response",
+                outcome: "Previous outcome",
+                cash_change: Decimal.new("10000")
+              },
+              15
+            )
+      }
+
       assert nil == TestProvider.get_next_scenario(game_state, nil)
     end
 
     test "uses custom behavior when provided", %{game_state: game_state} do
       # Create a game state that should end with CustomTestProvider (10 rounds)
-      game_state = %{game_state | rounds: List.duplicate(
-        %{
-          situation: "Previous situation",
-          response: "Previous response",
-          outcome: "Previous outcome",
-          cash_change: Decimal.new("10000")
-        },
-        10
-      )}
+      game_state = %{
+        game_state
+        | rounds:
+            List.duplicate(
+              %{
+                situation: "Previous situation",
+                player_input: "Previous response",
+                outcome: "Previous outcome",
+                cash_change: Decimal.new("10000")
+              },
+              10
+            )
+      }
+
       assert nil == CustomTestProvider.get_next_scenario(game_state, nil)
 
       # But not with the regular TestProvider (needs 15 rounds)
-      game_state = %{game_state | rounds: List.duplicate(
-        %{
-          situation: "Previous situation",
-          response: "Previous response",
-          outcome: "Previous outcome",
-          cash_change: Decimal.new("10000")
-        },
-        9
-      )}
+      game_state = %{
+        game_state
+        | rounds:
+            List.duplicate(
+              %{
+                situation: "Previous situation",
+                player_input: "Previous response",
+                outcome: "Previous outcome",
+                cash_change: Decimal.new("10000")
+              },
+              9
+            )
+      }
+
       assert %Scenario{} = TestProvider.get_next_scenario(game_state, nil)
     end
 
@@ -163,7 +178,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
         rounds: [
           %{
             situation: "Previous situation",
-            response: "Previous response",
+            player_input: "Previous response",
             outcome: "Previous outcome",
             cash_change: Decimal.new("10000")
           }
@@ -183,7 +198,10 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
     end
 
     # We can't test these without meck, so we'll just test the error case
-    test "raises an error when LLM returns an error", %{game_state: game_state, scenario: scenario} do
+    test "raises an error when LLM returns an error", %{
+      game_state: game_state,
+      scenario: scenario
+    } do
       assert_raise RuntimeError, ~r/Failed to generate LLM outcome/, fn ->
         ErrorTestProvider.generate_outcome(game_state, scenario, "Test response")
       end
@@ -192,8 +210,12 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
 
   describe "utility functions" do
     test "parse_scenario_type/1 converts strings to atoms" do
-      assert :funding == StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("funding")
-      assert :acquisition == StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("acquisition")
+      assert :funding ==
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("funding")
+
+      assert :acquisition ==
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("acquisition")
+
       assert :hiring == StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("hiring")
       assert :legal == StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("legal")
       assert :other == StartupGame.Engine.LLM.BaseScenarioProvider.parse_scenario_type("unknown")
@@ -201,28 +223,30 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
 
     test "parse_decimal/1 converts various formats to Decimal" do
       assert Decimal.equal?(
-        Decimal.new("123"),
-        StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(123)
-      )
+               Decimal.new("123"),
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(123)
+             )
 
       assert Decimal.equal?(
-        Decimal.new("123.45"),
-        StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(123.45)
-      )
+               Decimal.new("123.45"),
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(123.45)
+             )
 
       assert Decimal.equal?(
-        Decimal.new("123"),
-        StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal("123")
-      )
+               Decimal.new("123"),
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal("123")
+             )
 
       assert Decimal.equal?(
-        Decimal.new("0"),
-        StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(nil)
-      )
+               Decimal.new("0"),
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_decimal(nil)
+             )
     end
 
     test "parse_exit_type/1 converts strings to atoms" do
-      assert :acquisition == StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("acquisition")
+      assert :acquisition ==
+               StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("acquisition")
+
       assert :ipo == StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("ipo")
       assert :shutdown == StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("shutdown")
       assert :none == StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("unknown")
