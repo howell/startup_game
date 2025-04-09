@@ -207,29 +207,16 @@ defmodule StartupGameWeb.Components.Home.Navbar do
             Testimonials
           </a>
 
-          <%= if @current_user do %>
-            <.link
-              navigate={~p"/games/play"}
-              class="silly-button-primary text-center"
-              phx-click={
-                JS.hide(to: "#mobile-menu")
-                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-              }
-            >
-              Play Now
-            </.link>
-          <% else %>
-            <.link
-              href={~p"/users/register"}
-              class="silly-button-primary text-center"
-              phx-click={
-                JS.hide(to: "#mobile-menu")
-                |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
-              }
-            >
-              Play Now
-            </.link>
-          <% end %>
+          <.link
+            navigate={if @current_user, do: ~p"/games/play", else: ~p"/users/register"}
+            class="silly-button-primary text-center"
+            phx-click={
+              JS.hide(to: "#mobile-menu")
+              |> JS.set_attribute({"aria-expanded", "false"}, to: "##{@id}")
+            }
+          >
+            Play Now
+          </.link>
         <% else %>
           <!-- Main Site Mobile Navigation -->
           <%= if @current_user do %>
