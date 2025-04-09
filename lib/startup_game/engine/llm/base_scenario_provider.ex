@@ -271,6 +271,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
   @doc """
   Formats the game history for inclusion in prompts.
   """
+  @spec format_game_history(GameState.t()) :: String.t()
   def format_game_history(%GameState{rounds: []}), do: "Founded"
 
   def format_game_history(game_state) do
@@ -282,7 +283,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
       """
       Round #{index}:
       Situation: #{round.situation}
-      Response: #{round.response || "No response"}
+      Response: #{round.player_input || "No response"}
       Outcome: #{round.outcome || "No outcome"}
       Financial impact: #{financial_impact}
       """
