@@ -79,6 +79,7 @@ defmodule StartupGame.Games do
 
     # Replace "yield" with "founder_return" in sort_by if needed
     sort_by = if sort_by == "yield", do: "founder_return", else: sort_by
+    sort_by = String.to_existing_atom(sort_by)
 
     case_studies = if include_case_studies, do: case_studies(limit: limit), else: []
     case_study_count = length(case_studies)
@@ -91,6 +92,7 @@ defmodule StartupGame.Games do
       |> where([g], g.status == :completed)
       |> where([g], g.exit_type in [:acquisition, :ipo])
       |> where([g], not g.is_case_study)
+      |> order_by([g], [{^sort_direction, field(g, ^sort_by)}])
       |> limit(^regular_limit)
       |> preload([:user, :ownerships])
       |> Repo.all()
@@ -123,6 +125,23 @@ defmodule StartupGame.Games do
     sort_games(games_with_founder_return, sort_by, sort_direction)
   end
 
+  # Helper function to add dynamic order_by clause based on field and direction
+  defp order_by_field(query, "founder_return", _direction) do
+    # For founder_return, we still need to sort in memory since it's calculated
+    # Just sort by exit_value in DB for consistency
+    order_by(query, [g], desc: g.exit_value)
+  end
+
+  defp order_by_field(query, field, direction) do
+    # Convert field to atom (sanitized by the parameters earlier)
+    field = String.to_atom(field)
+
+    case direction do
+      :asc -> order_by(query, [g], asc: field(g, ^field))
+      _ -> order_by(query, [g], desc: field(g, ^field))
+    end
+  end
+
   @doc """
   Returns the list of case studies sorted by the given field and direction.
   The following optional parameters are supported:
@@ -141,16 +160,19 @@ defmodule StartupGame.Games do
   @spec case_studies(Keyword.t()) :: [Game.t()]
   def case_studies(attrs \\ []) do
     limit = Keyword.get(attrs, :limit, 50)
+    sort_by = Keyword.get(attrs, :sort_by, "exit_value")
+    sort_direction = Keyword.get(attrs, :sort_direction, :desc)
 
     Game
     |> where([g], g.is_case_study == true)
+    |> order_by_field(sort_by, sort_direction)
     |> limit(^limit)
     |> preload([:user, :ownerships])
     |> Repo.all()
   end
 
   # Helper function to sort games by the given field and direction
-  defp sort_games(games, "founder_return", direction) do
+  defp sort_games(games, :founder_return, direction) do
     # For founder_return, we need to calculate it first
     games_with_founder_return =
       Enum.map(games, fn game ->
@@ -181,10 +203,9 @@ defmodule StartupGame.Games do
   defp sort_games(games, field, direction) do
     # For non-yield fields, sort directly by the field
     # Map "yield" to "founder_return" for actual field name
-    field_atom = if field == "yield", do: :founder_return, else: String.to_atom(field)
     comparator = sort_direction_to_comparator(direction)
 
-    Enum.sort_by(games, &Map.get(&1, field_atom), comparator)
+    Enum.sort_by(games, &Map.get(&1, field), comparator)
   end
 
   defp sort_direction_to_comparator(:asc), do: &(Decimal.compare(&1, &2) != :gt)

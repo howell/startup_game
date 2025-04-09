@@ -770,9 +770,6 @@ defmodule StartupGame.GamesTest do
         _round = round_fixture(%{game: game})
       end
 
-      # not sure if this is necessary for the next query to always work
-      Process.sleep(50)
-
       # Get leaderboard data with limit of 2
       entries = Games.list_leaderboard_data(%{limit: 2})
 
