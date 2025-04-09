@@ -59,6 +59,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                 <form>
                   <button
                     :if={@player_mode == :responding}
+                    type="button"
                     phx-click="switch_player_mode"
                     phx-value-player_mode="acting"
                     class="silly-button-secondary px-3 py-1"
@@ -68,6 +69,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                   </button>
                   <button
                     :if={@player_mode == :acting}
+                    type="button"
                     phx-click="switch_player_mode"
                     phx-value-player_mode="responding"
                     class="silly-button-secondary px-3 py-1"
