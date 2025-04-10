@@ -131,6 +131,84 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
                game.name == "My New Training Game" && game.is_training_example == true
              end)
     end
+  end
+
+  describe "Import Training Game Modal" do
+    setup %{conn: conn, admin: admin, user: user} do
+      # Create a game that can be imported (not a training example)
+      importable_game =
+        game_fixture(%{
+          user_id: user.id,
+          name: "Importable Game One",
+          is_training_example: false
+        })
+
+      {:ok, view, _html} =
+        conn
+        |> log_in_user(admin)
+        |> live(~p"/admin/training_games")
+
+      {:ok, view: view, importable_game: importable_game}
+    end
+
+    test "opens modal and lists importable games", %{view: view, importable_game: importable_game} do
+      # Modal initially hidden
+      refute has_element?(view, "#import-game-modal")
+
+      # Click button to open modal
+      view |> element("button", "Import Existing Game") |> render_click()
+
+      # Modal is now visible with the select input
+      assert has_element?(view, "#import-game-modal")
+      assert has_element?(view, "select#import-game-select")
+
+      # Check that the importable game is listed in the options
+      assert has_element?(view, "select#import-game-select option[value='#{importable_game.id}']", importable_game.name)
+
+      # Check that the existing training game is NOT listed
+      refute has_element?(view, "select#import-game-select option", "Training Game Alpha")
+
+      # Click cancel button to close
+      view |> element("#import-game-modal button", "Cancel") |> render_click()
+      refute has_element?(view, "#import-game-modal")
+    end
+
+    test "imports a game successfully", %{view: view, importable_game: importable_game} do
+      # Open modal
+      view |> element("button", "Import Existing Game") |> render_click()
+      assert has_element?(view, "#import-game-modal")
+
+      # Select game and submit form
+      form = view |> element("#import-game-modal form")
+      form |> render_submit(%{"source_game_id" => importable_game.id})
+
+      # Navigation is triggered by push_navigate, assert_patch doesn't work directly here.
+      # We verify the game creation below.
+
+      # Verify flash message on the *redirected* page (requires follow_redirect)
+      # This part is tricky with push_navigate, might need integration test or manual check.
+      # For now, we verify the game was created in the DB.
+
+      # Verify in DB - check for the cloned game
+      cloned_game_name = "[TRAINING] #{importable_game.name}"
+      assert Enum.any?(Games.list_training_games(), fn game ->
+               game.name == cloned_game_name && game.is_training_example == true
+             end)
+    end
+
+    test "shows error if no game selected", %{view: view} do
+      # Open modal
+      view |> element("button", "Import Existing Game") |> render_click()
+      assert has_element?(view, "#import-game-modal")
+
+      # Submit form with empty selection
+      form = view |> element("#import-game-modal form")
+      form |> render_submit(%{"source_game_id" => ""})
+
+      # Modal stays open, flash shown
+      assert has_element?(view, "#import-game-modal")
+      assert has_element?(view, "#flash-error", "Please select a game to import.")
+    end
 
     test "shows errors for invalid data", %{view: view} do
        # Open modal

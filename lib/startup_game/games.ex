@@ -140,6 +140,23 @@ defmodule StartupGame.Games do
     |> Repo.all()
   end
 
+  @doc """
+  Returns the list of games that are not marked as training examples,
+  suitable for importing.
+
+  ## Examples
+
+      iex> list_importable_games()
+      [%Game{}, ...]
+
+  """
+  def list_importable_games do
+    Game
+    |> where([g], g.is_training_example == false)
+    |> order_by([g], asc: g.name)
+    |> Repo.all()
+  end
+
   # Helper function to add dynamic order_by clause based on field and direction
   defp order_by_field(query, "founder_return", _direction) do
     # For founder_return, we still need to sort in memory since it's calculated
@@ -411,6 +428,105 @@ defmodule StartupGame.Games do
   """
   def change_game(%Game{} = game, attrs \\ %{}) do
     Game.changeset(game, attrs)
+  end
+
+  @doc """
+  Clones an existing game and its associations (rounds, ownerships)
+  as a new training example game.
+
+  ## Examples
+
+      iex> clone_game_as_training_example(source_game_id)
+      {:ok, %Game{is_training_example: true}}
+
+      iex> clone_game_as_training_example(invalid_id)
+      ** (Ecto.NoResultsError)
+
+  """
+  def clone_game_as_training_example(source_game_id) do
+    Repo.transaction(fn ->
+      # Fetch the source game with all necessary associations
+      source_game =
+        Game
+        |> Repo.get!(source_game_id)
+        # Preload changes with rounds
+        |> Repo.preload(ownerships: [], rounds: [:ownership_changes])
+
+      # Prepare attributes for the new game
+      new_game_attrs =
+        source_game
+        |> Map.from_struct()
+        |> Map.drop([:id, :__meta__, :inserted_at, :updated_at, :rounds, :ownerships])
+        |> Map.merge(%{
+          name: "[TRAINING] " <> source_game.name,
+          is_training_example: true,
+          # Reset status? Or keep original? Let's keep original for now.
+          # status: :in_progress,
+          # Reset exit info?
+          # exit_type: :none,
+          # exit_value: Decimal.new(0),
+          # Reset prompts? Or copy? Let's copy for now.
+          scenario_system_prompt: source_game.scenario_system_prompt,
+          outcome_system_prompt: source_game.outcome_system_prompt
+        })
+
+      # Create the new game
+      with {:ok, new_game} <- create_game(new_game_attrs) do
+        # Clone rounds
+        Enum.each(source_game.rounds, fn round ->
+          round_attrs =
+            round
+            |> Map.from_struct()
+            |> Map.drop([:id, :__meta__, :inserted_at, :updated_at, :game_id, :ownership_changes])
+            |> Map.put(:game_id, new_game.id)
+
+          case create_round(round_attrs) do
+            {:ok, new_round} ->
+              # Clone ownership changes for this round
+              Enum.each(round.ownership_changes, fn change ->
+                change_attrs =
+                  change
+                  |> Map.from_struct()
+                  |> Map.drop([:id, :__meta__, :inserted_at, :updated_at, :game_id, :round_id])
+                  |> Map.put(:game_id, new_game.id)
+                  |> Map.put(:round_id, new_round.id)
+
+                case create_ownership_change(change_attrs) do
+                  {:ok, _new_change} ->
+                    :ok
+
+                  {:error, changeset} ->
+                    Repo.rollback({:error_cloning_ownership_change, changeset})
+                end
+              end)
+
+              # Indicate success for the outer case
+              :ok
+
+            {:error, changeset} ->
+              Repo.rollback({:error_cloning_round, changeset})
+          end
+        end)
+
+        # Clone ownerships
+        Enum.each(source_game.ownerships, fn ownership ->
+          ownership_attrs =
+            ownership
+            |> Map.from_struct()
+            |> Map.drop([:id, :__meta__, :inserted_at, :updated_at, :game_id])
+            |> Map.put(:game_id, new_game.id)
+
+          case create_ownership(ownership_attrs) do
+            {:ok, _new_ownership} -> :ok
+            {:error, changeset} -> Repo.rollback({:error_cloning_ownership, changeset})
+          end
+        end)
+
+        new_game
+      else
+        {:error, changeset} -> Repo.rollback({:error_cloning_game, changeset})
+      end
+    end)
   end
 
   # Round-related functions
