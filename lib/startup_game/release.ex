@@ -24,8 +24,19 @@ defmodule StartupGame.Release do
   end
 
   def set_admin_role(email) do
+    require Logger
+    Logger.error("Release Task: Loading application...")
     load_app()
-    {:ok, _} = Application.ensure_all_started(:startup_game)
+    Logger.error("Release Task: Ensuring all applications are started...")
+
+    case Application.ensure_all_started(:startup_game) do
+      {:ok, _} ->
+        Logger.error("Release Task: Application started successfully.")
+
+      {:error, reason} ->
+        Logger.error("Release Task: Failed to start application: #{inspect(reason)}")
+    end
+
     Mix.Tasks.Users.SetRole.set_user_role(to_string(email), "admin")
   end
 
