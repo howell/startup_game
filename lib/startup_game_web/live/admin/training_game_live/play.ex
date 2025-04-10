@@ -2,6 +2,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
   use StartupGameWeb, :live_view
 
   alias StartupGame.Games
+  alias StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent # Add alias
 
   @impl true
   def mount(%{"id" => game_id}, _session, socket) do
@@ -16,6 +17,8 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
         |> assign(:page_title, "Play/Edit Training Game: #{game.name}")
         # Ensure sorted
         |> assign(:rounds, Enum.sort_by(game.rounds, & &1.inserted_at))
+        |> assign(:show_edit_modal, false)
+        |> assign(:editing_round_id, nil)
 
       {:ok, socket}
     else
@@ -64,8 +67,8 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
             <p class="text-sm text-purple-700 whitespace-pre-wrap">{round.outcome}</p>
             <%!-- TODO: Add Edit/Regenerate buttons here --%>
             <div class="mt-2 flex justify-end gap-2">
-              <.button type="button" class="text-xs" disabled>Edit</.button>
-              <.button type="button" class="text-xs" disabled>Regenerate</.button>
+              <.button type="button" class="text-xs" phx-click="edit_outcome" phx-value-round_id={round.id}>Edit</.button>
+              <.button type="button" class="text-xs" disabled>Regenerate</.button> <% # TODO: Implement Regenerate %>
             </div>
           </div>
 
@@ -81,6 +84,55 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
         </div>
       </div>
     </div>
+
+    <.modal :if={@show_edit_modal} id="edit-outcome-modal" show on_cancel={JS.push("close_edit_modal")}>
+      <.live_component
+        :if={@editing_round_id}
+        module={EditOutcomeComponent}
+        id={"edit-outcome-#{ @editing_round_id}"}
+        round={find_round(@rounds, @editing_round_id)}
+        parent_pid={self()}
+      />
+    </.modal>
     """
+  end
+
+  @impl true
+  def handle_event("edit_outcome", %{"round_id" => round_id}, socket) do
+    {:noreply,
+     socket
+     |> assign(:editing_round_id, round_id)
+     |> assign(:show_edit_modal, true)}
+  end
+
+  def handle_event("close_edit_modal", _, socket) do
+    {:noreply, assign(socket, show_edit_modal: false, editing_round_id: nil)}
+  end
+
+  # TODO: Add handler for regenerate
+
+  @impl true
+  def handle_info({:close_edit_outcome_form}, socket) do
+    {:noreply, assign(socket, show_edit_modal: false, editing_round_id: nil)}
+  end
+
+  def handle_info({:saved_outcome, updated_round}, socket) do
+    # Replace the round in the assigns list and close modal
+    updated_rounds =
+      Enum.map(socket.assigns.rounds, fn round ->
+        if round.id == updated_round.id, do: updated_round, else: round
+      end)
+
+    {:noreply,
+     socket
+     |> assign(:rounds, updated_rounds)
+     |> assign(:show_edit_modal, false)
+     |> assign(:editing_round_id, nil)
+     |> put_flash(:info, "Round outcome updated successfully.")}
+  end
+
+  # Helper to find the round struct from the list in assigns
+  defp find_round(rounds, round_id) do
+    Enum.find(rounds, &(&1.id == round_id))
   end
 end

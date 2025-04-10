@@ -116,7 +116,12 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
   @doc """
   Main implementation of get_next_scenario that's used by all providers.
   """
-  def get_next_scenario_impl(game_state, current_scenario_id, provider_module) do
+  def get_next_scenario_impl(
+        game_state,
+        current_scenario_id,
+        provider_module,
+        system_prompt \\ nil
+      ) do
     # Check if the game should end using the provider's callback
     if provider_module.should_end_game?(game_state) do
       nil
@@ -124,7 +129,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
       # Get configuration from the provider's callbacks
       llm_module = provider_module.llm_adapter()
       llm_opts = provider_module.llm_options()
-      system_prompt = provider_module.scenario_system_prompt()
+      system_prompt = system_prompt || provider_module.scenario_system_prompt()
       response_parser = provider_module.response_parser()
 
       # Get the prompt from the provider's callback
@@ -147,23 +152,31 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
   @doc """
   Default implementation of get_next_scenario_async.
   """
-  def get_next_scenario_async_impl(game_state, game_id, _current_scenario_id, provider_module) do
+  def get_next_scenario_async_impl(game_state, game_id, current_scenario_id, provider_module) do
+    # Pass nil for system_prompt to maintain default behavior
     LLMStreamService.generate_scenario(
       game_id,
       game_state,
-      game_state.current_scenario,
-      provider_module
+      current_scenario_id, # Use the passed current_scenario_id
+      provider_module,
+      nil # Pass nil for system_prompt
     )
   end
 
   @doc """
   Main implementation of generate_outcome that's used by all providers.
   """
-  def generate_outcome_impl(game_state, scenario, response_text, provider_module) do
+  def generate_outcome_impl(
+        game_state,
+        scenario,
+        response_text,
+        provider_module,
+        system_prompt \\ nil
+      ) do
     # Get configuration from the provider's callbacks
     llm_module = provider_module.llm_adapter()
     llm_opts = provider_module.llm_options()
-    system_prompt = provider_module.outcome_system_prompt()
+    system_prompt = system_prompt || provider_module.outcome_system_prompt()
     response_parser = provider_module.response_parser()
 
     # Get the prompt from the provider's callback
@@ -186,12 +199,14 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
   Main implementation of generate_outcome_async that's used by all providers.
   """
   def generate_outcome_async_impl(game_state, game_id, scenario, response_text, provider_module) do
+    # Pass nil for system_prompt to maintain default behavior
     LLMStreamService.generate_outcome(
       game_id,
       game_state,
       scenario,
       response_text,
-      provider_module
+      provider_module,
+      nil # Pass nil for system_prompt
     )
   end
 
@@ -304,7 +319,9 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
   @doc """
   Generates a scenario using the LLM.
+  Accepts the system_prompt directly.
   """
+  # Removed system_prompt fetch, now passed as argument
   def generate_llm_scenario(llm_module, system_prompt, user_prompt, llm_opts, response_parser) do
     # Call the LLM adapter to generate text
     case llm_module.generate_completion(system_prompt, user_prompt, llm_opts) do
@@ -319,7 +336,9 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
 
   @doc """
   Generates an outcome using the LLM.
+  Accepts the system_prompt directly.
   """
+  # Removed system_prompt fetch, now passed as argument
   def generate_llm_outcome(llm_module, system_prompt, user_prompt, llm_opts, response_parser) do
     # Call the LLM adapter to generate text
     case llm_module.generate_completion(system_prompt, user_prompt, llm_opts) do

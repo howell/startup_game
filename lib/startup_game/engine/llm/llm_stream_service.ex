@@ -24,16 +24,18 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
   Start generating a new scenario for the given game state.
   """
   @spec generate_scenario(
-          String.t(),
-          GameState.t(),
-          String.t(),
-          ScenarioProviderCallback.behaviour()
+          String.t(), # game_id
+          GameState.t(), # game_state
+          String.t(), # current_scenario_id
+          ScenarioProviderCallback.behaviour(), # provider_module
+          String.t() | nil # system_prompt
         ) ::
           {:ok, String.t()}
-  def generate_scenario(game_id, game_state, current_scenario_id, provider_module) do
+  # Add system_prompt argument
+  def generate_scenario(game_id, game_state, current_scenario_id, provider_module, system_prompt) do
     GenServer.call(
       __MODULE__,
-      {:generate_scenario, game_id, game_state, current_scenario_id, provider_module}
+      {:generate_scenario, game_id, game_state, current_scenario_id, provider_module, system_prompt}
     )
   end
 
@@ -41,17 +43,19 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
   Start generating a new outcome for the given game state.
   """
   @spec generate_outcome(
-          String.t(),
-          GameState.t(),
-          map(),
-          String.t(),
-          ScenarioProviderCallback.behaviour()
+          String.t(), # game_id
+          GameState.t(), # game_state
+          map(), # scenario
+          String.t(), # response_text
+          ScenarioProviderCallback.behaviour(), # provider_module
+          String.t() | nil # system_prompt
         ) ::
           {:ok, String.t()}
-  def generate_outcome(game_id, game_state, scenario, response_text, provider_module) do
+  # Add system_prompt argument
+  def generate_outcome(game_id, game_state, scenario, response_text, provider_module, system_prompt) do
     GenServer.call(
       __MODULE__,
-      {:generate_outcome, game_id, game_state, scenario, response_text, provider_module}
+      {:generate_outcome, game_id, game_state, scenario, response_text, provider_module, system_prompt}
     )
   end
 
@@ -76,7 +80,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
   @impl true
   def handle_call(
-        {:generate_scenario, game_id, game_state, current_scenario_id, provider_module},
+        {:generate_scenario, game_id, game_state, current_scenario_id, provider_module, system_prompt},
         _from,
         state
       ) do
@@ -101,7 +105,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
     # Start the stream process asynchronously
     spawn_link(fn ->
-      stream_scenario(stream_id, game_state, current_scenario_id, provider_module)
+      stream_scenario(stream_id, game_state, current_scenario_id, provider_module, system_prompt)
     end)
 
     # Return immediately with the stream_id
@@ -110,7 +114,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
   @impl true
   def handle_call(
-        {:generate_outcome, game_id, game_state, scenario, response_text, provider_module},
+        {:generate_outcome, game_id, game_state, scenario, response_text, provider_module, system_prompt},
         _from,
         state
       ) do
@@ -135,7 +139,7 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
 
     # Start the stream process asynchronously
     spawn_link(fn ->
-      stream_outcome(stream_id, game_state, scenario, response_text, provider_module)
+      stream_outcome(stream_id, game_state, scenario, response_text, provider_module, system_prompt)
     end)
 
     # Return immediately with the stream_id
@@ -323,11 +327,12 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     "stream_" <> UUID.uuid4()
   end
 
-  defp stream_scenario(stream_id, game_state, current_scenario_id, provider_module) do
+  defp stream_scenario(stream_id, game_state, current_scenario_id, provider_module, system_prompt) do
     # Get configuration from the provider's callbacks
     adapter = provider_module.llm_adapter()
     llm_opts = Map.put(provider_module.llm_options(), :stream, true)
-    system_prompt = provider_module.scenario_system_prompt()
+    # Use provided system_prompt, fallback to default via callback
+    system_prompt = system_prompt || provider_module.scenario_system_prompt()
 
     # Get the prompt from the provider's callback
     user_prompt = provider_module.create_scenario_prompt(game_state, current_scenario_id)
@@ -367,11 +372,12 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
     end
   end
 
-  defp stream_outcome(stream_id, game_state, scenario, response_text, provider_module) do
+  defp stream_outcome(stream_id, game_state, scenario, response_text, provider_module, system_prompt) do
     # Similar to stream_scenario but for outcomes
     adapter = provider_module.llm_adapter()
     llm_opts = Map.put(provider_module.llm_options(), :stream, true)
-    system_prompt = provider_module.outcome_system_prompt()
+    # Use provided system_prompt, fallback to default via callback
+    system_prompt = system_prompt || provider_module.outcome_system_prompt()
 
     user_prompt = provider_module.create_outcome_prompt(game_state, scenario, response_text)
 

@@ -196,12 +196,16 @@ defmodule StartupGame.GameService do
          {:ok, round} <- persist_player_input(game, player_input),
          provider = determine_provider(game),
          scenario_context = game_state.current_scenario_data,
+         # Determine the correct system prompt
+         system_prompt = determine_system_prompt(game, provider, :outcome),
+         # Pass system_prompt to the async function
          {:ok, stream_id} <-
            provider.generate_outcome_async(
              game_state,
              game_id,
              scenario_context,
-             player_input
+             player_input,
+             system_prompt
            ) do
       {:ok, stream_id, round}
     else
@@ -251,7 +255,15 @@ defmodule StartupGame.GameService do
   def request_next_scenario_async(game_id) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       provider = determine_provider(game)
-      provider.get_next_scenario_async(game_state, game.id, game_state.current_scenario)
+      # Determine the correct system prompt
+      system_prompt = determine_system_prompt(game, provider, :scenario)
+      # Pass system_prompt to the async function
+      provider.get_next_scenario_async(
+        game_state,
+        game.id,
+        game_state.current_scenario,
+        system_prompt
+      )
     end
   end
 
@@ -323,7 +335,9 @@ defmodule StartupGame.GameService do
         game_id,
         # Pass current scenario context
         game_state.current_scenario_data,
-        player_input
+        player_input,
+        # Determine and pass system prompt for recovery
+        determine_system_prompt(game, provider, :outcome)
       )
     end
   end
@@ -343,6 +357,26 @@ defmodule StartupGame.GameService do
   end
 
   # --- Private functions ---
+
+  # Helper to determine the correct system prompt (custom or default)
+  defp determine_system_prompt(%Game{} = game, provider_module, type) do
+    custom_prompt =
+      case type do
+        :scenario -> game.scenario_system_prompt
+        :outcome -> game.outcome_system_prompt
+      end
+
+    # Use custom prompt only if it's a training example and the prompt is not blank
+    if game.is_training_example && custom_prompt && String.trim(custom_prompt) != "" do
+      custom_prompt
+    else
+      # Fetch default from provider callback
+      case type do
+        :scenario -> provider_module.scenario_system_prompt()
+        :outcome -> provider_module.outcome_system_prompt()
+      end
+    end
+  end
 
   # Builds in-memory game state from database records
   @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()]) ::
