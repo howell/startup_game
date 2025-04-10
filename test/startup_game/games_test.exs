@@ -160,6 +160,9 @@ defmodule StartupGame.GamesTest do
       assert game.description == "A new startup description"
       assert Decimal.equal?(game.cash_on_hand, Decimal.new("20000.00"))
       assert Decimal.equal?(game.burn_rate, Decimal.new("2000.00"))
+      assert game.is_training_example == false
+      assert game.scenario_system_prompt == nil
+      assert game.outcome_system_prompt == nil
     end
 
     test "create_game/1 with invalid data returns error changeset" do
@@ -191,13 +194,19 @@ defmodule StartupGame.GamesTest do
       update_attrs = %{
         name: "Updated Name",
         description: "Updated description",
-        cash_on_hand: Decimal.new("30000.00")
+        cash_on_hand: Decimal.new("30000.00"),
+        is_training_example: true,
+        scenario_system_prompt: "Test scenario prompt",
+        outcome_system_prompt: "Test outcome prompt"
       }
 
       assert {:ok, %Game{} = updated_game} = Games.update_game(game, update_attrs)
       assert updated_game.name == "Updated Name"
       assert updated_game.description == "Updated description"
       assert Decimal.equal?(updated_game.cash_on_hand, Decimal.new("30000.00"))
+      assert updated_game.is_training_example == true
+      assert updated_game.scenario_system_prompt == "Test scenario prompt"
+      assert updated_game.outcome_system_prompt == "Test outcome prompt"
     end
 
     test "update_game/2 with invalid data returns error changeset" do
