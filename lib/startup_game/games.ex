@@ -125,6 +125,21 @@ defmodule StartupGame.Games do
     sort_games(games_with_founder_return, sort_by, sort_direction)
   end
 
+  @doc """
+  Returns the list of games marked as training examples.
+
+  ## Examples
+
+      iex> list_training_games()
+      [%Game{}, ...]
+
+  """
+  def list_training_games do
+    Game
+    |> where([g], g.is_training_example == true)
+    |> Repo.all()
+  end
+
   # Helper function to add dynamic order_by clause based on field and direction
   defp order_by_field(query, "founder_return", _direction) do
     # For founder_return, we still need to sort in memory since it's calculated
