@@ -1,6 +1,8 @@
 defmodule Mix.Tasks.Users.SetRole do
   use Mix.Task
 
+  require Logger
+
   @shortdoc "Sets the role for a user by email"
   @moduledoc """
   Sets the role (:user or :admin) for a user identified by their email address.
@@ -25,7 +27,7 @@ defmodule Mix.Tasks.Users.SetRole do
         set_user_role(email, role_str)
 
       _ ->
-        Mix.Shell.IO.error("Invalid arguments. Usage: mix users.set_role <email> <user|admin>")
+        Logger.error("Invalid arguments. Usage: mix users.set_role <email> <user|admin>")
         exit({:shutdown, 1})
     end
   end
@@ -36,33 +38,31 @@ defmodule Mix.Tasks.Users.SetRole do
         role when role in [:user, :admin] ->
           case Accounts.get_user_by_email(email) do
             nil ->
-              Mix.Shell.IO.error("User with email #{email} not found.")
+              Logger.error("User with email #{email} not found.")
               exit({:shutdown, 1})
 
             user ->
               case Accounts.update_user_role(user, %{role: role}) do
                 {:ok, updated_user} ->
-                  Mix.Shell.IO.info(
+                  Logger.info(
                     "Successfully set role for #{updated_user.email} to #{updated_user.role}."
                   )
 
                 {:error, changeset} ->
-                  Mix.Shell.IO.error(
-                    "Failed to update role for #{email}: #{inspect(changeset.errors)}"
-                  )
+                  Logger.error("Failed to update role for #{email}: #{inspect(changeset.errors)}")
 
                   exit({:shutdown, 1})
               end
           end
 
         _invalid_role ->
-          Mix.Shell.IO.error("Invalid role: '#{role_str}'. Must be 'user' or 'admin'.")
+          Logger.error("Invalid role: '#{role_str}'. Must be 'user' or 'admin'.")
           exit({:shutdown, 1})
       end
     catch
       # Catch error if role_str is not a valid atom representation (e.g., "foo")
       :error, %ArgumentError{} ->
-        Mix.Shell.IO.error("Invalid role: '#{role_str}'. Must be 'user' or 'admin'.")
+        Logger.error("Invalid role: '#{role_str}'. Must be 'user' or 'admin'.")
         exit({:shutdown, 1})
     end
   end
