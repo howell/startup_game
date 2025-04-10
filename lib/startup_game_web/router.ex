@@ -51,6 +51,7 @@ defmodule StartupGameWeb.Router do
       live "/users", Admin.UserManagementLive, :index
       live "/games", Admin.GameManagementLive, :index
       live "/training_games", Admin.TrainingGameLive.Index, :index
+      live "/training_games/:id/play", Admin.TrainingGameLive.Play, :play
       live "/users/:id", Admin.UserManagementLive, :index # Add show route placeholder
     end
   end
