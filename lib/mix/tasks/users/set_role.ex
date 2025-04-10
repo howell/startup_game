@@ -30,7 +30,7 @@ defmodule Mix.Tasks.Users.SetRole do
     end
   end
 
-  defp set_user_role(email, role_str) do
+  def set_user_role(email, role_str) do
     try do
       case String.to_existing_atom(role_str) do
         role when role in [:user, :admin] ->

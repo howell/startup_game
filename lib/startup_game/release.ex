@@ -25,7 +25,7 @@ defmodule StartupGame.Release do
 
   def set_admin_role(email) do
     load_app()
-    Mix.Tasks.Users.SetRole.run([email, "admin"])
+    Mix.Tasks.Users.SetRole.set_user_role(email, "admin")
   end
 
   @doc """
