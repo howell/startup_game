@@ -3,6 +3,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
 
   alias StartupGame.Games
   alias StartupGameWeb.Admin.TrainingGameLive.FormComponent
+  alias StartupGame.Games.Game
 
   @impl true
   def mount(_params, _session, socket) do
@@ -11,6 +12,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
       |> assign(:training_games, Games.list_training_games())
       |> assign(:show_create_modal, false)
       |> assign(:show_import_modal, false)
+      |> assign(:importable_games, [])
 
     {:ok, socket}
   end
@@ -54,15 +56,31 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
         live_action={:new}
         current_user={@current_user}
         parent_pid={self()}
-        # Pass other necessary assigns if any
       />
     </.modal>
 
     <.modal :if={@show_import_modal} id="import-game-modal" show on_cancel={JS.push("close_modal")}>
-      <%# TODO: Implement Import Game Component/UI %>
       <h2 class="text-lg font-semibold mb-4">Import Existing Game</h2>
-      <p>Import functionality will be implemented here.</p>
-      <.button type="button" phx-click="close_modal" class="mt-4">Cancel</.button>
+      <form phx-submit="confirm_import">
+        <label for="import-game-select" class="block text-sm font-medium text-gray-700">
+          Select game to import:
+        </label>
+        <select
+          id="import-game-select"
+          name="source_game_id"
+          class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+        >
+          <option value="">-- Select a Game --</option>
+          <option :for={game <- @importable_games} value={game.id}>
+            {game.name} (User: {game.user_id}, Status: {game.status})
+          </option>
+        </select>
+
+        <div class="mt-6 flex justify-end gap-3">
+          <.button type="button" phx-click="close_modal">Cancel</.button>
+          <.button type="submit" phx-disable-with="Importing...">Confirm Import</.button>
+        </div>
+      </form>
     </.modal>
     """
   end
@@ -75,15 +93,43 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
   end
 
   def handle_event("import_game", _, socket) do
-    # TODO: Fetch non-training games to pass to the modal/component
-    {:noreply, assign(socket, :show_import_modal, true)}
+    importable_games = Games.list_importable_games()
+
+    {:noreply,
+     socket
+     |> assign(:importable_games, importable_games)
+     |> assign(:show_import_modal, true)}
   end
 
   def handle_event("close_modal", _, socket) do
     {:noreply, assign(socket, show_create_modal: false, show_import_modal: false)}
   end
 
-  # TODO: Add handler for import_game
+  def handle_event("confirm_import", %{"source_game_id" => ""}, socket) do
+    # Handle case where no game was selected
+    {:noreply, put_flash(socket, :error, "Please select a game to import.")}
+  end
+
+  def handle_event("confirm_import", %{"source_game_id" => source_game_id}, socket) do
+    case Games.clone_game_as_training_example(source_game_id) do
+      # Destructure the game struct
+      {:ok, %Game{} = imported_game} ->
+        {:noreply,
+         socket
+         # Use imported_game
+         |> put_flash(:info, "Game imported successfully as '#{imported_game.name}'.")
+         |> assign(:show_import_modal, false)
+         # Refresh list
+         |> assign(:training_games, Games.list_training_games())
+         # Navigate to new game
+         # Use imported_game
+         |> push_navigate(to: "/admin/training_games/#{imported_game.id}/play")}
+
+      {:error, reason} ->
+        IO.inspect(reason, label: "Import Error")
+        {:noreply, put_flash(socket, :error, "Failed to import game. See server logs.")}
+    end
+  end
 
   @impl true
   def handle_info({:close_game_form}, socket) do
