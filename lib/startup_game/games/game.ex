@@ -21,6 +21,9 @@ defmodule StartupGame.Games.Game do
           is_public: boolean(),
           is_leaderboard_eligible: boolean(),
           is_case_study: boolean(),
+          is_training_example: boolean(),
+          scenario_system_prompt: String.t() | nil,
+          outcome_system_prompt: String.t() | nil,
           exit_value: Decimal.t(),
           exit_type: exit_type(),
           founder_return: Decimal.t(),
@@ -49,6 +52,9 @@ defmodule StartupGame.Games.Game do
     field :is_public, :boolean, default: false
     field :is_leaderboard_eligible, :boolean, default: false
     field :is_case_study, :boolean, default: false
+    field :is_training_example, :boolean, default: false
+    field :scenario_system_prompt, :string
+    field :outcome_system_prompt, :string
     field :exit_value, :decimal, default: 0
     field :exit_type, Ecto.Enum, values: [:none, :acquisition, :ipo, :shutdown], default: :none
     field :founder_return, :decimal, default: 0
@@ -75,6 +81,9 @@ defmodule StartupGame.Games.Game do
       :is_public,
       :is_leaderboard_eligible,
       :is_case_study,
+      :is_training_example,
+      :scenario_system_prompt,
+      :outcome_system_prompt,
       :exit_value,
       :exit_type,
       :founder_return,
