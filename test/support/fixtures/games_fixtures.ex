@@ -105,10 +105,18 @@ defmodule StartupGame.GamesFixtures do
     game = game_fixture(attrs, user)
 
     # Process multiple responses to create rounds
-    Enum.reduce(1..round_count, game, fn i, game ->
-      {:ok, %{game: updated_game}} =
-        GameService.process_player_input(game.id, "Response for round #{i}")
-
+    # Directly create rounds instead of using GameService which has async dependencies
+    Enum.reduce(1..round_count, game, fn i, current_game ->
+      round_attrs = %{
+        situation: "Situation for round #{i}",
+        player_input: "Response for round #{i}",
+        outcome: "Outcome for round #{i}",
+        cash_change: Decimal.new(100 * i),
+        burn_rate_change: Decimal.new(10 * i),
+        game_id: current_game.id
+      }
+      # Use create_game_round to also update game finances based on round
+      {:ok, %{game: updated_game}} = Games.create_game_round(round_attrs, current_game)
       updated_game
     end)
   end
