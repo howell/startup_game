@@ -2,10 +2,15 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
   use StartupGameWeb, :live_view
 
   alias StartupGame.Games
+  alias StartupGameWeb.Admin.TrainingGameLive.FormComponent
 
   @impl true
   def mount(_params, _session, socket) do
-    socket = assign(socket, :training_games, Games.list_training_games())
+    socket =
+      socket
+      |> assign(:training_games, Games.list_training_games())
+      |> assign(:show_create_modal, false)
+      |> assign(:show_import_modal, false)
 
     {:ok, socket}
   end
@@ -40,8 +45,60 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Index do
       </:action>
     </.table>
     <% # TODO: Add modals/components for create and import %>
+
+    <.modal :if={@show_create_modal} id="create-game-modal" show on_cancel={JS.push("close_modal")}>
+      <.live_component
+        module={FormComponent}
+        id="create-game-component"
+        title="Create New Training Game"
+        live_action={:new}
+        current_user={@current_user}
+        parent_pid={self()}
+        # Pass other necessary assigns if any
+      />
+    </.modal>
+
+    <.modal :if={@show_import_modal} id="import-game-modal" show on_cancel={JS.push("close_modal")}>
+      <%# TODO: Implement Import Game Component/UI %>
+      <h2 class="text-lg font-semibold mb-4">Import Existing Game</h2>
+      <p>Import functionality will be implemented here.</p>
+      <.button type="button" phx-click="close_modal" class="mt-4">Cancel</.button>
+    </.modal>
     """
   end
 
   # TODO: Add event handlers for create_game and import_game
+
+  @impl true
+  def handle_event("create_game", _, socket) do
+    {:noreply, assign(socket, :show_create_modal, true)}
+  end
+
+  def handle_event("import_game", _, socket) do
+    # TODO: Fetch non-training games to pass to the modal/component
+    {:noreply, assign(socket, :show_import_modal, true)}
+  end
+
+  def handle_event("close_modal", _, socket) do
+    {:noreply, assign(socket, show_create_modal: false, show_import_modal: false)}
+  end
+
+  # TODO: Add handler for import_game
+
+  @impl true
+  def handle_info({:close_game_form}, socket) do
+    # Message sent from FormComponent on cancel
+    # Can potentially be reused if import form sends the same message
+    {:noreply, assign(socket, show_create_modal: false, show_import_modal: false)}
+  end
+
+  def handle_info({:saved_game, _game}, socket) do
+    # Message sent from FormComponent on successful save
+    # Close modal and refresh game list
+    {:noreply,
+     socket
+     |> put_flash(:info, "Training game created successfully.")
+     |> assign(:show_create_modal, false)
+     |> assign(:training_games, Games.list_training_games())}
+  end
 end

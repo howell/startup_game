@@ -5,7 +5,9 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
   import StartupGame.AccountsFixtures
   import StartupGame.GamesFixtures
 
+  alias StartupGame.Games
   alias StartupGame.Games.Game
+  alias StartupGame.Engine.LLMScenarioProvider
 
   @admin_attrs %{email: "admin@example.com", password: "password1234", role: :admin}
   @user_attrs %{email: "user@example.com", password: "password1234", role: :user}
@@ -74,6 +76,76 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
       conn = get(conn, ~p"/admin/training_games")
       # Should redirect somewhere (likely login)
       assert redirected_to(conn)
+    end
+  end
+
+  describe "Create Training Game Modal" do
+    setup %{conn: conn, admin: admin} do
+      {:ok, view, _html} =
+        conn
+        |> log_in_user(admin)
+        |> live(~p"/admin/training_games")
+
+      {:ok, view: view}
+    end
+
+    test "opens and closes the create modal", %{view: view} do
+      # Modal initially hidden
+      refute has_element?(view, "#create-game-modal")
+
+      # Click button to open modal
+      view |> element("button", "Create New Training Game") |> render_click()
+
+      # Modal is now visible with the form component
+      assert has_element?(view, "#create-game-modal")
+      # Check for form presence instead of component root
+      assert has_element?(view, "#training-game-form")
+
+      # Check default prompts are pre-filled (example check)
+      default_scenario_prompt = LLMScenarioProvider.scenario_system_prompt()
+      assert view |> element("form#training-game-form textarea[name='game[scenario_system_prompt]']") |> render() =~ ~r/#{Regex.escape(String.slice(default_scenario_prompt, 0..50))}/
+
+      # Click cancel button within the component to close
+      view |> element("#create-game-modal button", "Cancel") |> render_click()
+      refute has_element?(view, "#create-game-modal")
+    end
+
+    test "creates a new training game successfully", %{view: view} do
+      # Open modal
+      view |> element("button", "Create New Training Game") |> render_click()
+      assert has_element?(view, "#create-game-modal")
+
+      # Fill and submit form
+      form = view |> element("#training-game-form")
+      form |> render_change(%{"game" => %{"name" => "My New Training Game", "description" => "Desc..."}})
+      form |> render_submit()
+
+      # Modal should close, game listed, flash shown
+      refute has_element?(view, "#create-game-modal")
+      assert render(view) =~ "My New Training Game"
+      assert has_element?(view, "#flash-info", "Training game created successfully.")
+
+      # Verify in DB
+      # Verify the new game exists in the list of training games
+      assert Enum.any?(Games.list_training_games(), fn game ->
+               game.name == "My New Training Game" && game.is_training_example == true
+             end)
+    end
+
+    test "shows errors for invalid data", %{view: view} do
+       # Open modal
+      view |> element("button", "Create New Training Game") |> render_click()
+      assert has_element?(view, "#create-game-modal")
+
+      # Submit form with empty name
+      form = view |> element("#training-game-form")
+      form |> render_change(%{"game" => %{"name" => "", "description" => "Desc..."}})
+      form |> render_submit()
+
+      # Modal stays open, error shown
+      assert has_element?(view, "#create-game-modal")
+      # Check for error text within the form
+      assert has_element?(view, "form#training-game-form", "can't be blank")
     end
   end
 end
