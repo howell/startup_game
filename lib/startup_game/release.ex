@@ -20,6 +20,7 @@ defmodule StartupGame.Release do
 
   def create_case_studies do
     load_app()
+    {:ok, _} = Application.ensure_all_started(:startup_game)
     Mix.Tasks.Game.CreateCaseStudies.run([])
   end
 
