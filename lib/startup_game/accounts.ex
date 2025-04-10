@@ -63,6 +63,23 @@ defmodule StartupGame.Accounts do
   @doc """
   Gets a single user.
 
+  ## Examples
+
+      iex> get_user(123)
+      %User{}
+
+      iex> get_user(456)
+      nil
+
+  """
+  @spec get_user(term()) :: User.t() | nil
+  def get_user(id) do
+    Repo.get(User, id)
+  end
+
+  @doc """
+  Gets a single user.
+
   Raises `Ecto.NoResultsError` if the User does not exist.
 
   ## Examples
@@ -420,10 +437,8 @@ defmodule StartupGame.Accounts do
 
   """
   def delete_user(user, password) do
-    # Verify the user's password first
-    changeset = User.validate_current_password(%Ecto.Changeset{data: user}, password)
-
-    if changeset.valid? do
+    # Verify the user's password directly instead of using a changeset
+    if User.valid_password?(user, password) do
       # Delete all user tokens
       Ecto.Multi.new()
       |> Ecto.Multi.delete_all(:tokens, UserToken.by_user_and_contexts_query(user, :all))
@@ -434,6 +449,12 @@ defmodule StartupGame.Accounts do
         {:error, :user, changeset, _} -> {:error, changeset}
       end
     else
+      # Create a changeset with an error to return
+      changeset =
+        user
+        |> Ecto.Changeset.change()
+        |> Ecto.Changeset.add_error(:password, "is not valid")
+
       {:error, changeset}
     end
   end
@@ -466,6 +487,7 @@ defmodule StartupGame.Accounts do
     |> User.visibility_changeset(attrs)
     |> Repo.update()
   end
+
   @doc """
   Updates a user's role. Intended for admin use.
 
@@ -510,22 +532,22 @@ defmodule StartupGame.Accounts do
     end
   end
 
-    ## Statistics Functions (Admin)
+  ## Statistics Functions (Admin)
 
-    @doc """
-    Returns the total count of users.
-    """
-    def count_users do
-      Repo.aggregate(User, :count, :id)
-    end
+  @doc """
+  Returns the total count of users.
+  """
+  def count_users do
+    Repo.aggregate(User, :count, :id)
+  end
 
-    @doc """
-    Returns a list of the most recently registered users.
-    """
-    def list_recent_users(limit \\ 5) do
-      User
-      |> order_by(desc: :inserted_at)
-      |> limit(^limit)
-      |> Repo.all()
-    end
+  @doc """
+  Returns a list of the most recently registered users.
+  """
+  def list_recent_users(limit \\ 5) do
+    User
+    |> order_by(desc: :inserted_at)
+    |> limit(^limit)
+    |> Repo.all()
+  end
 end

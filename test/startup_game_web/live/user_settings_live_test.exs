@@ -340,4 +340,92 @@ defmodule StartupGameWeb.UserSettingsLiveTest do
              )
     end
   end
+
+  describe "account deletion" do
+    setup %{conn: conn} do
+      password = valid_user_password()
+      user = user_fixture(%{password: password})
+      %{conn: log_in_user(conn, user), user: user, password: password}
+    end
+
+    test "can delete account with correct password", %{conn: conn, user: user, password: password} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Navigate to security tab
+      lv |> element("button", "Security") |> render_click()
+
+      # Click on delete account button
+      lv |> element("button", "Delete Account") |> render_click()
+
+      # Modal should appear
+      assert has_element?(lv, "h3", "Are you sure?")
+
+      # Submit the delete account form with correct password and verify redirection
+      result =
+        lv
+        |> form("form[phx-submit=delete_account]", %{
+          "current_password" => password
+        })
+        |> render_submit()
+
+      # Verify we got a redirect
+      assert {:error, {:redirect, %{to: "/"}}} = result
+
+      # Verify user no longer exists in the database
+      assert Accounts.get_user(user.id) == nil
+    end
+
+    test "cannot delete account with incorrect password", %{conn: conn, user: user} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Navigate to security tab
+      lv |> element("button", "Security") |> render_click()
+
+      # Click on delete account button
+      lv |> element("button", "Delete Account") |> render_click()
+
+      # Submit the delete account form with incorrect password
+      html =
+        lv
+        |> form("form[phx-submit=delete_account]", %{
+          "current_password" => "wrong_password"
+        })
+        |> render_submit()
+
+      # Modal should close and an error message should appear
+      assert html =~ "Incorrect password. Account not deleted."
+
+      # User should still exist in the database
+      assert Accounts.get_user(user.id) != nil
+    end
+
+    test "shows delete account button in the danger zone", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Navigate to security tab
+      lv |> element("button", "Security") |> render_click()
+
+      # Verify the delete account button is present
+      assert has_element?(lv, "button", "Delete Account")
+    end
+
+    test "can cancel account deletion", %{conn: conn} do
+      {:ok, lv, _html} = live(conn, ~p"/users/settings")
+
+      # Navigate to security tab
+      lv |> element("button", "Security") |> render_click()
+
+      # Click on delete account button
+      lv |> element("button", "Delete Account") |> render_click()
+
+      # Modal should appear
+      assert has_element?(lv, "h3", "Are you sure?")
+
+      # Click cancel button
+      lv |> element("button", "Cancel") |> render_click()
+
+      # Modal should close
+      refute has_element?(lv, "h3", "Are you sure?")
+    end
+  end
 end

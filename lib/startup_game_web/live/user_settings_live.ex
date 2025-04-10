@@ -354,6 +354,7 @@ defmodule StartupGameWeb.UserSettingsLive do
             label="Enter your password to confirm"
             placeholder="Your current password"
             required
+            value=""
             class={input_class()}
           />
 
@@ -614,7 +615,7 @@ defmodule StartupGameWeb.UserSettingsLive do
          |> put_flash(:info, "Account deleted successfully.")
          |> redirect(to: ~p"/")}
 
-      {:error, _} ->
+      {:error, _changeset} ->
         {:noreply,
          socket
          |> put_flash(:error, "Incorrect password. Account not deleted.")
