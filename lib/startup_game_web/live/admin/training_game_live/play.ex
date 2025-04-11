@@ -2,10 +2,13 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
   use StartupGameWeb, :live_view
 
   alias StartupGame.Games
-  alias StartupGame.TrainingGames # Add alias
-  alias StartupGame.StreamingService # Add alias
+  # Add alias
+  alias StartupGame.TrainingGames
+  # Add alias
+  alias StartupGame.StreamingService
   alias StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent
-  require Logger # Add require
+  # Add require
+  require Logger
 
   # TODO: Define a type that specifies the socket assigns
 
@@ -179,14 +182,16 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
 
   # Handle stream delta
   def handle_info(
-        {:stream_delta, _stream_id, _delta_content, _full_display_content}, # Prefix unused var
+        # Prefix unused var
+        {:stream_delta, _stream_id, _delta_content, _full_display_content},
         %{assigns: %{regenerating_round_id: nil}} = socket
       ) do
     # Not currently regenerating, ignore delta
     {:noreply, socket}
   end
 
-  def handle_info({:stream_delta, _stream_id, delta_content, _full_display_content}, socket) do # Keep var here
+  # Keep var here
+  def handle_info({:stream_delta, _stream_id, delta_content, _full_display_content}, socket) do
     # Append delta to the temporary regenerating text
     updated_text = (socket.assigns.regenerating_outcome_text || "") <> delta_content
     {:noreply, assign(socket, :regenerating_outcome_text, updated_text)}

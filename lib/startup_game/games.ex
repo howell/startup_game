@@ -291,7 +291,10 @@ defmodule StartupGame.Games do
   def get_game_with_associations!(id) do
     Game
     |> Repo.get!(id)
-    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
+    |> Repo.preload([
+      :ownerships,
+      rounds: from(r in Round, order_by: r.inserted_at, preload: [:ownership_changes])
+    ])
   end
 
   @doc """
@@ -301,7 +304,10 @@ defmodule StartupGame.Games do
   def get_game_with_associations(id) do
     Game
     |> Repo.get(id)
-    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
+    |> Repo.preload([
+      :ownerships,
+      rounds: from(r in Round, order_by: r.inserted_at, preload: [:ownership_changes])
+    ])
   end
 
   @doc """
@@ -917,7 +923,7 @@ defmodule StartupGame.Games do
     end)
   end
 
-  # Helper function to process new ownerships
+  # Helper function to process new ownerships (Original Logic - Reverted)
   defp process_new_ownerships(new_ownerships, current_by_entity, game, round) do
     Enum.map(new_ownerships, fn %{entity_name: entity_name, percentage: percentage} ->
       case Map.get(current_by_entity, entity_name) do
@@ -930,7 +936,7 @@ defmodule StartupGame.Games do
     end)
   end
 
-  # Helper function to create a new entity ownership
+  # Helper function to create a new entity ownership (Original Logic - Reverted)
   defp create_new_entity_ownership(entity_name, percentage, game, round) do
     {:ok, ownership} =
       create_ownership(%{
@@ -944,7 +950,7 @@ defmodule StartupGame.Games do
         entity_name: entity_name,
         previous_percentage: 0,
         new_percentage: percentage,
-        change_type: :initial,
+        change_type: :initial, # Default for new entities
         game_id: game.id,
         round_id: round.id
       })
@@ -952,11 +958,12 @@ defmodule StartupGame.Games do
     ownership
   end
 
-  # Helper function to update an existing entity ownership
+  # Helper function to update an existing entity ownership (Original Logic - Reverted)
   defp update_existing_entity_ownership(existing, percentage, game, round) do
     if Decimal.compare(existing.percentage, percentage) != :eq do
       {:ok, ownership} = update_ownership(existing, %{percentage: percentage})
 
+      # Calculate change type based on percentage difference
       change_type =
         if Decimal.compare(existing.percentage, percentage) == :lt do
           :investment
@@ -969,13 +976,14 @@ defmodule StartupGame.Games do
           entity_name: existing.entity_name,
           previous_percentage: existing.percentage,
           new_percentage: percentage,
-          change_type: change_type,
+          change_type: change_type, # Calculated type
           game_id: game.id,
           round_id: round.id
         })
 
       ownership
     else
+      # No change in percentage, return existing record
       existing
     end
   end
@@ -1044,6 +1052,79 @@ defmodule StartupGame.Games do
   """
   def change_ownership_change(%OwnershipChange{} = ownership_change, attrs \\ %{}) do
     OwnershipChange.changeset(ownership_change, attrs)
+  end
+
+  @doc """
+  Applies a list of explicit ownership changes, creating the necessary
+  OwnershipChange records and updating/creating/deleting Ownership records.
+  Used primarily for applying changes determined externally (e.g., LLM regeneration).
+
+  Expects `changes_list` items to be maps with atom keys:
+  `:entity_name`, `:previous_percentage`, `:new_percentage`, `:change_type`.
+  """
+  @spec apply_ownership_changes([map()], Game.t(), Round.t()) ::
+          {:ok, [%{ownership: Ownership.t() | nil, change: OwnershipChange.t()}]}
+          | {:error, any()}
+  def apply_ownership_changes(changes_list, %Game{} = game, %Round{} = round) do
+    Repo.transaction(fn ->
+      # Fetch current ownerships once for efficiency
+      current_ownerships = list_game_ownerships(game.id) |> ownership_map_by_entity()
+
+      Enum.map(changes_list, fn change_data ->
+        # 1. Create the OwnershipChange record
+        change_attrs =
+          # Ensure new_percentage is included here
+          Map.take(change_data, [
+            :entity_name,
+            :previous_percentage,
+            :new_percentage, # Fixed: Ensure this is included
+            :change_type
+          ])
+          |> Map.merge(%{game_id: game.id, round_id: round.id})
+
+        {:ok, change_record} = create_ownership_change(change_attrs)
+
+        # 2. Update/Create/Delete the corresponding Ownership record
+        entity_name = change_data.entity_name
+        new_percentage = change_data.new_percentage
+        existing_ownership = Map.get(current_ownerships, entity_name)
+
+        ownership_result =
+          cond do
+            # Existing ownership, update or delete
+            existing_ownership ->
+              if Decimal.compare(new_percentage, Decimal.new(0)) == :gt do
+                # Update percentage
+                update_ownership(existing_ownership, %{percentage: new_percentage})
+              else
+                # Delete ownership if new percentage is zero or less
+                delete_ownership(existing_ownership)
+              end
+
+            # No existing ownership, create if percentage > 0
+            new_percentage && Decimal.compare(new_percentage, Decimal.new(0)) == :gt ->
+              create_ownership(%{
+                entity_name: entity_name,
+                percentage: new_percentage,
+                game_id: game.id
+              })
+
+            # No existing and new percentage is zero, do nothing for ownership
+            true ->
+              # Indicate no ownership record affected
+              {:ok, nil}
+          end
+
+        # Check for errors during ownership update/create/delete
+        case ownership_result do
+          {:ok, ownership_record} ->
+            %{ownership: ownership_record, change: change_record}
+
+          {:error, reason} ->
+            Repo.rollback({:error_applying_ownership, reason})
+        end
+      end)
+    end)
   end
 
   # Game state functions

@@ -4,6 +4,7 @@ defmodule StartupGame.TrainingGames do
   like regenerating outcomes.
   """
 
+  alias StartupGame.Repo
   alias StartupGame.Games
   alias StartupGame.Games.{Game, Round}
   alias StartupGame.GameService
@@ -25,8 +26,8 @@ defmodule StartupGame.TrainingGames do
   def regenerate_round_outcome_async(round_id) do
     # Use get_round to handle nil case gracefully
     with %Round{} = target_round <- Games.get_round(round_id),
-         %Game{} = game <- Games.get_game_with_associations!(target_round.game_id),
-         # Ensure it's a training game
+         target_round <- Repo.preload(target_round, :game),
+         %Game{} = game <- target_round.game,
          true <- game.is_training_example,
          # Load game state *before* this round's outcome was applied
          {:ok, %{game_state: game_state_before_outcome}} <-
@@ -81,26 +82,118 @@ defmodule StartupGame.TrainingGames do
   end
 
   @doc """
-  Updates a specific round with the final regenerated outcome data.
+  Updates a specific round with the final regenerated outcome data, including ownership changes.
   Called by the LiveView once the stream completes successfully.
+  Uses a transaction to ensure atomicity.
   """
-  @spec finalize_regenerated_outcome(Ecto.UUID.t(), Scenario.outcome()) ::
-          {:ok, Round.t()} | {:error, Ecto.Changeset.t()}
+  @spec finalize_regenerated_outcome(Ecto.UUID.t(), map()) ::
+          {:ok, Round.t()} | {:error, Ecto.Changeset.t() | atom() | any()}
   # Expect a map, not a struct
   def finalize_regenerated_outcome(round_id, %{} = outcome_data) do
-    target_round = Games.get_round!(round_id)
+    # Fetch round and preload game for ownership update
+    target_round = Games.get_round!(round_id) |> Repo.preload(:game)
+    game = target_round.game
 
-    update_attrs = %{
-      outcome: outcome_data.narrative,
-      cash_change: outcome_data.cash_change,
-      burn_rate_change: outcome_data.burn_rate_change
-      # TODO: Handle ownership/exit data persistence. This might require
-      # loading the game, applying the outcome to the state, and then
-      # saving the round AND the game's financial state, potentially
-      # using a multi transaction like in GameService.save_round_result.
-      # For now, only updating the round directly.
-    }
+    multi =
+      Ecto.Multi.new()
+      |> Ecto.Multi.run(:round, fn _repo, _changes ->
+        # Update basic round fields
+        update_attrs = %{
+          # Handle atom/string keys
+          outcome: outcome_data[:narrative] || outcome_data["narrative"],
+          cash_change: outcome_data[:cash_change] || outcome_data["cash_change"],
+          burn_rate_change: outcome_data[:burn_rate_change] || outcome_data["burn_rate_change"]
+        }
 
-    Games.update_round(target_round, update_attrs)
+        Games.update_round(target_round, update_attrs)
+      end)
+      |> Ecto.Multi.run(:ownerships, fn _repo, %{round: updated_round_record} ->
+        # Update ownership structure if changes are present in the outcome
+        raw_ownership_changes =
+          outcome_data[:ownership_changes] || outcome_data["ownership_changes"]
+
+        if raw_ownership_changes && is_list(raw_ownership_changes) do
+          # Sanitize the list to ensure correct structure and atom keys
+          sanitized_changes = sanitize_ownership_changes(raw_ownership_changes)
+          # Pass the updated round record from the previous step
+          # Use new function
+          Games.apply_ownership_changes(sanitized_changes, game, updated_round_record)
+        else
+          # No ownership changes to process
+          {:ok, nil}
+        end
+      end)
+
+    case Repo.transaction(multi) do
+      {:ok, %{round: updated_round}} ->
+        # Preload changes again for the return value
+        {:ok, Repo.preload(updated_round, :ownership_changes)}
+
+      {:error, :round, changeset, _changes} ->
+        {:error, changeset}
+
+      {:error, :ownerships, reason, _changes} ->
+        Logger.error("Error updating ownership structure during regeneration: #{inspect(reason)}")
+
+        {:error, :ownership_update_failed}
+
+      # Catch-all for other transaction errors
+      {:error, failed_operation, failed_value, _changes} ->
+        Logger.error(
+          "Transaction failed during finalize_regenerated_outcome. Operation: #{failed_operation}, Value: #{inspect(failed_value)}"
+        )
+
+        {:error, :transaction_failed}
+    end
   end
+
+  # Closes finalize_regenerated_outcome/2
+
+  # --- Sanitization Helpers (defined inside TrainingGames) ---
+
+  # Takes a list of maps (potentially with string keys from JSON) and returns
+  # a list of maps with atom keys and validated change_type.
+  defp sanitize_ownership_changes(raw_changes) when is_list(raw_changes) do
+    Enum.map(raw_changes, &sanitize_single_ownership_change/1)
+    # Filter out invalid entries
+    |> Enum.reject(&is_nil(&1))
+  end
+
+  # Sanitizes a single ownership change map. Returns nil if invalid.
+  defp sanitize_single_ownership_change(map) when is_map(map) do
+    # Explicitly extract values, checking both atom and string keys
+    entity_name = map[:entity_name] || map["entity_name"]
+    percentage = map[:percentage] || map["percentage"]
+    previous_percentage = map[:previous_percentage] || map["previous_percentage"]
+    raw_change_type = map[:change_type] || map["change_type"]
+
+    # Validate and convert change_type
+    change_type =
+      case to_string(raw_change_type) do
+        "investment" -> :investment
+        "dilution" -> :dilution
+        "exit" -> :exit
+        "initial" -> :initial
+        _ -> nil
+      end
+
+    # Only return a map if the change_type is valid
+    if change_type do
+      %{
+        entity_name: entity_name,
+        # Rename key to match what apply_ownership_changes expects
+        new_percentage: percentage,
+        previous_percentage: previous_percentage,
+        change_type: change_type
+      }
+    else
+      # Indicate invalid entry
+      nil
+    end
+  end
+
+  # Fallback for non-map elements in the list
+  defp sanitize_single_ownership_change(_), do: nil
 end
+
+# Closes StartupGame.TrainingGames module
