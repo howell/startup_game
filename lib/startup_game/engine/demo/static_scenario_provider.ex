@@ -287,56 +287,68 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
   @impl true
   @spec generate_outcome(GameState.t(), Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
-  def generate_outcome(game_state, scenario, response_text) do
-    current = current_scenario(game_state, scenario)
-
-    if current do
-      scenario_outcome(current, response_text)
+  # Don't need game_state here
+  def generate_outcome(_game_state, scenario, response_text) do
+    if scenario do
+      scenario_outcome(scenario, response_text)
     else
+      # If no scenario context was provided (e.g., acting mode or regeneration of acting round)
       {:ok, @active_player_outcome}
     end
   end
 
-  @spec current_scenario(GameState.t(), Scenario.t() | nil) :: Scenario.t() | nil
-  defp current_scenario(game_state, nil) do
-    last = List.last(game_state.rounds)
-
-    if last && last.situation do
-      scenario_for_round(last)
-    else
-      nil
-    end
-  end
-
-  defp current_scenario(_game_state, scenario), do: scenario
-
   @spec scenario_outcome(Scenario.t(), String.t()) ::
           {:ok, Scenario.outcome()} | {:error, String.t()}
   defp scenario_outcome(scenario, response_text) do
+    # Use the robust key_for
     key = key_for(scenario)
-    # Get the choices for this scenario
-    choices = Map.get(@scenario_choices, key)
 
-    case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
-      {:ok, choice_id} ->
-        # Get the predefined outcome for this choice
-        outcome = get_outcome_for_choice(key, choice_id)
-        # Remove the choice_id field from the outcome
-        {:ok, Map.delete(outcome, :choice_id)}
+    # Handle case where key_for couldn't determine the scenario
+    if is_nil(key) do
+      # This might happen if regenerating an 'acting' round with no situation
+      # or if the situation text doesn't match any known scenario.
+      {:ok, @active_player_outcome}
+    else
+      # Get the choices for this scenario
+      choices = Map.get(@scenario_choices, key)
 
-      {:error, reason} ->
-        {:error, reason}
+      case BaseScenarioProvider.match_response_to_choice(scenario, response_text, choices) do
+        {:ok, choice_id} ->
+          # Get the predefined outcome for this choice
+          outcome = get_outcome_for_choice(key, choice_id)
+          # Remove the choice_id field from the outcome
+          {:ok, Map.delete(outcome, :choice_id)}
+
+        {:error, reason} ->
+          {:error, reason}
+      end
     end
   end
 
-  defp key_for(%Scenario{id: id, situation: sit_with_choices}) do
-    if Map.has_key?(@scenarios, id) do
-      id
-    else
-      Enum.find(@scenarios, fn {_, situation} ->
-        String.contains?(sit_with_choices, situation.situation)
-      end)
-      |> elem(0)
+  # Tries to find the scenario key ("angel_investment", etc.)
+  # Handles both direct ID match and fallback to situation text matching.
+  defp key_for(nil), do: nil
+
+  defp key_for(%Scenario{id: id, situation: sit_text}) do
+    cond do
+      # Primary check: Does the ID directly match a known scenario key?
+      Map.has_key?(@scenarios, id) ->
+        id
+
+      # Fallback: Does the situation text contain a known base situation?
+      sit_text != nil ->
+        case Enum.find(@scenarios, fn {_, scenario_def} ->
+               # Check if sit_text (potentially with choices) contains the base situation
+               String.contains?(sit_text, scenario_def.situation)
+             end) do
+          {found_key, _} -> found_key
+          # No match found via situation text either
+          nil -> nil
+        end
+
+      # No ID match and no situation text to check
+      true ->
+        nil
     end
   end
 
