@@ -2,7 +2,12 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
   use StartupGameWeb, :live_view
 
   alias StartupGame.Games
-  alias StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent # Add alias
+  alias StartupGame.TrainingGames # Add alias
+  alias StartupGame.StreamingService # Add alias
+  alias StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent
+  require Logger # Add require
+
+  # TODO: Define a type that specifies the socket assigns
 
   @impl true
   def mount(%{"id" => game_id}, _session, socket) do
@@ -19,7 +24,12 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
         |> assign(:rounds, Enum.sort_by(game.rounds, & &1.inserted_at))
         |> assign(:show_edit_modal, false)
         |> assign(:editing_round_id, nil)
+        # Track which round is regenerating
+        |> assign(:regenerating_round_id, nil)
+        # Store streaming text
+        |> assign(:regenerating_outcome_text, nil)
 
+      StreamingService.subscribe(game.id)
       {:ok, socket}
     else
       # Redirect if somehow a non-training game ID is accessed via this route
@@ -67,8 +77,23 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
             <p class="text-sm text-purple-700 whitespace-pre-wrap">{round.outcome}</p>
             <%!-- TODO: Add Edit/Regenerate buttons here --%>
             <div class="mt-2 flex justify-end gap-2">
-              <.button type="button" class="text-xs" phx-click="edit_outcome" phx-value-round_id={round.id}>Edit</.button>
-              <.button type="button" class="text-xs" disabled>Regenerate</.button> <% # TODO: Implement Regenerate %>
+              <.button
+                type="button"
+                class="text-xs"
+                phx-click="edit_outcome"
+                phx-value-round_id={round.id}
+              >
+                Edit
+              </.button>
+              <.button
+                type="button"
+                class="text-xs"
+                phx-click="regenerate_outcome"
+                phx-value-round_id={round.id}
+                phx-disable-with="Regenerating..."
+              >
+                Regenerate
+              </.button>
             </div>
           </div>
 
@@ -85,7 +110,12 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
       </div>
     </div>
 
-    <.modal :if={@show_edit_modal} id="edit-outcome-modal" show on_cancel={JS.push("close_edit_modal")}>
+    <.modal
+      :if={@show_edit_modal}
+      id="edit-outcome-modal"
+      show
+      on_cancel={JS.push("close_edit_modal")}
+    >
       <.live_component
         :if={@editing_round_id}
         module={EditOutcomeComponent}
@@ -109,7 +139,21 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
     {:noreply, assign(socket, show_edit_modal: false, editing_round_id: nil)}
   end
 
-  # TODO: Add handler for regenerate
+  def handle_event("regenerate_outcome", %{"round_id" => round_id}, socket) do
+    case TrainingGames.regenerate_round_outcome_async(round_id) do
+      {:ok, _stream_id, target_round} ->
+        # Store the ID of the round being regenerated and clear any temp text
+        {:noreply,
+         socket
+         |> assign(:regenerating_round_id, target_round.id)
+         # Start with empty text
+         |> assign(:regenerating_outcome_text, "")
+         |> put_flash(:info, "Regenerating outcome for round #{target_round.id}...")}
+
+      {:error, reason} ->
+        {:noreply, put_flash(socket, :error, "Failed to start regeneration: #{reason}")}
+    end
+  end
 
   @impl true
   def handle_info({:close_edit_outcome_form}, socket) do
@@ -129,6 +173,99 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
      |> assign(:show_edit_modal, false)
      |> assign(:editing_round_id, nil)
      |> put_flash(:info, "Round outcome updated successfully.")}
+  end
+
+  # TODO - make sure these patterns match the messages sent by the StreamingService
+
+  # Handle stream delta
+  def handle_info(
+        {:stream_delta, _stream_id, _delta_content, _full_display_content}, # Prefix unused var
+        %{assigns: %{regenerating_round_id: nil}} = socket
+      ) do
+    # Not currently regenerating, ignore delta
+    {:noreply, socket}
+  end
+
+  def handle_info({:stream_delta, _stream_id, delta_content, _full_display_content}, socket) do # Keep var here
+    # Append delta to the temporary regenerating text
+    updated_text = (socket.assigns.regenerating_outcome_text || "") <> delta_content
+    {:noreply, assign(socket, :regenerating_outcome_text, updated_text)}
+  end
+
+  # Handle stream completion
+  def handle_info(
+        {:stream_complete, _stream_id, {:ok, outcome_data}},
+        %{assigns: %{regenerating_round_id: round_id}} = socket
+      )
+      when not is_nil(round_id) do
+    case TrainingGames.finalize_regenerated_outcome(round_id, outcome_data) do
+      {:ok, updated_round} ->
+        # Update the round in the assigns list
+        updated_rounds =
+          Enum.map(socket.assigns.rounds, fn r ->
+            if r.id == updated_round.id, do: updated_round, else: r
+          end)
+
+        {:noreply,
+         socket
+         |> assign(:rounds, updated_rounds)
+         # Clear regenerating state
+         |> assign(:regenerating_round_id, nil)
+         |> assign(:regenerating_outcome_text, nil)
+         |> put_flash(:info, "Outcome regenerated successfully for round #{round_id}.")}
+
+      {:error, changeset} ->
+        # Handle potential error during final update
+        IO.inspect(changeset, label: "Finalize Regenerated Outcome Error")
+
+        {:noreply,
+         socket
+         # Clear regenerating state
+         |> assign(:regenerating_round_id, nil)
+         |> assign(:regenerating_outcome_text, nil)
+         |> put_flash(:error, "Failed to save regenerated outcome.")}
+    end
+  end
+
+  def handle_info(
+        {:stream_complete, _stream_id, {:error, reason}},
+        %{assigns: %{regenerating_round_id: round_id}} = socket
+      )
+      when not is_nil(round_id) do
+    Logger.error("Stream completed with error during regeneration: #{inspect(reason)}")
+
+    {:noreply,
+     socket
+     # Clear regenerating state
+     |> assign(:regenerating_round_id, nil)
+     |> assign(:regenerating_outcome_text, nil)
+     |> put_flash(:error, "Regeneration failed: #{reason}")}
+  end
+
+  def handle_info({:stream_complete, _stream_id, _result}, socket) do
+    # Completion for a stream we don't care about (e.g., old one)
+    {:noreply, socket}
+  end
+
+  # Handle stream error
+  def handle_info(
+        {:stream_error, _stream_id, reason},
+        %{assigns: %{regenerating_round_id: round_id}} = socket
+      )
+      when not is_nil(round_id) do
+    Logger.error("Stream error during regeneration: #{inspect(reason)}")
+
+    {:noreply,
+     socket
+     # Clear regenerating state
+     |> assign(:regenerating_round_id, nil)
+     |> assign(:regenerating_outcome_text, nil)
+     |> put_flash(:error, "Regeneration failed with stream error.")}
+  end
+
+  def handle_info({:stream_error, _stream_id, _reason}, socket) do
+    # Error for a stream we don't care about
+    {:noreply, socket}
   end
 
   # Helper to find the round struct from the list in assigns

@@ -30,8 +30,9 @@ defmodule StartupGame.Engine.ScenarioProvider do
     - game_state: The current game state
     - game_id: The ID of the current game
     - current_scenario_id: The ID of the current scenario, or nil if no scenario has been played yet.
+    - system_prompt: Optional system prompt for the LLM
   """
-  @callback get_next_scenario_async(GameState.t(), any(), String.t() | nil) ::
+  @callback get_next_scenario_async(GameState.t(), any(), String.t() | nil, String.t() | nil) ::
               {:ok, stream_id()} | {:error, String.t()}
 
   @doc """
@@ -59,7 +60,14 @@ defmodule StartupGame.Engine.ScenarioProvider do
     - game_id: The ID of the current game
     - scenario: The current scenario (`nil` if the player is taking proactive action without a specific situation)
     - player_input: The player's input text
+    - system_prompt: Optional system prompt for the LLM
   """
-  @callback generate_outcome_async(GameState.t(), any(), Scenario.t() | nil, String.t()) ::
+  @callback generate_outcome_async(
+              GameState.t(),
+              any(),
+              Scenario.t() | nil,
+              String.t(),
+              String.t() | nil
+            ) ::
               {:ok, stream_id()} | {:error, String.t()}
 end

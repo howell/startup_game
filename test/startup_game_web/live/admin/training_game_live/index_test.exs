@@ -6,7 +6,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
   import StartupGame.GamesFixtures
 
   alias StartupGame.Games
-  alias StartupGame.Games.Game
+  # Keep for default prompt check
   alias StartupGame.Engine.LLMScenarioProvider
 
   @admin_attrs %{email: "admin@example.com", password: "password1234", role: :admin}
@@ -40,7 +40,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
         conn
         |> log_in_user(admin)
         |> live(~p"/admin/training_games")
-
 
       # Ensure view is rendered after mount assigns
       html = render(view)
@@ -103,7 +102,10 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
 
       # Check default prompts are pre-filled (example check)
       default_scenario_prompt = LLMScenarioProvider.scenario_system_prompt()
-      assert view |> element("form#training-game-form textarea[name='game[scenario_system_prompt]']") |> render() =~ ~r/#{Regex.escape(String.slice(default_scenario_prompt, 0..50))}/
+
+      assert view
+             |> element("form#training-game-form textarea[name='game[scenario_system_prompt]']")
+             |> render() =~ ~r/#{Regex.escape(String.slice(default_scenario_prompt, 0..50))}/
 
       # Click cancel button within the component to close
       view |> element("#create-game-modal button", "Cancel") |> render_click()
@@ -117,7 +119,12 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
 
       # Fill and submit form
       form = view |> element("#training-game-form")
-      form |> render_change(%{"game" => %{"name" => "My New Training Game", "description" => "Desc..."}})
+
+      form
+      |> render_change(%{
+        "game" => %{"name" => "My New Training Game", "description" => "Desc..."}
+      })
+
       form |> render_submit()
 
       # Modal should close, game listed, flash shown
@@ -163,7 +170,11 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
       assert has_element?(view, "select#import-game-select")
 
       # Check that the importable game is listed in the options
-      assert has_element?(view, "select#import-game-select option[value='#{importable_game.id}']", importable_game.name)
+      assert has_element?(
+               view,
+               "select#import-game-select option[value='#{importable_game.id}']",
+               importable_game.name
+             )
 
       # Check that the existing training game is NOT listed
       refute has_element?(view, "select#import-game-select option", "Training Game Alpha")
@@ -191,6 +202,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
 
       # Verify in DB - check for the cloned game
       cloned_game_name = "[TRAINING] #{importable_game.name}"
+
       assert Enum.any?(Games.list_training_games(), fn game ->
                game.name == cloned_game_name && game.is_training_example == true
              end)
@@ -211,7 +223,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.IndexTest do
     end
 
     test "shows errors for invalid data", %{view: view} do
-       # Open modal
+      # Open modal
       view |> element("button", "Create New Training Game") |> render_click()
       assert has_element?(view, "#create-game-modal")
 
