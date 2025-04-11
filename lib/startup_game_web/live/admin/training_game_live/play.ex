@@ -178,12 +178,11 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
      |> put_flash(:info, "Round outcome updated successfully.")}
   end
 
-  # TODO - make sure these patterns match the messages sent by the StreamingService
-
-  # Handle stream delta
   def handle_info(
-        # Prefix unused var
-        {:stream_delta, _stream_id, _delta_content, _full_display_content},
+        %{
+          event: "llm_delta",
+          payload: {:llm_delta, _stream_id, _delta_content, _full_display_content}
+        },
         %{assigns: %{regenerating_round_id: nil}} = socket
       ) do
     # Not currently regenerating, ignore delta
@@ -191,15 +190,21 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
   end
 
   # Keep var here
-  def handle_info({:stream_delta, _stream_id, delta_content, _full_display_content}, socket) do
+  def handle_info(
+        %{
+          event: "llm_delta",
+          payload: {:llm_delta, _stream_id, delta_content, _full_display_content}
+        },
+        socket
+      ) do
     # Append delta to the temporary regenerating text
     updated_text = (socket.assigns.regenerating_outcome_text || "") <> delta_content
     {:noreply, assign(socket, :regenerating_outcome_text, updated_text)}
   end
 
-  # Handle stream completion
+  # Handle stream completion (success)
   def handle_info(
-        {:stream_complete, _stream_id, {:ok, outcome_data}},
+        %{event: "llm_complete", payload: {:llm_complete, _stream_id, {:ok, outcome_data}}},
         %{assigns: %{regenerating_round_id: round_id}} = socket
       )
       when not is_nil(round_id) do
@@ -232,8 +237,9 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
     end
   end
 
+  # Handle stream completion (error result)
   def handle_info(
-        {:stream_complete, _stream_id, {:error, reason}},
+        %{event: "llm_complete", payload: {:llm_complete, _stream_id, {:error, reason}}},
         %{assigns: %{regenerating_round_id: round_id}} = socket
       )
       when not is_nil(round_id) do
@@ -247,14 +253,14 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
      |> put_flash(:error, "Regeneration failed: #{reason}")}
   end
 
-  def handle_info({:stream_complete, _stream_id, _result}, socket) do
+  def handle_info(%{event: "llm_complete", payload: {:llm_complete, _stream_id, _result}}, socket) do
     # Completion for a stream we don't care about (e.g., old one)
     {:noreply, socket}
   end
 
-  # Handle stream error
+  # Handle stream error broadcast
   def handle_info(
-        {:stream_error, _stream_id, reason},
+        %{event: "llm_error", payload: {:llm_error, _stream_id, reason}},
         %{assigns: %{regenerating_round_id: round_id}} = socket
       )
       when not is_nil(round_id) do
@@ -268,7 +274,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
      |> put_flash(:error, "Regeneration failed with stream error.")}
   end
 
-  def handle_info({:stream_error, _stream_id, _reason}, socket) do
+  def handle_info(%{event: "llm_error", payload: {:llm_error, _stream_id, _reason}}, socket) do
     # Error for a stream we don't care about
     {:noreply, socket}
   end
