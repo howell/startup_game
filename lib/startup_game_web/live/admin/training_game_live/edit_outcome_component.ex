@@ -32,7 +32,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent do
               <span class="font-medium">{change.entity_name}:</span>
               {change.previous_percentage}% &rarr; {change.new_percentage}%
               ({change.change_type})
-              <span :if={change.notes} class="text-gray-600 italic">- {change.notes}</span>
             </li>
           </ul>
           <p class="text-xs text-gray-500 mt-1">
