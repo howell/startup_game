@@ -13,23 +13,27 @@ defmodule StartupGame.Engine.Demo.BaseScenarioProvider do
       alias unquote(mod)
 
       @impl StartupGame.Engine.ScenarioProvider
-      def get_next_scenario_async(game_state, game_id, current_scenario_id) do
+      # Update arity to match ScenarioProvider behavior
+      def get_next_scenario_async(game_state, game_id, current_scenario_id, _system_prompt) do
         StartupGame.Engine.Demo.BaseScenarioProvider.default_get_next_scenario_async(
           __MODULE__,
           game_state,
           game_id,
           current_scenario_id
+          # system_prompt is ignored by the default implementation
         )
       end
 
       @impl StartupGame.Engine.ScenarioProvider
-      def generate_outcome_async(game_state, game_id, scenario, response_text) do
+      # Update arity to match ScenarioProvider behavior
+      def generate_outcome_async(game_state, game_id, scenario, response_text, _system_prompt) do
         StartupGame.Engine.Demo.BaseScenarioProvider.default_generate_outcome_async(
           __MODULE__,
           game_state,
           game_id,
           scenario,
           response_text
+          # system_prompt is ignored by the default implementation
         )
       end
     end

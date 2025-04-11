@@ -142,13 +142,13 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec load_game(Ecto.UUID.t()) :: game_result()
-  def load_game(game_id) do
+  @spec load_game(Ecto.UUID.t(), keyword()) :: game_result()
+  def load_game(game_id, opts \\ []) do
     case Games.get_game_with_associations(game_id) do
       %Games.Game{} = game ->
         ownerships = Games.list_game_ownerships(game_id)
         # Recreate in-memory game state from database records
-        game_state = build_game_state_from_db(game, ownerships)
+        game_state = build_game_state_from_db(game, ownerships, opts)
 
         {:ok, %{game: game, game_state: game_state}}
 
@@ -197,7 +197,8 @@ defmodule StartupGame.GameService do
          provider = determine_provider(game),
          scenario_context = game_state.current_scenario_data,
          # Determine the correct system prompt
-         system_prompt = determine_system_prompt(game, provider, :outcome),
+         # Get custom prompt or nil
+         system_prompt = get_custom_prompt(game, :outcome),
          # Pass system_prompt to the async function
          {:ok, stream_id} <-
            provider.generate_outcome_async(
@@ -256,7 +257,8 @@ defmodule StartupGame.GameService do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       provider = determine_provider(game)
       # Determine the correct system prompt
-      system_prompt = determine_system_prompt(game, provider, :scenario)
+      # Get custom prompt or nil
+      system_prompt = get_custom_prompt(game, :scenario)
       # Pass system_prompt to the async function
       provider.get_next_scenario_async(
         game_state,
@@ -337,7 +339,8 @@ defmodule StartupGame.GameService do
         game_state.current_scenario_data,
         player_input,
         # Determine and pass system prompt for recovery
-        determine_system_prompt(game, provider, :outcome)
+        # Get custom prompt or nil
+        get_custom_prompt(game, :outcome)
       )
     end
   end
@@ -356,34 +359,32 @@ defmodule StartupGame.GameService do
     end
   end
 
-  # --- Private functions ---
-
-  # Helper to determine the correct system prompt (custom or default)
-  defp determine_system_prompt(%Game{} = game, provider_module, type) do
+  # TODO - @doc and @spec
+  # Helper to get a custom prompt if available and valid, otherwise nil
+  def get_custom_prompt(%Game{} = game, type) do
     custom_prompt =
       case type do
         :scenario -> game.scenario_system_prompt
         :outcome -> game.outcome_system_prompt
       end
 
-    # Use custom prompt only if it's a training example and the prompt is not blank
     if game.is_training_example && custom_prompt && String.trim(custom_prompt) != "" do
+      # Return the custom prompt string
       custom_prompt
     else
-      # Fetch default from provider callback
-      case type do
-        :scenario -> provider_module.scenario_system_prompt()
-        :outcome -> provider_module.outcome_system_prompt()
-      end
+      # Return nil, signaling the provider should use its default
+      nil
     end
   end
 
+  # --- Private functions ---
+
   # Builds in-memory game state from database records
-  @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()]) ::
+  @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()], keyword()) ::
           GameState.t()
-  defp build_game_state_from_db(game, ownerships) do
+  defp build_game_state_from_db(game, ownerships, opts) do
     {current_scenario_id, current_scenario_data, previous_rounds} =
-      determine_current_and_previous_rounds(game)
+      determine_current_and_previous_rounds(game, opts)
 
     %GameState{
       name: game.name,
@@ -410,11 +411,12 @@ defmodule StartupGame.GameService do
   Since the DB stores the current round as the last entry in the rounds list,
   we need to separate it from the previous rounds and determine the current scenario.
   """
-  @spec determine_current_and_previous_rounds(Games.Game.t()) ::
+  @spec determine_current_and_previous_rounds(Games.Game.t(), keyword()) ::
           {String.t() | nil, Engine.Scenario.t() | nil, [GameState.round_entry()]}
-  def determine_current_and_previous_rounds(game) do
+  def determine_current_and_previous_rounds(game, opts) do
     # Sort rounds by insertion order just in case
-    db_rounds = game.rounds
+    # Filter rounds if before_round_id is provided
+    db_rounds = filter_rounds(game.rounds, opts[:before_round_id])
     game_state_rounds = build_rounds_from_db(db_rounds)
 
     case {game.status, db_rounds} do
@@ -474,7 +476,8 @@ defmodule StartupGame.GameService do
 
   # Determines which scenario provider to use
   @spec determine_provider(Games.Game.t()) :: module()
-  defp determine_provider(game) do
+  # Make public
+  def determine_provider(game) do
     case game.provider_preference do
       # Default to LLMScenarioProvider if no preference is set
       nil ->
@@ -568,6 +571,14 @@ defmodule StartupGame.GameService do
       # Add an error step to the multi to halt the transaction
       Ecto.Multi.error(multi, :round_mismatch, "Could not find DB round to update")
     end
+  end
+
+  # Helper to filter rounds up to (but not including) a specific round ID
+  defp filter_rounds(rounds, nil), do: rounds
+
+  defp filter_rounds(rounds, before_round_id) do
+    target_index = Enum.find_index(rounds, &(&1.id == before_round_id))
+    if is_nil(target_index), do: rounds, else: Enum.slice(rounds, 0, target_index)
   end
 
   defp process_ownership_changes(nil, _game, _game_state, _round), do: {:ok, nil}

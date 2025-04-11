@@ -551,6 +551,22 @@ defmodule StartupGame.Games do
   @doc """
   Gets a single round.
 
+  Returns `nil` if the Round does not exist.
+  ## Examples
+
+      iex> get_round!(123)
+      %Round{}
+
+      iex> get_round!(456)
+      nil
+
+  """
+  @spec get_round(Ecto.UUID.t()) :: Round.t() | nil
+  def get_round(id), do: Repo.get(Round, id)
+
+  @doc """
+  Gets a single round.
+
   Raises `Ecto.NoResultsError` if the Round does not exist.
 
   ## Examples

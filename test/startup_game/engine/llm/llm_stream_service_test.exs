@@ -73,7 +73,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           current_scenario_id,
-          MockProvider
+          MockProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Assert that we got a stream_id
@@ -139,7 +141,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           current_scenario_id,
-          SplitDelimiterProvider
+          SplitDelimiterProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Assert that we got a stream_id
@@ -203,7 +207,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           nil,
-          StartupGame.Engine.LLMScenarioProvider
+          StartupGame.Engine.LLMScenarioProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Assert that we got a stream_id
@@ -247,7 +253,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_state,
           scenario,
           response_text,
-          MockProvider
+          MockProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Assert that we got a stream_id
@@ -312,7 +320,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           current_scenario_id,
-          MockProvider
+          MockProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Wait for the error message
@@ -347,7 +357,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           current_scenario_id,
-          MockProvider
+          MockProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Wait for the error message
@@ -392,7 +404,9 @@ defmodule StartupGame.Engine.LLM.LLMStreamServiceTest do
           game_id,
           game_state,
           current_scenario_id,
-          MockProvider
+          MockProvider,
+          # Add nil for system_prompt
+          nil
         )
 
       # Wait for completion with error
