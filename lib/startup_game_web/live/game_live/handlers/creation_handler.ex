@@ -75,20 +75,10 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
            %{},
            initial_mode
          ) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        # Game created, now start it (which might trigger async scenario)
-        GameService.start_game(game.id)
-
-        # Assign game data and set player mode based on the created game's mode
+      {:ok, %{game: game}} ->
         socket =
           socket
-          |> SocketAssignments.assign_game_data(
-            game,
-            game_state,
-            Games.list_game_rounds(game.id),
-            Games.list_game_ownerships(game.id)
-          )
-          |> update(:rounds, fn rounds -> [updated_round | rounds] end)
+          |> assign(:rounds, [updated_round])
           |> assign(:game_id, game.id)
           |> assign(:creation_stage, :playing)
           |> assign(:response, "")
