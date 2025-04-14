@@ -28,34 +28,38 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
     assigns = assign(assigns, :last_round_index, length(assigns.rounds) - 1)
 
     ~H"""
-    <div class="p-4 space-y-6">
-      <%= for {round, _index} <- Enum.with_index(@rounds) do %>
-        <MessageBubble.message_bubble
-          :if={round.situation}
-          type={:system}
-          content={round.situation}
-          timestamp={round.inserted_at}
-        />
+    <div>
+      <div class="p-4 space-y-6" id="chat-history" phx-update="stream">
+        <%= for {round, _index} <- Enum.with_index(@rounds) do %>
+          <span id={round.id}>
+            <MessageBubble.message_bubble
+              :if={round.situation}
+              type={:system}
+              content={round.situation}
+              timestamp={round.inserted_at}
+            />
 
-        <%!-- Render player input using the renamed field --%>
-        <%= if round.player_input do %>
-          <MessageBubble.message_bubble
-            type={:user}
-            content={round.player_input}
-            timestamp={round.updated_at}
-          />
-        <% end %>
+            <%!-- Render player input using the renamed field --%>
+            <%= if round.player_input do %>
+              <MessageBubble.message_bubble
+                type={:user}
+                content={round.player_input}
+                timestamp={round.updated_at}
+              />
+            <% end %>
 
-        <%!-- Render outcome as before --%>
-        <%= if round.outcome do %>
-          <MessageBubble.message_bubble
-            type={:outcome}
-            content={round.outcome}
-            timestamp={round.updated_at}
-          />
+            <%!-- Render outcome as before --%>
+            <%= if round.outcome do %>
+              <MessageBubble.message_bubble
+                type={:outcome}
+                content={round.outcome}
+                timestamp={round.updated_at}
+              />
+            <% end %>
+            <.round_state_changes round={round} />
+          </span>
         <% end %>
-        <.round_state_changes round={round} />
-      <% end %>
+      </div>
 
       <%= if @streaming and @partial_content != "" do %>
         <MessageBubble.message_bubble
@@ -67,7 +71,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
       <% end %>
       
     <!-- Adds some space at the bottom for better scrolling experience -->
-      <div class="h-4"></div>
+      <div class="h-4" id="chat-history-end"></div>
     </div>
     """
   end

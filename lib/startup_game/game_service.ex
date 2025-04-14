@@ -14,7 +14,9 @@ defmodule StartupGame.GameService do
   alias StartupGame.Engine.GameState
   require Logger
 
-  @type game_result :: {:ok, %{game: Games.Game.t(), game_state: GameState.t()}} | {:error, any()}
+  @type games() :: %{game: Game.t(), game_state: GameState.t()}
+  @type game_result :: {:ok, games()} | {:error, any()}
+  @type game_and_round_result() :: {:ok, games(), Round.t()} | {:error, any()}
 
   @doc """
   Creates a new game and persists it to the database without setting an initial scenario.
@@ -165,7 +167,7 @@ defmodule StartupGame.GameService do
       {:ok, %{game: %Games.Game{}, game_state: %Engine.GameState{}}}
 
   """
-  @spec process_player_input(Ecto.UUID.t(), String.t()) :: game_result()
+  @spec process_player_input(Ecto.UUID.t(), String.t()) :: game_and_round_result()
   def process_player_input(game_id, player_input) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id),
          last_round <- List.last(game.rounds),
@@ -258,7 +260,7 @@ defmodule StartupGame.GameService do
   This is called once the complete outcome is received from the stream.
   Does NOT automatically start the next round.
   """
-  @spec finalize_streamed_outcome(Ecto.UUID.t(), Scenario.outcome()) :: game_result()
+  @spec finalize_streamed_outcome(Ecto.UUID.t(), Scenario.outcome()) :: game_and_round_result()
   def finalize_streamed_outcome(game_id, outcome) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       # Retrieve the player input that triggered this outcome from the last round record
@@ -278,7 +280,7 @@ defmodule StartupGame.GameService do
   Finalizes a streamed scenario by creating a new round in the database.
   This is called once the complete scenario is received from the stream.
   """
-  @spec finalize_streamed_scenario(Ecto.UUID.t(), Scenario.t()) :: game_result()
+  @spec finalize_streamed_scenario(Ecto.UUID.t(), Scenario.t()) :: game_and_round_result()
   def finalize_streamed_scenario(game_id, scenario) do
     with {:ok, %{game: game, game_state: game_state}} <- load_game(game_id) do
       # Update the in-memory game state with the new scenario
@@ -296,9 +298,12 @@ defmodule StartupGame.GameService do
           # player_input and outcome will be filled later
         })
 
-      # Return the updated game struct (with the new round) and the updated game state
+      # Return the updated game struct, the updated game state, and the newly created round
       {:ok,
-       %{game: %Games.Game{game | rounds: game.rounds ++ [round]}, game_state: updated_game_state}}
+       %{
+         game: %Games.Game{game | rounds: game.rounds ++ [round]},
+         game_state: updated_game_state
+       }, round}
     end
   end
 
@@ -458,17 +463,15 @@ defmodule StartupGame.GameService do
   end
 
   # Save info from the lastest round to the database
-  @spec save_round_result(Games.Game.t(), GameState.t()) :: game_result()
+  @spec save_round_result(Games.Game.t(), GameState.t()) :: game_and_round_result()
   def save_round_result(game, game_state) do
     Ecto.Multi.new()
     |> save_last_round(game, game_state)
     |> update_finances(game, game_state)
     |> StartupGame.Repo.transaction()
     |> case do
-      # Adjust pattern match for Ecto.Multi.update
-      {:ok, %{game: updated_game}} ->
-        # updated_game already has the persisted state
-        {:ok, %{game: updated_game, game_state: game_state}}
+      {:ok, %{game: updated_game, round: updated_round}} ->
+        {:ok, %{game: updated_game, game_state: game_state}, updated_round}
 
       {:error, _operation, reason, _changes} ->
         {:error, reason}

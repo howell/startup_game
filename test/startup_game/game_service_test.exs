@@ -16,7 +16,7 @@ defmodule StartupGame.GameServiceTest do
                                                        {:ok, %{game_id: current_game_id}} ->
       # 1. Process the current input
       case GameService.process_player_input(current_game_id, input) do
-        {:ok, %{game: game_after_input, game_state: gs_after_input}} ->
+        {:ok, %{game: game_after_input, game_state: gs_after_input}, _round} ->
           # 2. Handle successful processing (fetch next scenario, create round if needed)
           handle_successful_input(game_after_input, gs_after_input)
 
@@ -198,7 +198,7 @@ defmodule StartupGame.GameServiceTest do
       assert game_state.current_scenario_data.situation =~ "An angel investor offers"
 
       # Process first input to complete the first round
-      {:ok, %{game: game_after_first_input, game_state: gs_after_first_input}} =
+      {:ok, %{game: game_after_first_input, game_state: gs_after_first_input}, _round} =
         GameService.process_player_input(game.id, "accept")
 
       # Between rounds: game state does not have any current scenario data
@@ -250,7 +250,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "loads game ownerships correctly", %{game: game} do
       # Process an input that changes ownership
-      {:ok, %{game: updated_game}} = GameService.process_player_input(game.id, "accept")
+      {:ok, %{game: updated_game}, _round} = GameService.process_player_input(game.id, "accept")
 
       # Now load the game and check ownerships in game_state
       {:ok, %{game_state: game_state}} = GameService.load_game(updated_game.id)
@@ -286,7 +286,7 @@ defmodule StartupGame.GameServiceTest do
     end
 
     test "processes input and updates round", %{game: game} do
-      {:ok, %{game: updated_game}} =
+      {:ok, %{game: updated_game}, _round} =
         GameService.process_player_input(game.id, "accept")
 
       rounds = Games.list_game_rounds(updated_game.id)
@@ -304,7 +304,7 @@ defmodule StartupGame.GameServiceTest do
     test "updates game state after input", %{game: game} do
       initial_cash = game.cash_on_hand
 
-      {:ok, %{game: updated_game}} =
+      {:ok, %{game: updated_game}, _round} =
         GameService.process_player_input(game.id, "accept")
 
       # Game state should be updated (either cash or burn rate might change)
@@ -343,7 +343,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "processes input that changes ownership structure", %{game: game} do
       # Process 'accept' response to angel investment scenario
-      {:ok, %{game: updated_game}} = GameService.process_player_input(game.id, "accept")
+      {:ok, %{game: updated_game}, _round} = GameService.process_player_input(game.id, "accept")
 
       # Verify ownership changes were processed correctly
       updated_ownerships = Games.list_game_ownerships(updated_game.id)
@@ -410,7 +410,7 @@ defmodule StartupGame.GameServiceTest do
       initial_burn = game.burn_rate
 
       # Process angel investment with 'accept'
-      {:ok, %{game: updated_game}} = GameService.process_player_input(game.id, "accept")
+      {:ok, %{game: updated_game}, _round} = GameService.process_player_input(game.id, "accept")
 
       # Verify financial changes were processed correctly
       expected_cash =
@@ -425,11 +425,11 @@ defmodule StartupGame.GameServiceTest do
 
       assert_stream_complete({:ok, next_scenario})
       assert next_scenario.situation =~ "You need to hire a key employee"
-      {:ok, _} = GameService.finalize_streamed_scenario(updated_game.id, next_scenario)
+      {:ok, _, _} = GameService.finalize_streamed_scenario(updated_game.id, next_scenario)
 
       # Process hiring with 'experienced' (using the same game ID, which now has the new 'hiring' round waiting)
       # Rename to avoid confusion
-      {:ok, %{game: returned_final_game}} =
+      {:ok, %{game: returned_final_game}, _round} =
         GameService.process_player_input(updated_game.id, "experienced")
 
       # Explicitly reload from DB to ensure persistence
@@ -533,7 +533,7 @@ defmodule StartupGame.GameServiceTest do
 
     test "saves player_input and outcome to the round", %{game: game} do
       # First process an input
-      {:ok, %{game: updated_game, game_state: game_state}} =
+      {:ok, %{game: updated_game, game_state: game_state}, _round} =
         GameService.process_player_input(game.id, "accept")
 
       # Verify the round was updated correctly
@@ -568,7 +568,7 @@ defmodule StartupGame.GameServiceTest do
       assert Decimal.compare(founder.percentage, Decimal.new("100.00")) == :eq
 
       # Process angel investment with 'accept' response
-      {:ok, %{game: updated_game}} = GameService.process_player_input(game.id, "accept")
+      {:ok, %{game: updated_game}, _round} = GameService.process_player_input(game.id, "accept")
 
       # Verify ownership changes were processed correctly
       updated_ownerships = Games.list_game_ownerships(updated_game.id)
@@ -605,7 +605,7 @@ defmodule StartupGame.GameServiceTest do
       ownerships_before = Games.list_game_ownerships(final_game.id)
 
       # Respond to lawsuit with 'settle'
-      {:ok, %{game: final_game_after_settle}} =
+      {:ok, %{game: final_game_after_settle}, _round} =
         GameService.process_player_input(final_game.id, "settle")
 
       # Verify ownerships are unchanged
@@ -629,7 +629,7 @@ defmodule StartupGame.GameServiceTest do
       assert final_game.exit_type == :none
 
       # Process acquisition with 'accept'
-      {:ok, %{game: final_game_after_exit}} =
+      {:ok, %{game: final_game_after_exit}, _round} =
         GameService.process_player_input(final_game.id, "accept")
 
       # Verify game status and exit info were updated

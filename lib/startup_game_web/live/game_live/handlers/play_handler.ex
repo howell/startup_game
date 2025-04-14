@@ -6,6 +6,8 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
 
   use StartupGameWeb, :html
 
+  require Logger
+
   alias StartupGame.GameService
   alias StartupGame.Games
   alias StartupGame.StreamingService
@@ -70,19 +72,32 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
   """
   @spec finalize_scenario(socket(), String.t(), map()) :: {:noreply, socket()}
   def finalize_scenario(socket, game_id, scenario) do
-    {:ok, %{game: updated_game, game_state: updated_state}} =
-      GameService.finalize_streamed_scenario(game_id, scenario)
+    case GameService.finalize_streamed_scenario(game_id, scenario) do
+      {:ok, %{game: updated_game, game_state: updated_state}, new_round} ->
+        # Append the new round to the existing list
+        updated_rounds = socket.assigns.rounds ++ [new_round]
 
-    socket =
-      socket
-      |> SocketAssignments.assign_game_data(
-        updated_game,
-        updated_state,
-        Games.list_game_rounds(game_id),
-        socket.assigns.ownerships
-      )
+        socket =
+          socket
+          |> SocketAssignments.assign_game_data(
+            updated_game,
+            updated_state,
+            # Use the appended list
+            updated_rounds,
+            # Ownerships shouldn't change on scenario generation
+            socket.assigns.ownerships
+          )
 
-    {:noreply, socket}
+        {:noreply, socket}
+
+      # Handle potential errors from finalize_streamed_scenario if necessary
+      {:error, reason} ->
+        ErrorHandler.handle_game_error(
+          socket,
+          :general,
+          "Error finalizing scenario: #{inspect(reason)}"
+        )
+    end
   end
 
   @doc """
@@ -92,14 +107,27 @@ defmodule StartupGameWeb.GameLive.Handlers.PlayHandler do
   def finalize_outcome(socket, game_id, outcome) do
     # Finalize the outcome in the GameService
     case GameService.finalize_streamed_outcome(game_id, outcome) do
-      {:ok, %{game: updated_game, game_state: updated_state}} ->
+      {:ok, %{game: updated_game, game_state: updated_state}, updated_round} ->
+        # Update the existing rounds list instead of reloading all
+        current_rounds = socket.assigns.rounds
+        round_index = Enum.find_index(current_rounds, fn r -> r.id == updated_round.id end)
+
+        updated_rounds =
+          if round_index do
+            List.replace_at(current_rounds, round_index, updated_round)
+          else
+            [updated_round]
+          end
+
         # Update the socket with the finalized outcome and game state
         socket =
           socket
           |> SocketAssignments.assign_game_data(
             updated_game,
             updated_state,
-            Games.list_game_rounds(game_id),
+            # Use the surgically updated list
+            updated_rounds,
+            # Still need latest ownerships
             Games.list_game_ownerships(game_id)
           )
 
