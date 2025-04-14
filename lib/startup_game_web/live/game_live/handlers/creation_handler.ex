@@ -83,7 +83,6 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
           |> assign(:game_id, game.id)
           |> assign(:creation_stage, :playing)
           |> assign(:response, "")
-          |> Phoenix.LiveView.put_flash(:info, "Started new venture: #{game.name}")
 
         # Update the URL to include the game ID without a full page navigation
         {:noreply,
