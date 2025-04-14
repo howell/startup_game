@@ -49,15 +49,14 @@ defmodule StartupGameWeb.GameLive.Helpers.SocketAssignments do
   @doc """
   Sets up initial socket assigns for a new game.
   """
-  @spec initialize_socket(socket(), map()) :: socket()
-  def initialize_socket(socket, initial_round) do
+  @spec initialize_socket(socket()) :: socket()
+  def initialize_socket(socket) do
     socket
     |> assign(:creation_stage, :name_input)
     |> assign(:temp_name, nil)
     |> assign(:temp_description, nil)
     |> assign(:game_id, nil)
     |> assign(:response, "")
-    |> assign(:rounds, [initial_round])
     |> assign(:ownerships, [])
     |> assign(:initial_player_mode, :responding)
     |> reset_streaming()

@@ -6,7 +6,6 @@ defmodule StartupGameWeb.GameLive.Play do
 
   use StartupGameWeb, :live_view
 
-  alias StartupGame.Games.Round
   alias StartupGameWeb.GameLive.Components.{GameCreationComponent, GamePlayComponent}
   alias StartupGameWeb.GameLive.Handlers.{CreationHandler, PlayHandler, StreamHandler}
   alias StartupGameWeb.GameLive.Helpers.SocketAssignments
@@ -16,14 +15,7 @@ defmodule StartupGameWeb.GameLive.Play do
   @impl true
   @spec mount(map(), map(), t()) :: {:ok, t(), keyword()}
   def mount(_params, _session, socket) do
-    initial_round = %Round{
-      id: "temp_name_prompt",
-      situation: "What would you like to name your company?",
-      inserted_at: DateTime.utc_now(),
-      updated_at: DateTime.utc_now()
-    }
-
-    socket = SocketAssignments.initialize_socket(socket, initial_round)
+    socket = SocketAssignments.initialize_socket(socket)
     socket = assign(socket, :provider_preference, default_provider_preference())
     socket = assign(socket, :is_mobile_state_visible, false)
     # Initialize player_mode (will be properly set in handle_params/CreationHandler)

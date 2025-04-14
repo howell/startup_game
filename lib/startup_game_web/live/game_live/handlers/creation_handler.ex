@@ -57,6 +57,14 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
     # Get initial mode from assigns, default if not set yet (UI needs update later)
     initial_mode = socket.assigns[:initial_player_mode] || :responding
 
+    updated_round = %Round{
+      id: "temp_description_prompt",
+      situation: "Please provide a brief description of what #{name} does:",
+      player_input: response,
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now()
+    }
+
     case GameService.create_game(
            name,
            # This is the description
@@ -80,6 +88,7 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
             Games.list_game_rounds(game.id),
             Games.list_game_ownerships(game.id)
           )
+          |> update(:rounds, fn rounds -> [updated_round | rounds] end)
           |> assign(:game_id, game.id)
           |> assign(:creation_stage, :playing)
           |> assign(:response, "")
@@ -108,7 +117,8 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
           |> SocketAssignments.assign_game_data(
             game,
             game_state,
-            Games.list_game_rounds(id),
+            # keep the description round when transitioning from creating to playing
+            socket.assigns.rounds ++ Games.list_game_rounds(id),
             Games.list_game_ownerships(id)
           )
           |> assign(:game_id, id)
@@ -140,16 +150,14 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   """
   @spec handle_no_game_id(socket()) :: {:noreply, socket()}
   def handle_no_game_id(socket) do
-    # No game_id parameter or empty parameter
-    # If we already have a game loaded (i.e., not in name/description input stage),
-    # keep that state; otherwise, stay in name input stage
-    if socket.assigns.creation_stage in [:name_input, :description_input] or
-         socket.assigns.game_id == nil do
-      {:noreply, socket}
-    else
-      # We have a game but no game_id in URL - keep the game
-      {:noreply, socket}
-    end
+    initial_round = %Round{
+      id: "temp_name_prompt",
+      situation: "What would you like to name your company?",
+      inserted_at: DateTime.utc_now(),
+      updated_at: DateTime.utc_now()
+    }
+
+    {:noreply, assign(socket, :rounds, [initial_round])}
   end
 
   @doc """
