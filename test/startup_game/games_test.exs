@@ -308,6 +308,28 @@ defmodule StartupGame.GamesTest do
       assert round.id == Games.get_round!(round.id).id
     end
 
+    test "update_round/2 updates round fields correctly" do
+      round = round_fixture(%{outcome: "Old", cash_change: 1, burn_rate_change: 1})
+      update_attrs = %{
+        outcome: "New Outcome",
+        cash_change: Decimal.new("-50.50"),
+        burn_rate_change: Decimal.new("10.10")
+      }
+
+      assert {:ok, updated_round} = Games.update_round(round, update_attrs)
+
+      assert updated_round.id == round.id
+      assert updated_round.outcome == "New Outcome"
+      assert Decimal.equal?(updated_round.cash_change, Decimal.new("-50.50"))
+      assert Decimal.equal?(updated_round.burn_rate_change, Decimal.new("10.10"))
+
+      # Verify DB
+      db_round = Games.get_round!(round.id)
+      assert db_round.outcome == "New Outcome"
+      assert Decimal.equal?(db_round.cash_change, Decimal.new("-50.50"))
+      assert Decimal.equal?(db_round.burn_rate_change, Decimal.new("10.10"))
+    end
+
     test "delete_round/1 deletes the round" do
       round = round_fixture()
       assert {:ok, %Round{}} = Games.delete_round(round)
