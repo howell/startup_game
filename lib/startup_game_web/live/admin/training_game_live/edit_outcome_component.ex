@@ -2,7 +2,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent do
   use StartupGameWeb, :live_component
 
   alias StartupGame.Games
-  alias StartupGame.Repo
+  alias StartupGame.TrainingGames
 
   @impl true
   def render(assigns) do
@@ -79,30 +79,19 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent do
   end
 
   def handle_event("save", %{"round" => round_params}, socket) do
-    save_outcome(socket, round_params)
-  end
-
-  def handle_event("cancel", _, socket) do
-    send(socket.assigns.parent_pid || self(), {:close_edit_outcome_form})
-    {:noreply, socket}
-  end
-
-  defp save_outcome(socket, round_params) do
-    round = Games.get_round!(socket.assigns.round_id)
-
-    # Only take allowed fields for update_round
-    allowed_attrs = Map.take(round_params, ["outcome", "cash_change", "burn_rate_change"])
-
-    case Games.update_round(round, allowed_attrs) do
+    case TrainingGames.update_round_outcome(socket.assigns.round_id, round_params) do
       {:ok, updated_round} ->
-        # Reload ownership changes for the updated round before sending back
-        updated_round = Repo.preload(updated_round, :ownership_changes)
         send(socket.assigns.parent_pid || self(), {:saved_outcome, updated_round})
         {:noreply, socket}
 
       {:error, %Ecto.Changeset{} = changeset} ->
         {:noreply, assign_form(socket, changeset)}
     end
+  end
+
+  def handle_event("cancel", _, socket) do
+    send(socket.assigns.parent_pid || self(), {:close_edit_outcome_form})
+    {:noreply, socket}
   end
 
   # --- Form Helpers ---

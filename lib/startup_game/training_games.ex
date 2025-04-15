@@ -13,6 +13,37 @@ defmodule StartupGame.TrainingGames do
   require Logger
 
   @doc """
+  Updates a round's outcome details (outcome text, cash change, burn rate change)
+  and returns the updated round with ownership changes preloaded.
+
+  ## Parameters
+    - round_id: The UUID of the round to update
+    - attrs: Map of attributes to update, with string keys: "outcome", "cash_change", "burn_rate_change"
+
+  ## Returns
+    - {:ok, %Round{}} with preloaded ownership_changes on success
+    - {:error, %Ecto.Changeset{}} on validation failure
+  """
+  @spec update_round_outcome(Ecto.UUID.t(), map()) ::
+          {:ok, Round.t()} | {:error, Ecto.Changeset.t()}
+  def update_round_outcome(round_id, attrs) when is_map(attrs) do
+    round = Games.get_round!(round_id)
+
+    # Only take allowed fields for update_round
+    allowed_attrs = Map.take(attrs, ["outcome", "cash_change", "burn_rate_change"])
+
+    case Games.update_round(round, allowed_attrs) do
+      {:ok, updated_round} ->
+        # Reload ownership changes for the updated round before returning
+        updated_round = Repo.preload(updated_round, :ownership_changes)
+        {:ok, updated_round}
+
+      {:error, changeset} ->
+        {:error, changeset}
+    end
+  end
+
+  @doc """
   Asynchronously regenerates the outcome for a specific round using the LLM stream.
 
   Returns `{:ok, stream_id, target_round}` on success, where `stream_id` can be used

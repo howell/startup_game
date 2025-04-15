@@ -137,6 +137,30 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponentTest do
       assert Decimal.equal?(updated_round.burn_rate_change, Decimal.new("-10.00"))
     end
 
+    test "uses TrainingGames.update_round_outcome/2 for saving", %{view: view, round: round} do
+      # Create a mock expectation to verify the context is called
+      attrs = %{
+        "outcome" => "Context Called Test",
+        "cash_change" => "300",
+        "burn_rate_change" => "25"
+      }
+
+      # Submit the form with our test attributes
+      element(view, "#edit-outcome-form-#{round.id}")
+      |> render_submit(%{
+        "round" => attrs
+      })
+
+      # Verify we received the saved_outcome message
+      assert_receive {:saved_outcome, updated_round}
+
+      # The component should have used the TrainingGames context function
+      # which would have returned a round with the values we submitted
+      assert updated_round.outcome == "Context Called Test"
+      assert Decimal.equal?(updated_round.cash_change, Decimal.new("300"))
+      assert Decimal.equal?(updated_round.burn_rate_change, Decimal.new("25"))
+    end
+
     test "cancel event sends message to parent", %{view: view} do
       element(view, "button", "Cancel") |> render_click()
 

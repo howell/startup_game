@@ -28,6 +28,81 @@ defmodule StartupGame.TrainingGamesTest do
     def should_end_game?(_), do: false
   end
 
+  describe "update_round_outcome/2" do
+    setup do
+      admin = admin_user_fixture()
+      game = game_fixture(%{user_id: admin.id})
+
+      round =
+        round_fixture(game, %{outcome: "Original Outcome", cash_change: 100, burn_rate_change: 25})
+
+      {:ok, round: round}
+    end
+
+    test "successfully updates a round with valid attributes", %{round: round} do
+      attrs = %{
+        "outcome" => "Updated Outcome Text",
+        "cash_change" => "250.50",
+        "burn_rate_change" => "-15.75"
+      }
+
+      assert {:ok, updated_round} = TrainingGames.update_round_outcome(round.id, attrs)
+      assert updated_round.id == round.id
+      assert updated_round.outcome == "Updated Outcome Text"
+      assert Decimal.equal?(updated_round.cash_change, Decimal.new("250.50"))
+      assert Decimal.equal?(updated_round.burn_rate_change, Decimal.new("-15.75"))
+
+      # Verify ownership_changes are preloaded
+      assert is_list(updated_round.ownership_changes)
+    end
+
+    test "returns error changeset with invalid attributes", %{round: round} do
+      invalid_attrs = %{
+        "outcome" => "Valid Text",
+        "cash_change" => "not-a-number",
+        "burn_rate_change" => "10"
+      }
+
+      assert {:error, %Ecto.Changeset{}} =
+               TrainingGames.update_round_outcome(round.id, invalid_attrs)
+
+      # Verify original data is unchanged
+      unchanged_round = Games.get_round!(round.id)
+      assert unchanged_round.outcome == "Original Outcome"
+      assert Decimal.equal?(unchanged_round.cash_change, Decimal.new("100"))
+    end
+
+    test "ignores attributes that are not allowed", %{round: round} do
+      # Include attributes that should be ignored
+      attrs_with_extra = %{
+        "outcome" => "Valid Update",
+        "cash_change" => "200",
+        "burn_rate_change" => "30",
+        "unexpected_field" => "Should be ignored",
+        # Should not change game_id
+        "game_id" => Ecto.UUID.generate()
+      }
+
+      assert {:ok, updated_round} = TrainingGames.update_round_outcome(round.id, attrs_with_extra)
+
+      # Verify only allowed fields were updated
+      assert updated_round.outcome == "Valid Update"
+      assert Decimal.equal?(updated_round.cash_change, Decimal.new("200"))
+      assert Decimal.equal?(updated_round.burn_rate_change, Decimal.new("30"))
+
+      # Verify game_id wasn't changed
+      assert updated_round.game_id == round.game_id
+    end
+
+    test "raises error with non-existent round ID" do
+      invalid_id = Ecto.UUID.generate()
+
+      assert_raise Ecto.NoResultsError, fn ->
+        TrainingGames.update_round_outcome(invalid_id, %{"outcome" => "Test"})
+      end
+    end
+  end
+
   describe "regenerate_round_outcome_async/1" do
     setup do
       admin = admin_user_fixture()
