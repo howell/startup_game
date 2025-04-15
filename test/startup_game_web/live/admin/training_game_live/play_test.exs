@@ -14,7 +14,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
   # Define a mock provider using the MockStreamingAdapter similar to training_games_test.exs
   defmodule MockTrainingProvider do
     use StartupGame.Engine.LLM.BaseScenarioProvider
-
     @impl true
     def llm_adapter, do: StartupGame.Mocks.LLM.MockStreamingAdapter
 
@@ -24,11 +23,23 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
     @impl true
     def outcome_system_prompt, do: "Default Outcome Prompt"
 
+    @impl true
     def llm_options(), do: %{}
-    def response_parser(), do: StartupGame.Engine.LLM.JSONResponseParser
-    def create_scenario_prompt(_, _), do: "User Scenario Prompt"
-    def create_outcome_prompt(_, _, _), do: "User Outcome Prompt"
-    def should_end_game?(_), do: false
+  end
+
+  defmodule PartialResponseProvider do
+    use StartupGame.Engine.LLM.BaseScenarioProvider
+    @impl true
+    def llm_adapter, do: StartupGame.Mocks.LLM.MockStreamingAdapter
+
+    @impl true
+    def scenario_system_prompt, do: "Default Scenario Prompt"
+
+    @impl true
+    def outcome_system_prompt, do: "Default Outcome Prompt"
+
+    @impl true
+    def llm_options(), do: %{test_mode: :partial, custom_deltas: ["Partial response "]}
   end
 
   @admin_attrs %{email: "admin@example.com", password: "password1234", role: :admin}
@@ -217,8 +228,7 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
       first_round_id = hd(training_game.rounds).id
       first_round = hd(training_game.rounds)
 
-      {:ok,
-       lv: lv, first_round_id: first_round_id, first_round: first_round, game_id: training_game.id}
+      {:ok, lv: lv, first_round_id: first_round_id, first_round: first_round, game: training_game}
     end
 
     test "clicking regenerate button triggers regeneration", %{
@@ -251,6 +261,22 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
       html = render(lv)
       assert html =~ "Outcome regenerated successfully"
       assert html =~ expected_response
+    end
+
+    test "displays partial response when streaming", %{
+      lv: lv,
+      first_round_id: first_round_id,
+      game: game
+    } do
+      Games.update_provider_preference(game, Atom.to_string(PartialResponseProvider))
+      # Click the regenerate button
+      lv
+      |> element("button[phx-value-round_id='#{first_round_id}']", "Regenerate")
+      |> render_click()
+
+      # Verify partial response is displayed
+      assert_stream_delta("Partial response ")
+      assert render(lv) =~ "Partial response"
     end
   end
 end

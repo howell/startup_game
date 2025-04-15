@@ -2,12 +2,9 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
   use StartupGameWeb, :live_view
 
   alias StartupGame.Games
-  # Add alias
   alias StartupGame.TrainingGames
-  # Add alias
   alias StartupGame.StreamingService
   alias StartupGameWeb.Admin.TrainingGameLive.EditOutcomeComponent
-  # Add require
   require Logger
 
   # TODO: Define a type that specifies the socket assigns
@@ -75,30 +72,37 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
             <p class="text-sm text-green-700 whitespace-pre-wrap">{round.player_input}</p>
           </div>
 
-          <div :if={round.outcome} class="mb-4 p-3 bg-purple-50 rounded">
-            <p class="font-semibold text-purple-800">Outcome:</p>
-            <p class="text-sm text-purple-700 whitespace-pre-wrap">{round.outcome}</p>
-            <%!-- TODO: Add Edit/Regenerate buttons here --%>
-            <div class="mt-2 flex justify-end gap-2">
-              <.button
-                type="button"
-                class="text-xs"
-                phx-click="edit_outcome"
-                phx-value-round_id={round.id}
-              >
-                Edit
-              </.button>
-              <.button
-                type="button"
-                class="text-xs"
-                phx-click="regenerate_outcome"
-                phx-value-round_id={round.id}
-                phx-disable-with="Regenerating..."
-              >
-                Regenerate
-              </.button>
+          <%= if @regenerating_round_id == round.id do %>
+            <div :if={round.outcome} class="mb-4 p-3 bg-purple-50 rounded">
+              <p class="font-semibold text-purple-800">Regenerating...</p>
+              <p class="text-sm text-purple-700 whitespace-pre-wrap">{@regenerating_outcome_text}</p>
             </div>
-          </div>
+          <% else %>
+            <div :if={round.outcome} class="mb-4 p-3 bg-purple-50 rounded">
+              <p class="font-semibold text-purple-800">Outcome:</p>
+              <p class="text-sm text-purple-700 whitespace-pre-wrap">{round.outcome}</p>
+              <div class="mt-2 flex justify-end gap-2">
+                <.button
+                  type="button"
+                  class="text-xs"
+                  phx-click="edit_outcome"
+                  phx-value-round_id={round.id}
+                  disabled={@regenerating_round_id}
+                >
+                  Edit
+                </.button>
+                <.button
+                  type="button"
+                  class="text-xs"
+                  phx-click="regenerate_outcome"
+                  phx-value-round_id={round.id}
+                  disabled={@regenerating_round_id}
+                >
+                  Regenerate
+                </.button>
+              </div>
+            </div>
+          <% end %>
 
           <div class="text-xs text-gray-600 border-t pt-2 mt-2">
             <span>Cash Change: {round.cash_change || 0}</span>
