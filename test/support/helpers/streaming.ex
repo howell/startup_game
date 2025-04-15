@@ -41,4 +41,37 @@ defmodule StartupGame.Test.Helpers.Streaming do
                      unquote(timeout)
     end
   end
+
+  @doc """
+  Asserts that the current process receives an `:llm_delta` message
+  matching the provided patterns.
+
+  ## Arguments
+
+    * `result_pattern` (optional): The pattern to match against the `result` part of the message. Defaults to `_`.
+    * `stream_id_pattern` (optional): The pattern to match against the `stream_id`. Defaults to `_`.
+    * `timeout` (optional): The timeout for `assert_receive`. Defaults to `100` ms.
+
+  ## Examples
+
+      # Assert a partial response with any stream_id
+      assert_stream_delta({:ok, %{content: "Partial response"}})
+
+      # Assert a partial response with a specific stream_id
+      assert_stream_delta({:ok, _}, "specific_stream_123")
+  """
+  defmacro assert_stream_delta(
+             result_pattern \\ quote(do: _),
+             stream_id_pattern \\ quote(do: _),
+             timeout \\ 100
+           ) do
+    quote do
+      assert_receive %{
+                       event: "llm_delta",
+                       payload:
+                         {:llm_delta, unquote(stream_id_pattern), unquote(result_pattern), _}
+                     },
+                     unquote(timeout)
+    end
+  end
 end
