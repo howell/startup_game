@@ -210,7 +210,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
       when not is_nil(round_id) do
     case TrainingGames.finalize_regenerated_outcome(round_id, outcome_data) do
       {:ok, updated_round} ->
-        # Update the round in the assigns list
         updated_rounds =
           Enum.map(socket.assigns.rounds, fn r ->
             if r.id == updated_round.id, do: updated_round, else: r
@@ -276,6 +275,12 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.Play do
 
   def handle_info(%{event: "llm_error", payload: {:llm_error, _stream_id, _reason}}, socket) do
     # Error for a stream we don't care about
+    {:noreply, socket}
+  end
+
+  def handle_info(event, socket) do
+    Logger.warning("TrainingGameLive.Play Unhandled info event:\n#{inspect(event, pretty: true)}")
+
     {:noreply, socket}
   end
 

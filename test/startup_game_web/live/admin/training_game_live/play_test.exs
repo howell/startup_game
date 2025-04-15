@@ -4,21 +4,50 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
   import Phoenix.LiveViewTest
   import StartupGame.AccountsFixtures
   import StartupGame.GamesFixtures
+  import StartupGame.Test.Helpers.Streaming
   alias StartupGame.Games
+  alias StartupGame.StreamingService
+
+  # Make tests async but control endpoint
+  @moduletag :capture_log
+
+  # Define a mock provider using the MockStreamingAdapter similar to training_games_test.exs
+  defmodule MockTrainingProvider do
+    use StartupGame.Engine.LLM.BaseScenarioProvider
+
+    @impl true
+    def llm_adapter, do: StartupGame.Mocks.LLM.MockStreamingAdapter
+
+    @impl true
+    def scenario_system_prompt, do: "Default Scenario Prompt"
+
+    @impl true
+    def outcome_system_prompt, do: "Default Outcome Prompt"
+
+    def llm_options(), do: %{}
+    def response_parser(), do: StartupGame.Engine.LLM.JSONResponseParser
+    def create_scenario_prompt(_, _), do: "User Scenario Prompt"
+    def create_outcome_prompt(_, _, _), do: "User Outcome Prompt"
+    def should_end_game?(_), do: false
+  end
 
   @admin_attrs %{email: "admin@example.com", password: "password1234", role: :admin}
   @user_attrs %{email: "user@example.com", password: "password1234", role: :user}
 
   setup do
+    # Start the MockStreamingAdapter GenServer
+    {:ok, _pid} = StartupGame.Mocks.LLM.MockStreamingAdapter.start_link()
+
     admin = user_fixture(@admin_attrs)
     user = user_fixture(@user_attrs)
 
-    # Create a training game with some rounds
+    # Create a training game with some rounds using the mock provider
     training_game =
       game_fixture_with_rounds(2, %{
         user_id: admin.id,
         name: "Playable Training Game",
-        is_training_example: true
+        is_training_example: true,
+        provider_preference: Atom.to_string(MockTrainingProvider)
       })
 
     # Create a regular game
@@ -69,7 +98,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
       conn =
         conn
         |> log_in_user(user)
-        # Use get for redirect check
         |> get(~p"/admin/training_games/#{training_game.id}/play")
 
       # Should redirect to root due to RequireAdminAuth plug
@@ -107,8 +135,6 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
       view
       |> element("button[phx-value-round_id='#{first_round_id}']", "Edit")
       |> render_click()
-
-      # Process.sleep(100)
 
       # Modal is now visible with the form component
       assert has_element?(view, "#edit-outcome-modal")
@@ -171,6 +197,60 @@ defmodule StartupGameWeb.Admin.TrainingGameLive.PlayTest do
       assert has_element?(view, "#edit-outcome-modal")
       # Check for generic decimal error
       assert has_element?(view, "form#edit-outcome-form-#{first_round_id}", "is invalid")
+    end
+  end
+
+  describe "Regenerate Outcome" do
+    setup %{conn: conn, admin: admin, training_game: original_training_game} do
+      # Reload game with associations for the test setup
+      training_game = Games.get_game_with_associations!(original_training_game.id)
+
+      # Subscribe to the streaming service for this game's events
+      StreamingService.subscribe(training_game.id)
+
+      {:ok, lv, _html} =
+        conn
+        |> log_in_user(admin)
+        |> live(~p"/admin/training_games/#{training_game.id}/play")
+
+      # Get the ID of the first round
+      first_round_id = hd(training_game.rounds).id
+      first_round = hd(training_game.rounds)
+
+      {:ok,
+       lv: lv, first_round_id: first_round_id, first_round: first_round, game_id: training_game.id}
+    end
+
+    test "clicking regenerate button triggers regeneration", %{
+      lv: lv,
+      first_round_id: first_round_id
+    } do
+      # Click regenerate button for the first round
+      html =
+        lv
+        |> element("button[phx-value-round_id='#{first_round_id}']", "Regenerate")
+        |> render_click()
+
+      # Verify the flash message is shown - regeneration started
+      assert html =~ "Regenerating outcome for round #{first_round_id}"
+    end
+
+    test "successfully regenerates an outcome", %{
+      lv: lv,
+      first_round_id: first_round_id
+    } do
+      # First click the regenerate button
+      lv
+      |> element("button[phx-value-round_id='#{first_round_id}']", "Regenerate")
+      |> render_click()
+
+      expected_response = "Great idea!"
+      assert_stream_complete({:ok, %{text: ^expected_response}})
+
+      # Verify the flash was updated with success message
+      html = render(lv)
+      assert html =~ "Outcome regenerated successfully"
+      assert html =~ expected_response
     end
   end
 end

@@ -8,10 +8,7 @@ defmodule StartupGame.TrainingGames do
   alias StartupGame.Games
   alias StartupGame.Games.{Game, Round}
   alias StartupGame.GameService
-  # alias StartupGame.Engine.GameState # Unused
-  # Needed for Outcome map type below
   alias StartupGame.Engine.Scenario
-  # alias StartupGame.Engine.Scenario.Outcome # Not a struct
 
   require Logger
 
@@ -86,10 +83,9 @@ defmodule StartupGame.TrainingGames do
   Called by the LiveView once the stream completes successfully.
   Uses a transaction to ensure atomicity.
   """
-  @spec finalize_regenerated_outcome(Ecto.UUID.t(), map()) ::
+  @spec finalize_regenerated_outcome(Ecto.UUID.t(), Scenario.outcome()) ::
           {:ok, Round.t()} | {:error, Ecto.Changeset.t() | atom() | any()}
-  # Expect a map, not a struct
-  def finalize_regenerated_outcome(round_id, %{} = outcome_data) do
+  def finalize_regenerated_outcome(round_id, outcome_data) do
     # Fetch round and preload game for ownership update
     target_round = Games.get_round!(round_id) |> Repo.preload(:game)
     game = target_round.game
@@ -98,19 +94,15 @@ defmodule StartupGame.TrainingGames do
       Ecto.Multi.new()
       |> Ecto.Multi.run(:round, fn _repo, _changes ->
         # Update basic round fields
-        update_attrs = %{
-          # Handle atom/string keys
-          outcome: outcome_data[:narrative] || outcome_data["narrative"],
-          cash_change: outcome_data[:cash_change] || outcome_data["cash_change"],
-          burn_rate_change: outcome_data[:burn_rate_change] || outcome_data["burn_rate_change"]
-        }
+        update_attrs =
+          Map.take(outcome_data, [:cash_change, :burn_rate_change])
+          |> Map.put(:outcome, outcome_data.text)
 
         Games.update_round(target_round, update_attrs)
       end)
       |> Ecto.Multi.run(:ownerships, fn _repo, %{round: updated_round_record} ->
         # Update ownership structure if changes are present in the outcome
-        raw_ownership_changes =
-          outcome_data[:ownership_changes] || outcome_data["ownership_changes"]
+        raw_ownership_changes = outcome_data.ownership_changes
 
         if raw_ownership_changes && is_list(raw_ownership_changes) do
           # Sanitize the list to ensure correct structure and atom keys

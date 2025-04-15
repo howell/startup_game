@@ -116,22 +116,22 @@ defmodule StartupGame.TrainingGamesTest do
       round: round
     } do
       new_outcome_data = %{
-        "narrative" => "New Regenerated Outcome",
-        "cash_change" => Decimal.new("-500.00"),
-        "burn_rate_change" => Decimal.new("50.00"),
+        text: "New Regenerated Outcome",
+        cash_change: Decimal.new("-500.00"),
+        burn_rate_change: Decimal.new("50.00"),
         # Simulate ownership changes from LLM (using string keys as LLM might return)
-        "ownership_changes" => [
+        ownership_changes: [
           %{
-            "entity_name" => "Founder",
-            "percentage" => Decimal.new("80.00"),
-            "change_type" => "dilution",
-            "previous_percentage" => Decimal.new("100.00")
+            entity_name: "Founder",
+            percentage: Decimal.new("80.00"),
+            change_type: :dilution,
+            previous_percentage: Decimal.new("100.00")
           },
           %{
-            "entity_name" => "New Investor",
-            "percentage" => Decimal.new("20.00"),
-            "change_type" => "investment",
-            "previous_percentage" => Decimal.new("0.00")
+            entity_name: "New Investor",
+            percentage: Decimal.new("20.00"),
+            change_type: :investment,
+            previous_percentage: Decimal.new("0.00")
           }
         ]
       }
@@ -181,10 +181,10 @@ defmodule StartupGame.TrainingGamesTest do
 
     test "updates the round correctly when no ownership changes are provided", %{round: round} do
       new_outcome_data = %{
-        narrative: "Simple Outcome Update",
+        text: "Simple Outcome Update",
         cash_change: Decimal.new("10.00"),
-        burn_rate_change: Decimal.new("-5.00")
-        # No ownership_changes key
+        burn_rate_change: Decimal.new("-5.00"),
+        ownership_changes: []
       }
 
       assert {:ok, updated_round} =
@@ -199,7 +199,7 @@ defmodule StartupGame.TrainingGamesTest do
     end
 
     test "returns error for invalid round id" do
-      new_outcome_data = %{narrative: "Outcome", cash_change: 0, burn_rate_change: 0}
+      new_outcome_data = %{text: "Outcome", cash_change: 0, burn_rate_change: 0}
       invalid_round_id = Ecto.UUID.generate()
 
       assert_raise Ecto.NoResultsError, fn ->
