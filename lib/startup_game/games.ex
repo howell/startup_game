@@ -731,6 +731,8 @@ defmodule StartupGame.Games do
       {:error, %Ecto.Changeset{}}
 
   """
+  @spec create_ownership_change(map()) ::
+          {:ok, OwnershipChange.t()} | {:error, Ecto.Changeset.t()}
   def create_ownership_change(attrs \\ %{}) do
     %OwnershipChange{}
     |> OwnershipChange.changeset(attrs)
