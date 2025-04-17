@@ -296,15 +296,23 @@ defmodule StartupGame.Engine.LLM.LLMStreamService do
   # Helper function to parse completion based on stream type
   defp parse_completion(:scenario, full_content) do
     case JSONResponseParser.parse_scenario(full_content) do
-      {:ok, scenario} -> {:ok, scenario}
-      {:error, reason} -> {:error, "Failed to parse scenario: #{reason}"}
+      {:ok, scenario} ->
+        {:ok, scenario}
+
+      {:error, reason} ->
+        Logger.error("Failed to parse scenario: #{reason}\nContent:\n#{full_content}")
+        {:error, "Failed to parse scenario: #{reason}"}
     end
   end
 
   defp parse_completion(:outcome, full_content) do
     case JSONResponseParser.parse_outcome(full_content) do
-      {:ok, outcome} -> {:ok, outcome}
-      {:error, reason} -> {:error, "Failed to parse outcome: #{reason}"}
+      {:ok, outcome} ->
+        {:ok, outcome}
+
+      {:error, reason} ->
+        Logger.error("Failed to parse outcome: #{reason}\nContent:\n#{full_content}")
+        {:error, "Failed to parse outcome: #{reason}"}
     end
   end
 
