@@ -151,7 +151,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
 
   # Format percentage delta with + or - sign
   defp format_percentage_delta(delta) do
-    prefix = if Decimal.positive?(delta), do: "+", else: "-"
+    prefix = if Decimal.positive?(delta), do: "+", else: ""
     "#{prefix}#{Decimal.to_string(delta, :xsd)}%"
   end
 
