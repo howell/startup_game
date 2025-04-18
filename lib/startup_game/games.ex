@@ -283,7 +283,7 @@ defmodule StartupGame.Games do
 
   # Helper function to sort rounds by insertion date after preloading
   defp preload_sorted_rounds(%Game{} = game) do
-    %{game | rounds: Enum.sort_by(game.rounds, & &1.inserted_at)}
+    %{game | rounds: Enum.sort_by(game.rounds, & &1.inserted_at, {:asc, DateTime})}
   end
 
   @doc """

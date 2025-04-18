@@ -180,6 +180,14 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   @spec check_game_state_consistency(socket()) :: socket()
   def check_game_state_consistency(%{assigns: %{game: game, game_id: game_id}} = socket) do
     last_round = List.last(game.rounds)
+    require Logger
+    Logger.debug("Checking game state consistency for game #{game_id}")
+    Logger.debug("Last round: #{inspect(last_round, pretty: true)}")
+    Logger.debug("Needs outcome recovery? #{inspect(needs_outcome_recovery?(last_round))}")
+
+    Logger.debug(
+      "Needs scenario recovery? #{inspect(needs_scenario_recovery?(game, last_round))}"
+    )
 
     cond do
       # Case 1: Last round has player_input but no outcome

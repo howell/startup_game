@@ -509,6 +509,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "Congratulations! Your company was acquired for $2.5M"
       # Input form should be gone
       refute html =~ "Respond to the situation"
+      # should not receive another scenario
+      refute_receive(%{event: "llm_complete"})
     end
   end
 
