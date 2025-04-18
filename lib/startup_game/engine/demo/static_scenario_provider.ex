@@ -75,13 +75,11 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
         ownership_changes: [
           %{
             entity_name: "Founder",
-            previous_percentage: Decimal.new("100.00"),
-            new_percentage: Decimal.new("85.00")
+            percentage_delta: Decimal.new("-15.00")
           },
           %{
             entity_name: "Angel Investor",
-            previous_percentage: Decimal.new("0.00"),
-            new_percentage: Decimal.new("15.00")
+            percentage_delta: Decimal.new("15.00")
           }
         ],
         exit_type: :none
@@ -94,13 +92,11 @@ defmodule StartupGame.Engine.Demo.StaticScenarioProvider do
         ownership_changes: [
           %{
             entity_name: "Founder",
-            previous_percentage: Decimal.new("100.00"),
-            new_percentage: Decimal.new("88.00")
+            percentage_delta: Decimal.new("-12.00")
           },
           %{
             entity_name: "Angel Investor",
-            previous_percentage: Decimal.new("0.00"),
-            new_percentage: Decimal.new("12.00")
+            percentage_delta: Decimal.new("12.00")
           }
         ],
         exit_type: :none

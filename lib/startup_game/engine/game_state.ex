@@ -26,8 +26,7 @@ defmodule StartupGame.Engine.GameState do
 
   @type ownership_change :: %{
           entity_name: String.t(),
-          previous_percentage: Decimal.t(),
-          new_percentage: Decimal.t()
+          percentage_delta: Decimal.t()
         }
 
   @type t :: %__MODULE__{
@@ -45,19 +44,19 @@ defmodule StartupGame.Engine.GameState do
           scenario_provider: ScenarioProvider.behaviour() | nil,
           error_message: String.t() | nil
         }
-defstruct name: nil,
-          description: nil,
-          cash_on_hand: Decimal.new("10000.00"),
-          burn_rate: Decimal.new("1000.00"),
-          status: :in_progress,
-          exit_type: :none,
-          exit_value: Decimal.new("0.00"),
-          ownerships: [],
-          rounds: [],
-          current_scenario: nil,
-          current_scenario_data: nil,
-          scenario_provider: nil,
-          error_message: nil
+  defstruct name: nil,
+            description: nil,
+            cash_on_hand: Decimal.new("10000.00"),
+            burn_rate: Decimal.new("1000.00"),
+            status: :in_progress,
+            exit_type: :none,
+            exit_value: Decimal.new("0.00"),
+            ownerships: [],
+            rounds: [],
+            current_scenario: nil,
+            current_scenario_data: nil,
+            scenario_provider: nil,
+            error_message: nil
 
   @doc """
   Creates a new game state with the given name and description.

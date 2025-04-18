@@ -464,6 +464,11 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # Wait for outcome
       assert_stream_complete({:ok, _outcome})
       assert render(view) =~ "You accept the offer and receive the investment."
+      chat_history = element(view, "#chat-history") |> render()
+      # check for round state changes
+      assert chat_history =~ ~r/Cash:.+\+100\.0k/
+      assert chat_history =~ "Angel Investor:"
+      assert chat_history =~ "15.0%"
 
       # --- Scenario 2: Hiring Decision ---
       # Wait for next scenario
@@ -504,6 +509,109 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "Congratulations! Your company was acquired for $2.5M"
       # Input form should be gone
       refute html =~ "Respond to the situation"
+    end
+  end
+
+  describe "Play LiveView - round state changes" do
+    setup :register_and_log_in_user
+
+    test "displays round state changes correctly", %{conn: conn, user: user} do
+      # Create game with start? as false to prevent scenario generation
+      game = game_fixture(%{start?: false, player_mode: :acting}, user)
+
+      # Create a round with cash changes
+      _round1 =
+        Games.create_round(%{
+          game_id: game.id,
+          situation: "Investment received",
+          player_input: "accept investment",
+          outcome: "You received the investment",
+          cash_change: Decimal.new("100000.00"),
+          burn_rate_change: Decimal.new("5000.00")
+        })
+
+      # Create a round with ownership changes
+      _round2 =
+        Games.create_round(%{
+          game_id: game.id,
+          situation: "Investor proposal",
+          player_input: "accept proposal",
+          outcome: "Investor joins the board"
+        })
+
+      # Create ownership records for the game first (so they exist)
+      ownership_fixture(game, %{entity_name: "Founder", percentage: Decimal.new("90.0")})
+      ownership_fixture(game, %{entity_name: "Investor", percentage: Decimal.new("10.0")})
+
+      # Now create the ownership changes for that round
+      [_round1, round2] = Games.list_game_rounds(game.id)
+
+      Games.create_ownership_change(%{
+        entity_name: "Founder",
+        percentage_delta: Decimal.new("-10.00"),
+        change_type: :dilution,
+        game_id: game.id,
+        round_id: round2.id
+      })
+
+      Games.create_ownership_change(%{
+        entity_name: "Investor",
+        percentage_delta: Decimal.new("10.00"),
+        change_type: :investment,
+        game_id: game.id,
+        round_id: round2.id
+      })
+
+      # Create a round with no changes
+      _round3 =
+        Games.create_round(%{
+          game_id: game.id,
+          situation: "New feature request",
+          player_input: "work on feature",
+          outcome: "Feature completed successfully"
+        })
+
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      html = element(view, "#chat-history") |> render()
+      # Check that cash changes are displayed correctly
+      assert html =~ ~r/Cash:.+100\.0k/
+      assert html =~ ~r/Burn Rate:.+5\.0k/
+
+      # Check that ownership changes are displayed correctly
+      # Look for less specific patterns that are likely in the HTML
+      assert html =~ "Founder"
+      assert html =~ "-10.0%"
+      assert html =~ "Investor"
+      assert html =~ "+10.0%"
+
+      # Verify icons are present
+      assert html =~ "hero-banknotes"
+      assert html =~ "hero-fire"
+      assert html =~ "hero-user-plus"
+      assert html =~ "hero-arrow-trending-down"
+      assert html =~ "hero-arrow-trending-up"
+    end
+
+    test "does not display state changes section when no changes", %{conn: conn, user: user} do
+      game = game_fixture(%{start?: false, player_mode: :acting}, user)
+
+      # Create a round with no changes
+      Games.create_round(%{
+        game_id: game.id,
+        situation: "New feature request",
+        player_input: "work on feature",
+        outcome: "Feature completed successfully"
+      })
+
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # The specific change indicators shouldn't be present
+      refute html =~ "Cash:"
+      refute html =~ "Burn Rate:"
+
+      # The state changes div should not appear with its class
+      refute html =~ ~r/class=.*flex flex-col md:flex-row md:items-center gap-4.*/
     end
   end
 end

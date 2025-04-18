@@ -259,7 +259,8 @@ defmodule StartupGame.Games do
   def get_game_with_associations!(id) do
     Game
     |> Repo.get!(id)
-    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
+    |> Repo.preload([:ownerships, rounds: [ownership_changes: []]])
+    |> preload_sorted_rounds()
   end
 
   @doc """
@@ -269,7 +270,20 @@ defmodule StartupGame.Games do
   def get_game_with_associations(id) do
     Game
     |> Repo.get(id)
-    |> Repo.preload([:ownerships, rounds: from(r in Round, order_by: r.inserted_at)])
+    |> case do
+      nil ->
+        nil
+
+      game ->
+        game
+        |> Repo.preload([:ownerships, rounds: [ownership_changes: []]])
+        |> preload_sorted_rounds()
+    end
+  end
+
+  # Helper function to sort rounds by insertion date after preloading
+  defp preload_sorted_rounds(%Game{} = game) do
+    %{game | rounds: Enum.sort_by(game.rounds, & &1.inserted_at)}
   end
 
   @doc """
@@ -432,6 +446,27 @@ defmodule StartupGame.Games do
 
   """
   def get_round!(id), do: Repo.get!(Round, id)
+
+  @doc """
+  Gets a single round with preloaded ownership changes.
+
+  Raises `Ecto.NoResultsError` if the Round does not exist.
+
+  ## Examples
+
+      iex> get_round_with_ownership_changes!(123)
+      %Round{ownership_changes: [%OwnershipChange{}, ...]}
+
+      iex> get_round_with_ownership_changes!(456)
+      ** (Ecto.NoResultsError)
+
+  """
+  @spec get_round_with_ownership_changes!(Ecto.UUID.t()) :: Round.t()
+  def get_round_with_ownership_changes!(id) do
+    Round
+    |> Repo.get!(id)
+    |> Repo.preload(:ownership_changes)
+  end
 
   @doc """
   Creates a round.
@@ -742,50 +777,85 @@ defmodule StartupGame.Games do
   @doc """
   Updates ownership structure and records the changes.
 
+  This function takes a list of new ownership structures and updates the database
+  to match this structure, recording all ownership changes in the process.
+
+  Three types of changes are handled:
+  1. New entities (create ownership record and record initial change)
+  2. Changed percentages (update existing record and record investment/dilution)
+  3. Removed entities (delete ownership record and record exit)
+
+  Returns the updated game and round records with all associated data loaded.
+
   ## Examples
 
       iex> update_ownership_structure([%{entity_name: "Investor", percentage: 20}], game, round)
-      {:ok, [%Ownership{}, ...]}
+      {:ok, %{game: %Game{}, round: %Round{}, ownerships: [%Ownership{}, ...]}}
 
   """
+  @spec update_ownership_structure(
+          [%{entity_name: String.t(), percentage: Decimal.t() | float}],
+          Game.t(),
+          Round.t()
+        ) ::
+          {:ok, %{game: Game.t(), round: Round.t(), ownerships: [Ownership.t()]}}
+          | {:error, any()}
   def update_ownership_structure(new_ownerships, %Game{} = game, %Round{} = round) do
     Repo.transaction(fn ->
       # Get current ownerships
       current_ownerships = list_game_ownerships(game.id)
       current_by_entity = ownership_map_by_entity(current_ownerships)
-
-      # Process each new ownership
-      results = process_new_ownerships(new_ownerships, current_by_entity, game, round)
-
-      # Handle entities that are in current but not in new (they were removed)
       new_entity_names = Enum.map(new_ownerships, & &1.entity_name)
-      remove_missing_entities(current_ownerships, new_entity_names, game, round)
 
-      results
+      # Collect results of all operations
+      updated_ownerships =
+        update_existing_ownerships(new_ownerships, current_by_entity, game, round)
+
+      _removed_result = remove_missing_entities(current_ownerships, new_entity_names, game, round)
+
+      # Reload the game and round with their latest associations to ensure everything is up to date
+      updated_game = get_game_with_associations!(game.id)
+      updated_round = get_round_with_ownership_changes!(round.id)
+
+      # Return a map with all updated entities
+      %{
+        game: updated_game,
+        round: updated_round,
+        ownerships: updated_ownerships
+      }
     end)
   end
 
   # Helper function to create a map of ownerships by entity name
+  @spec ownership_map_by_entity([Ownership.t()]) :: %{String.t() => Ownership.t()}
   defp ownership_map_by_entity(ownerships) do
-    Enum.reduce(ownerships, %{}, fn ownership, acc ->
-      Map.put(acc, ownership.entity_name, ownership)
-    end)
+    Map.new(ownerships, &{&1.entity_name, &1})
   end
 
-  # Helper function to process new ownerships
-  defp process_new_ownerships(new_ownerships, current_by_entity, game, round) do
+  # Helper function to update existing ownerships and create new ones
+  @spec update_existing_ownerships(
+          [%{entity_name: String.t(), percentage: Decimal.t() | float}],
+          %{String.t() => Ownership.t()},
+          Game.t(),
+          Round.t()
+        ) :: [Ownership.t()]
+  defp update_existing_ownerships(new_ownerships, current_by_entity, game, round) do
     Enum.map(new_ownerships, fn %{entity_name: entity_name, percentage: percentage} ->
       case Map.get(current_by_entity, entity_name) do
         nil ->
+          # Entity doesn't exist yet - create it
           create_new_entity_ownership(entity_name, percentage, game, round)
 
         existing ->
+          # Entity exists - maybe update it
           update_existing_entity_ownership(existing, percentage, game, round)
       end
     end)
   end
 
   # Helper function to create a new entity ownership
+  @spec create_new_entity_ownership(String.t(), Decimal.t() | float, Game.t(), Round.t()) ::
+          Ownership.t()
   defp create_new_entity_ownership(entity_name, percentage, game, round) do
     {:ok, ownership} =
       create_ownership(%{
@@ -797,8 +867,7 @@ defmodule StartupGame.Games do
     {:ok, _change} =
       create_ownership_change(%{
         entity_name: entity_name,
-        previous_percentage: 0,
-        new_percentage: percentage,
+        percentage_delta: percentage,
         change_type: :initial,
         game_id: game.id,
         round_id: round.id
@@ -808,22 +877,21 @@ defmodule StartupGame.Games do
   end
 
   # Helper function to update an existing entity ownership
+  @spec update_existing_entity_ownership(Ownership.t(), Decimal.t() | float, Game.t(), Round.t()) ::
+          Ownership.t()
   defp update_existing_entity_ownership(existing, percentage, game, round) do
     if Decimal.compare(existing.percentage, percentage) != :eq do
+      # Determine the type of change based on percentage difference
+      {change_type, delta} = determine_change_type_and_delta(existing.percentage, percentage)
+
+      # Update the ownership record
       {:ok, ownership} = update_ownership(existing, %{percentage: percentage})
 
-      change_type =
-        if Decimal.compare(existing.percentage, percentage) == :lt do
-          :investment
-        else
-          :dilution
-        end
-
+      # Record the change
       {:ok, _change} =
         create_ownership_change(%{
           entity_name: existing.entity_name,
-          previous_percentage: existing.percentage,
-          new_percentage: percentage,
+          percentage_delta: delta,
           change_type: change_type,
           game_id: game.id,
           round_id: round.id
@@ -831,27 +899,49 @@ defmodule StartupGame.Games do
 
       ownership
     else
+      # No percentage change, return the existing record
       existing
     end
   end
 
+  # Helper function to determine change type and delta
+  @spec determine_change_type_and_delta(Decimal.t(), Decimal.t() | float) ::
+          {:investment | :dilution, Decimal.t()}
+  defp determine_change_type_and_delta(old_percentage, new_percentage) do
+    delta = Decimal.sub(new_percentage, old_percentage)
+
+    change_type =
+      if Decimal.gt?(delta, Decimal.new(0)),
+        do: :investment,
+        else: :dilution
+
+    {change_type, delta}
+  end
+
   # Helper function to remove entities that are no longer present
+  @spec remove_missing_entities([Ownership.t()], [String.t()], Game.t(), Round.t()) :: :ok
   defp remove_missing_entities(current_ownerships, new_entity_names, game, round) do
     Enum.each(current_ownerships, fn ownership ->
       unless Enum.member?(new_entity_names, ownership.entity_name) do
+        # Create a negative delta representing the full removal of ownership
+        negative_delta = Decimal.mult(ownership.percentage, Decimal.new(-1))
+
+        # Record the ownership exit
         {:ok, _change} =
           create_ownership_change(%{
             entity_name: ownership.entity_name,
-            previous_percentage: ownership.percentage,
-            new_percentage: 0,
+            percentage_delta: negative_delta,
             change_type: :exit,
             game_id: game.id,
             round_id: round.id
           })
 
+        # Delete the ownership record
         {:ok, _} = delete_ownership(ownership)
       end
     end)
+
+    :ok
   end
 
   @doc """

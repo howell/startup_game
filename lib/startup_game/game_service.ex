@@ -146,9 +146,7 @@ defmodule StartupGame.GameService do
   def load_game(game_id) do
     case Games.get_game_with_associations(game_id) do
       %Games.Game{} = game ->
-        ownerships = Games.list_game_ownerships(game_id)
-        # Recreate in-memory game state from database records
-        game_state = build_game_state_from_db(game, ownerships)
+        game_state = build_game_state_from_db(game)
 
         {:ok, %{game: game, game_state: game_state}}
 
@@ -345,9 +343,8 @@ defmodule StartupGame.GameService do
   # --- Private functions ---
 
   # Builds in-memory game state from database records
-  @spec build_game_state_from_db(Games.Game.t(), [Games.Ownership.t()]) ::
-          GameState.t()
-  defp build_game_state_from_db(game, ownerships) do
+  @spec build_game_state_from_db(Games.Game.t()) :: GameState.t()
+  defp build_game_state_from_db(game) do
     {current_scenario_id, current_scenario_data, previous_rounds} =
       determine_current_and_previous_rounds(game)
 
@@ -360,7 +357,7 @@ defmodule StartupGame.GameService do
       exit_type: game.exit_type,
       exit_value: game.exit_value,
       ownerships:
-        Enum.map(ownerships, fn o ->
+        Enum.map(game.ownerships, fn o ->
           %{entity_name: o.entity_name, percentage: o.percentage}
         end),
       # Note: This doesn't include the *very last* round if it's awaiting input
@@ -433,9 +430,23 @@ defmodule StartupGame.GameService do
         outcome: round.outcome,
         cash_change: round.cash_change,
         burn_rate_change: round.burn_rate_change,
-        ownership_changes: nil
+        ownership_changes: determine_ownership_changes(round)
       }
     end)
+  end
+
+  @spec determine_ownership_changes(Games.Round.t()) :: [GameState.ownership_change()] | nil
+  defp determine_ownership_changes(round) do
+    if Ecto.assoc_loaded?(round.ownership_changes) do
+      Enum.map(round.ownership_changes, fn oc ->
+        %{
+          entity_name: oc.entity_name,
+          percentage_delta: oc.percentage_delta
+        }
+      end)
+    else
+      nil
+    end
   end
 
   # Determines which scenario provider to use
@@ -462,36 +473,47 @@ defmodule StartupGame.GameService do
     end
   end
 
-  # Save info from the lastest round to the database
+  @doc """
+  Saves the result of the last round to the database.
+
+  Initiates a transaction that combines the following operations:
+  1. Updating the last round with outcome data
+  2. Processing any ownership changes
+  3. Updating game finances
+  """
   @spec save_round_result(Games.Game.t(), GameState.t()) :: game_and_round_result()
-  def save_round_result(game, game_state) do
+  def save_round_result(game, %GameState{} = game_state) do
     Ecto.Multi.new()
     |> save_last_round(game, game_state)
     |> update_finances(game, game_state)
     |> StartupGame.Repo.transaction()
-    |> case do
-      {:ok, %{game: updated_game, round: updated_round}} ->
-        {:ok, %{game: updated_game, game_state: game_state}, updated_round}
-
-      {:error, _operation, reason, _changes} ->
-        {:error, reason}
-    end
+    |> handle_transaction_result(game_state)
   end
 
-  # This function is no longer needed when using Ecto.Multi.update for the game state
-  # as the updated game struct is returned directly by Repo.transaction.
-  # @spec replace_game_round(Games.Game.t(), GameState.round_entry()) :: Games.Game.t()
-  # defp replace_game_round(game, round) do
-  #   Enum.find_index(game.rounds, fn r -> r.id == round.id end)
-  #   |> case do
-  #     nil ->
-  #       game
-  #
-  #     index ->
-  #       %{game | rounds: List.replace_at(game.rounds, index, round)}
-  #   end
-  # end
+  @spec handle_transaction_result(
+          {:ok, map()} | {:error, any(), any(), any()},
+          GameState.t()
+        ) :: game_and_round_result()
+  # Handles a successful transaction result
+  defp handle_transaction_result(
+         {:ok, %{game: updated_game, preloaded_round: updated_round}},
+         game_state
+       ) do
+    {:ok, %{game: updated_game, game_state: game_state}, updated_round}
+  end
 
+  # Handles a failed transaction result
+  defp handle_transaction_result({:error, _operation, reason, _changes}, _game_state) do
+    {:error, reason}
+  end
+
+  # Adds steps to save the last round to the transaction.
+  # Returns the Multi unchanged if there are no rounds.
+  #
+  # Contributes the following keys to the transaction:
+  # - `:round` - The updated round record
+  # - `:ownership_updates` - Results from updating ownership structure, or nil if no changes
+  # - `:preloaded_round` - The final round with preloaded ownership_changes
   @spec save_last_round(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
   defp save_last_round(multi, _game, %GameState{rounds: []}), do: multi
 
@@ -499,57 +521,109 @@ defmodule StartupGame.GameService do
     round_record = List.last(game.rounds)
     last_gs_round = List.last(game_state.rounds)
 
-    # If we found the matching DB round (should always happen if state is consistent)
     if round_record do
-      Ecto.Multi.run(multi, :round, fn _repo, _changes ->
-        Games.update_round(
-          round_record,
-          %{
-            # Update player_input (might have been set earlier in async flow)
-            player_input: last_gs_round.player_input,
-            # Set the outcome details
-            outcome: last_gs_round.outcome,
-            cash_change: last_gs_round.cash_change,
-            burn_rate_change: last_gs_round.burn_rate_change
-            # game_id is already set
-          }
-        )
-      end)
-      |> Ecto.Multi.run(:ownerships, fn _repo, %{round: updated_round_record} ->
-        # Pass the updated round record to process_ownership_changes
-        process_ownership_changes(
-          last_gs_round.ownership_changes,
-          game,
-          game_state,
-          # Use the result from the previous multi step
-          updated_round_record
-        )
-      end)
+      multi
+      |> update_round_with_outcome(round_record, last_gs_round)
+      |> process_ownership_updates(game, game_state, last_gs_round)
+      |> preload_final_round()
     else
-      # Log an error or handle inconsistency if the round wasn't found
-      Logger.error(
-        "Could not find matching DB round for game state round: #{inspect(last_gs_round)}"
-      )
-
-      # Add an error step to the multi to halt the transaction
-      Ecto.Multi.error(multi, :round_mismatch, "Could not find DB round to update")
+      Logger.error("Round record not found for game state round: #{inspect(last_gs_round)}")
+      Ecto.Multi.error(multi, :round_mismatch, "Round record not found")
     end
   end
 
-  defp process_ownership_changes(nil, _game, _game_state, _round), do: {:ok, nil}
+  # Updates the round record with outcome details from the game state.
+  #
+  # Contributes to the transaction:
+  # - `:round` - The updated round record with outcome data
+  @spec update_round_with_outcome(Ecto.Multi.t(), Round.t(), GameState.round_entry()) ::
+          Ecto.Multi.t()
+  defp update_round_with_outcome(multi, round, game_state_round) do
+    round_updates = %{
+      player_input: game_state_round.player_input,
+      outcome: game_state_round.outcome,
+      cash_change: game_state_round.cash_change,
+      burn_rate_change: game_state_round.burn_rate_change
+    }
 
-  defp process_ownership_changes(_changes, game, game_state, round) do
-    new_ownerships =
-      Enum.map(game_state.ownerships, fn o ->
-        %{entity_name: o.entity_name, percentage: o.percentage}
-      end)
-
-    Games.update_ownership_structure(new_ownerships, game, round)
+    Ecto.Multi.run(multi, :round, fn _repo, _changes ->
+      Games.update_round(round, round_updates)
+    end)
   end
 
-  # Using Ecto.Multi.update/4 for finance update
+  # Processes and persists ownership changes that occurred during the round.
+  #
+  # Depends on:
+  # - `:round` - The updated round from previous step
+  #
+  # Contributes to the transaction:
+  # - `:ownership_updates` - Contains the result of Games.update_ownership_structure:
+  #     - If changes exist: %{game: updated_game, round: updated_round, ownerships: updated_ownerships}
+  #     - If no changes: nil
+  @spec process_ownership_updates(
+          Ecto.Multi.t(),
+          Game.t(),
+          GameState.t(),
+          GameState.round_entry()
+        ) ::
+          Ecto.Multi.t()
+  defp process_ownership_updates(multi, game, game_state, game_state_round) do
+    Ecto.Multi.run(multi, :ownership_updates, fn _repo, %{round: updated_round} ->
+      if game_state_round.ownership_changes do
+        new_ownerships = extract_game_state_ownerships(game_state)
+        Games.update_ownership_structure(new_ownerships, game, updated_round)
+      else
+        {:ok, nil}
+      end
+    end)
+  end
+
+  # Extracts ownership information from the game state.
+  @spec extract_game_state_ownerships(GameState.t()) :: [
+          %{entity_name: String.t(), percentage: Decimal.t()}
+        ]
+  defp extract_game_state_ownerships(%GameState{ownerships: ownerships}) do
+    Enum.map(ownerships, fn %{entity_name: name, percentage: percentage} ->
+      %{entity_name: name, percentage: percentage}
+    end)
+  end
+
+  # Preloads the round with its associations for the final response.
+  #
+  # Depends on:
+  # - `:round` - The updated round record
+  # - `:ownership_updates` - Results from ownership update operation
+  #
+  # Contributes to the transaction:
+  # - `:preloaded_round` - The final round with preloaded ownership_changes
+  @spec preload_final_round(Ecto.Multi.t()) :: Ecto.Multi.t()
+  defp preload_final_round(multi) do
+    Ecto.Multi.run(multi, :preloaded_round, fn repo,
+                                               %{
+                                                 round: updated_round,
+                                                 ownership_updates: ownership_result
+                                               } ->
+      round_to_preload = select_round_to_preload(ownership_result, updated_round)
+      {:ok, repo.preload(round_to_preload, :ownership_changes)}
+    end)
+  end
+
+  # Selects the appropriate round to preload based on ownership update results
+  @spec select_round_to_preload(map() | nil, Round.t()) :: Round.t()
+  defp select_round_to_preload(ownership_result, updated_round) do
+    if ownership_result && Map.has_key?(ownership_result, :round) do
+      ownership_result.round
+    else
+      updated_round
+    end
+  end
+
+  # Updates the game's financial information based on the game state.
+  #
+  # Contributes to the transaction:
+  # - `:game` - The updated game record with new financial data
   @spec update_finances(Ecto.Multi.t(), Games.Game.t(), GameState.t()) :: Ecto.Multi.t()
-  defp update_finances(multi, game, game_state) do
+  defp update_finances(multi, game, %GameState{} = game_state) do
     changes = %{
       cash_on_hand: game_state.cash_on_hand,
       burn_rate: game_state.burn_rate,
@@ -558,7 +632,6 @@ defmodule StartupGame.GameService do
       exit_value: game_state.exit_value
     }
 
-    # Use Multi.update with a changeset
     Ecto.Multi.update(multi, :game, Game.changeset(game, changes))
   end
 end

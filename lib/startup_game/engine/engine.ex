@@ -209,7 +209,9 @@ defmodule StartupGame.Engine do
     current_by_entity = ownerships_map(current_ownerships)
 
     Enum.reduce(changes, current_by_entity, fn change, acc ->
-      Map.put(acc, change.entity_name, change.new_percentage)
+      current_percentage = Map.get(acc, change.entity_name, Decimal.new(0))
+      new_percentage = Decimal.add(current_percentage, change.percentage_delta)
+      Map.put(acc, change.entity_name, new_percentage)
     end)
     |> ownerships_map_to_list()
   end

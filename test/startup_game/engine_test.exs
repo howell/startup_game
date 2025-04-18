@@ -88,8 +88,8 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("100000.00"),
         burn_rate_change: Decimal.new("0.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("85.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("15.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-15.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("15.00")}
         ],
         exit_type: :none
       }
@@ -125,8 +125,8 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("100000.00"),
         burn_rate_change: Decimal.new("0.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("85.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("15.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-15.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("15.00")}
         ],
         exit_type: :none
       }
@@ -139,9 +139,9 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("500000.00"),
         burn_rate_change: Decimal.new("5000.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("60.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("10.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("30.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-25.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("-5.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("30.00")}
         ],
         exit_type: :none
       }
@@ -176,8 +176,8 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("500000.00"),
         burn_rate_change: Decimal.new("5000.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("70.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("30.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-30.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("30.00")}
         ],
         exit_type: :none
       }
@@ -190,9 +190,9 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("0.00"),
         burn_rate_change: Decimal.new("0.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("63.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("27.00")},
-          %{entity_name: "Employee Pool", new_percentage: Decimal.new("10.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-7.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("-3.00")},
+          %{entity_name: "Employee Pool", percentage_delta: Decimal.new("10.00")}
         ],
         exit_type: :none
       }
@@ -223,9 +223,9 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("1000000.00"),
         burn_rate_change: Decimal.new("10000.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("50.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("20.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("30.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-50.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("20.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("30.00")}
         ],
         exit_type: :none
       }
@@ -271,9 +271,9 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("1000000.00"),
         burn_rate_change: Decimal.new("10000.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("50.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("20.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("30.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-50.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("20.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("30.00")}
         ],
         exit_type: :none
       }
@@ -317,9 +317,9 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("1000000.00"),
         burn_rate_change: Decimal.new("10000.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("50.00")},
-          %{entity_name: "Angel Investor", new_percentage: Decimal.new("20.00")},
-          %{entity_name: "VC Firm", new_percentage: Decimal.new("30.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-50.00")},
+          %{entity_name: "Angel Investor", percentage_delta: Decimal.new("20.00")},
+          %{entity_name: "VC Firm", percentage_delta: Decimal.new("30.00")}
         ],
         exit_type: :none
       }
@@ -332,8 +332,8 @@ defmodule StartupGame.EngineTest do
         cash_change: Decimal.new("0.00"),
         burn_rate_change: Decimal.new("0.00"),
         ownership_changes: [
-          %{entity_name: "Founder", new_percentage: Decimal.new("40.00")},
-          %{entity_name: "New Investor", new_percentage: Decimal.new("10.00")}
+          %{entity_name: "Founder", percentage_delta: Decimal.new("-10.00")},
+          %{entity_name: "New Investor", percentage_delta: Decimal.new("10.00")}
         ],
         exit_type: :none
       }

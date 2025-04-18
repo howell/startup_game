@@ -240,8 +240,11 @@ defmodule StartupGame.Engine.LLM.JSONResponseParserTest do
         "ownership_changes": [
           {
             "entity_name": "Founders",
-            "previous_percentage": 80,
-            "new_percentage": 70.4
+            "percentage_delta": -9.6
+          },
+          {
+            "entity_name": "VC Firm",
+            "percentage_delta": 9.6
           }
         ],
         "exit_type": "none"
@@ -253,7 +256,16 @@ defmodule StartupGame.Engine.LLM.JSONResponseParserTest do
       assert outcome.text == "You successfully negotiate with the VC firm."
       assert Decimal.equal?(outcome.cash_change, Decimal.new("2500000"))
       assert Decimal.equal?(outcome.burn_rate_change, Decimal.new("50000"))
-      assert length(outcome.ownership_changes) == 1
+      assert length(outcome.ownership_changes) == 2
+
+      # Test with specific entity lookups rather than relying on order
+      founders_change =
+        Enum.find(outcome.ownership_changes, fn c -> c.entity_name == "Founders" end)
+
+      vc_change = Enum.find(outcome.ownership_changes, fn c -> c.entity_name == "VC Firm" end)
+
+      assert Decimal.equal?(founders_change.percentage_delta, Decimal.new("-9.6"))
+      assert Decimal.equal?(vc_change.percentage_delta, Decimal.new("9.6"))
       assert outcome.exit_type == :none
     end
   end

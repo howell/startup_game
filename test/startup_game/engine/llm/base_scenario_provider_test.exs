@@ -252,21 +252,24 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProviderTest do
       assert :none == StartupGame.Engine.LLM.BaseScenarioProvider.parse_exit_type("unknown")
     end
 
-    test "parse_ownership_changes/1 handles various formats" do
+    test "parse_ownership_changes/1 handles delta format" do
       # Test with nil
       assert nil == StartupGame.Engine.LLM.BaseScenarioProvider.parse_ownership_changes(nil)
 
-      # Test with valid list
-      changes = [
-        %{"entity_name" => "Founder", "previous_percentage" => 100, "new_percentage" => 80},
-        %{"entity_name" => "Investor", "previous_percentage" => 0, "new_percentage" => 20}
+      # Test with delta format
+      delta_changes = [
+        %{"entity_name" => "Founder", "percentage_delta" => -20},
+        %{"entity_name" => "Investor", "percentage_delta" => 20}
       ]
 
-      result = StartupGame.Engine.LLM.BaseScenarioProvider.parse_ownership_changes(changes)
-      assert length(result) == 2
-      assert Enum.at(result, 0).entity_name == "Founder"
-      assert Decimal.equal?(Enum.at(result, 0).previous_percentage, Decimal.new("100"))
-      assert Decimal.equal?(Enum.at(result, 0).new_percentage, Decimal.new("80"))
+      delta_result =
+        StartupGame.Engine.LLM.BaseScenarioProvider.parse_ownership_changes(delta_changes)
+
+      assert length(delta_result) == 2
+      assert Enum.at(delta_result, 0).entity_name == "Founder"
+      assert Decimal.equal?(Enum.at(delta_result, 0).percentage_delta, Decimal.new("-20"))
+      assert Enum.at(delta_result, 1).entity_name == "Investor"
+      assert Decimal.equal?(Enum.at(delta_result, 1).percentage_delta, Decimal.new("20"))
     end
   end
 end

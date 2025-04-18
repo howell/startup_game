@@ -105,7 +105,7 @@ defmodule StartupGame.GamesFixtures do
 
     # Process multiple responses to create rounds
     Enum.reduce(1..round_count, game, fn i, game ->
-      {:ok, %{game: updated_game}} =
+      {:ok, %{game: updated_game}, _round} =
         GameService.process_player_input(game.id, "Response for round #{i}")
 
       updated_game
@@ -150,13 +150,17 @@ defmodule StartupGame.GamesFixtures do
   @doc """
   Creates an ownership change for a game and round.
   """
+
+  def ownership_change_fixture(%{round: round, game: game} = attrs) do
+    ownership_change_fixture(game, round, Map.drop(attrs, [:round, :game]))
+  end
+
   def ownership_change_fixture(game, round, attrs \\ %{}) do
     attrs =
       Map.merge(
         %{
           entity_name: "Test Entity",
-          previous_percentage: Decimal.new("20.0"),
-          new_percentage: Decimal.new("25.0"),
+          percentage_delta: Decimal.new("5.0"),
           change_type: :investment,
           game_id: game.id,
           round_id: round.id
@@ -199,15 +203,13 @@ defmodule StartupGame.GamesFixtures do
     # Create ownership changes
     ownership_change_fixture(game, round1, %{
       entity_name: "Founder",
-      previous_percentage: Decimal.new("100.0"),
-      new_percentage: Decimal.new("75.0"),
+      percentage_delta: Decimal.new("-25.0"),
       change_type: :dilution
     })
 
     ownership_change_fixture(game, round2, %{
       entity_name: "Investor A",
-      previous_percentage: Decimal.new("0.0"),
-      new_percentage: Decimal.new("15.0"),
+      percentage_delta: Decimal.new("15.0"),
       change_type: :investment
     })
 

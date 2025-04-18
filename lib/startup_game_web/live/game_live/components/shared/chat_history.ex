@@ -127,8 +127,10 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
         <div class="flex items-center">
           <CoreComponents.icon name="hero-user-plus" class="h-3 w-3 text-silly-blue" />
           <span>
-            {change.entity_name}: {change.previous_percentage}%
-            <.ownership_change_icon previous={change.previous_percentage} new={change.new_percentage} /> {change.new_percentage}%
+            {change.entity_name}:
+            <.ownership_change_icon delta={change.percentage_delta} /> {format_percentage_delta(
+              change.percentage_delta
+            )}
           </span>
         </div>
       <% end %>
@@ -147,9 +149,15 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
     end
   end
 
+  # Format percentage delta with + or - sign
+  defp format_percentage_delta(delta) do
+    prefix = if Decimal.positive?(delta), do: "+", else: "-"
+    "#{prefix}#{Decimal.to_string(delta, :xsd)}%"
+  end
+
   defp ownership_change_icon(assigns) do
     ~H"""
-    <%= if Decimal.gt?(@new, @previous) do %>
+    <%= if Decimal.positive?(@delta) do %>
       <CoreComponents.icon name="hero-arrow-trending-up" class="h-3 w-3 text-silly-success" />
     <% else %>
       <CoreComponents.icon name="hero-arrow-trending-down" class="h-3 w-3 text-silly-accent" />

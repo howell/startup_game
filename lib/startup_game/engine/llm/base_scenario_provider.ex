@@ -370,8 +370,7 @@ defmodule StartupGame.Engine.LLM.BaseScenarioProvider do
     Enum.map(changes, fn change ->
       %{
         entity_name: Map.get(change, "entity_name", "Unknown"),
-        previous_percentage: parse_decimal(Map.get(change, "previous_percentage", 0)),
-        new_percentage: parse_decimal(Map.get(change, "new_percentage", 0))
+        percentage_delta: parse_decimal(Map.get(change, "percentage_delta", "0"))
       }
     end)
   end

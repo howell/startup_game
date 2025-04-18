@@ -77,8 +77,7 @@ defmodule StartupGame.GamesTest do
       attrs
       |> Enum.into(%{
         entity_name: "Test Entity",
-        previous_percentage: Decimal.new("0.00"),
-        new_percentage: Decimal.new("50.00"),
+        percentage_delta: Decimal.new("50.00"),
         change_type: :initial,
         game_id: game.id,
         round_id: round.id
@@ -411,8 +410,7 @@ defmodule StartupGame.GamesTest do
 
       valid_attrs = %{
         entity_name: "New Entity",
-        previous_percentage: Decimal.new("0.00"),
-        new_percentage: Decimal.new("25.00"),
+        percentage_delta: Decimal.new("5.0"),
         change_type: :initial,
         game_id: game.id,
         round_id: round.id
@@ -422,8 +420,7 @@ defmodule StartupGame.GamesTest do
                Games.create_ownership_change(valid_attrs)
 
       assert ownership_change.entity_name == "New Entity"
-      assert Decimal.equal?(ownership_change.previous_percentage, Decimal.new("0.00"))
-      assert Decimal.equal?(ownership_change.new_percentage, Decimal.new("25.00"))
+      assert Decimal.equal?(ownership_change.percentage_delta, Decimal.new("5.0"))
       assert ownership_change.change_type == :initial
     end
 
@@ -436,14 +433,16 @@ defmodule StartupGame.GamesTest do
 
       update_attrs = %{
         entity_name: "Updated Entity",
-        new_percentage: Decimal.new("75.00")
+        percentage_delta: Decimal.new("10.0"),
+        change_type: :investment
       }
 
       assert {:ok, %OwnershipChange{} = updated_change} =
                Games.update_ownership_change(ownership_change, update_attrs)
 
       assert updated_change.entity_name == "Updated Entity"
-      assert Decimal.equal?(updated_change.new_percentage, Decimal.new("75.00"))
+      assert Decimal.equal?(updated_change.percentage_delta, Decimal.new("10.0"))
+      assert updated_change.change_type == :investment
     end
 
     test "update_ownership_change/2 with invalid data returns error changeset" do
@@ -952,7 +951,7 @@ defmodule StartupGame.GamesTest do
         %{entity_name: "Investor", percentage: Decimal.new("20.00")}
       ]
 
-      assert {:ok, updated_ownerships} =
+      assert {:ok, %{ownerships: updated_ownerships}} =
                Games.update_ownership_structure(new_ownerships, game, round)
 
       assert length(updated_ownerships) == 2
@@ -974,12 +973,9 @@ defmodule StartupGame.GamesTest do
       founder_change = Enum.find(changes, fn c -> c.entity_name == "Founder" end)
       investor_change = Enum.find(changes, fn c -> c.entity_name == "Investor" end)
 
-      assert Decimal.equal?(founder_change.previous_percentage, Decimal.new("100.00"))
-      assert Decimal.equal?(founder_change.new_percentage, Decimal.new("80.00"))
+      assert Decimal.equal?(founder_change.percentage_delta, Decimal.new("-20.00"))
       assert founder_change.change_type == :dilution
-
-      assert Decimal.equal?(investor_change.previous_percentage, Decimal.new("0.00"))
-      assert Decimal.equal?(investor_change.new_percentage, Decimal.new("20.00"))
+      assert Decimal.equal?(investor_change.percentage_delta, Decimal.new("20.00"))
       assert investor_change.change_type == :initial
     end
 
@@ -1026,8 +1022,7 @@ defmodule StartupGame.GamesTest do
         Enum.find(changes, fn c -> c.entity_name == "Angel" and c.change_type == :exit end)
 
       assert angel_exit != nil
-      assert Decimal.equal?(angel_exit.previous_percentage, Decimal.new("20.00"))
-      assert Decimal.equal?(angel_exit.new_percentage, Decimal.new("0.00"))
+      assert Decimal.equal?(angel_exit.percentage_delta, Decimal.new("-20.00"))
     end
   end
 
