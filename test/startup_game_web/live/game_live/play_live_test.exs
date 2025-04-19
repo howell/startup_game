@@ -4,6 +4,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
   import Phoenix.LiveViewTest
   import StartupGame.GamesFixtures
   import StartupGame.Test.Helpers.Streaming
+  import StartupGame.AccountsFixtures
 
   alias StartupGame.Games
   alias StartupGame.StreamingService
@@ -614,6 +615,28 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
 
       # The state changes div should not appear with its class
       refute html =~ ~r/class=.*flex flex-col md:flex-row md:items-center gap-4.*/
+    end
+  end
+
+  describe "Play LiveView - authorization" do
+    test "only allows game owner to access their game", %{conn: conn} do
+      # Create two users
+      owner = user_fixture()
+      other_user = user_fixture()
+
+      # Create a game owned by the first user
+      game = game_fixture(%{name: "Owner's Game", description: "Test Description"}, owner)
+
+      # Owner should be able to access their game
+      conn_as_owner = log_in_user(conn, owner)
+      {:ok, _view, _html} = live(conn_as_owner, ~p"/games/play/#{game.id}")
+
+      # Other user should be redirected when trying to access someone else's game
+      conn_as_other = log_in_user(build_conn(), other_user)
+
+      # Check that the non-owner gets an error and is redirected
+      assert {:error, {:redirect, %{to: "/games"}}} =
+               live(conn_as_other, ~p"/games/play/#{game.id}")
     end
   end
 end

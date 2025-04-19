@@ -100,34 +100,34 @@ defmodule StartupGameWeb.GameLive.Handlers.CreationHandler do
   """
   @spec handle_existing_game(socket(), String.t()) :: {:noreply, socket()}
   def handle_existing_game(socket, id) do
-    case GameService.load_game(id) do
-      {:ok, %{game: game, game_state: game_state}} ->
-        socket =
+    with {:ok, %{game: game, game_state: game_state}} <- GameService.load_game(id),
+         true <- socket.assigns.current_user.id == game.user_id do
+      socket =
+        socket
+        |> SocketAssignments.assign_game_data(
+          game,
+          game_state,
+          # keep the description round when transitioning from creating to playing
+          socket.assigns.rounds ++ Games.list_game_rounds(id),
+          Games.list_game_ownerships(id)
+        )
+        |> assign(:game_id, id)
+        |> assign(:response, "")
+        |> assign(:creation_stage, :playing)
+        # Initialize player_mode from the loaded game
+        |> assign(:player_mode, game.current_player_mode)
+
+      # Recovery check for game in progress
+      socket =
+        if game_state.status == :in_progress && !socket.assigns.streaming do
+          check_game_state_consistency(socket)
+        else
           socket
-          |> SocketAssignments.assign_game_data(
-            game,
-            game_state,
-            # keep the description round when transitioning from creating to playing
-            socket.assigns.rounds ++ Games.list_game_rounds(id),
-            Games.list_game_ownerships(id)
-          )
-          |> assign(:game_id, id)
-          |> assign(:response, "")
-          |> assign(:creation_stage, :playing)
-          # Initialize player_mode from the loaded game
-          |> assign(:player_mode, game.current_player_mode)
+        end
 
-        # Recovery check for game in progress
-        socket =
-          if game_state.status == :in_progress && !socket.assigns.streaming do
-            check_game_state_consistency(socket)
-          else
-            socket
-          end
-
-        {:noreply, socket}
-
-      {:error, _reason} ->
+      {:noreply, socket}
+    else
+      _ ->
         {:noreply,
          socket
          |> Phoenix.LiveView.put_flash(:error, "Game not found")
