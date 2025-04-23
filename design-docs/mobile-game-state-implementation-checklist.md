@@ -49,30 +49,30 @@
 
 ### Modify Game Layout Component
 
-- [ ] Update `lib/startup_game_web/live/game_live/components/shared/game_layout_component.ex`
-- [ ] Remove current mobile toggle button and full-screen panel
-- [ ] Modify layout structure to position condensed panel between chat and response form on mobile
-- [ ] Add new slot for condensed state panel
-- [ ] Add media queries for responsive behavior
-- [ ] Add z-index management for proper layering
+- [x] Update `lib/startup_game_web/live/game_live/components/shared/game_layout_component.ex`
+- [x] Remove current mobile toggle button and full-screen panel
+- [x] Modify layout structure to position condensed panel between chat and response form on mobile
+- [x] Add new slot for condensed state panel
+- [x] Add media queries for responsive behavior
+- [x] Add z-index management for proper layering
 
 ### Update Game Play Component
 
-- [ ] Update `lib/startup_game_web/live/game_live/components/game_play_component.ex`
-- [ ] Add new socket assigns:
-  - [ ] `is_mobile_panel_expanded` (boolean, default false)
-  - [ ] `is_settings_modal_open` (boolean, default false)
-  - [ ] `active_settings_tab` (atom or string for tab navigation)
-- [ ] Add rendering logic for condensed panel
-- [ ] Add rendering logic for settings modal
-- [ ] Update existing assigns for proper panel state management
+- [x] Update `lib/startup_game_web/live/game_live/components/game_play_component.ex`
+- [x] Add new socket assigns:
+  - [x] `is_mobile_panel_expanded` (boolean, default false)
+  - [x] `is_settings_modal_open` (boolean, default false)
+  - [x] `active_settings_tab` (atom or string for tab navigation)
+- [x] Add rendering logic for condensed panel
+- [x] Add rendering logic for settings modal
+- [x] Update existing assigns for proper panel state management
 
 ### Update Chat Interface Component
 
-- [ ] Modify `lib/startup_game_web/live/game_live/components/chat/chat_interface_component.ex`
-- [ ] Adjust chat history container to accommodate condensed panel
-- [ ] Ensure proper scrolling behavior when panel expands/collapses
-- [ ] Update response form positioning
+- [x] Modify `lib/startup_game_web/live/game_live/components/chat/chat_interface_component.ex`
+- [x] Adjust chat history container to accommodate condensed panel
+- [x] Ensure proper scrolling behavior when panel expands/collapses
+- [x] Update response form positioning
 
 ## Phase 4: Event Handlers and State Management
 

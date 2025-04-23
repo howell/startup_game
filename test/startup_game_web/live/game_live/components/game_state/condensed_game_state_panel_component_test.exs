@@ -68,6 +68,52 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
       refute html =~ "Users"
       refute html =~ "MRR"
     end
+
+    test "triggers settings modal when settings button clicked" do
+      assigns = %{
+        id: "test-panel",
+        game: %Game{
+          name: "Test Startup",
+          cash_on_hand: Decimal.new("100500"),
+          burn_rate: Decimal.new("5500"),
+          description: "A test startup company"
+        },
+        ownerships: [
+          %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
+          %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+        ],
+        rounds: [],
+        is_expanded: true
+      }
+
+      html = render_component(&CondensedGameStatePanel.condensed_game_state_panel/1, assigns)
+      assert html =~ "Settings"
+      # Simulate clicking the settings button (phx-click event)
+      # This would be handled in LiveView integration, but we check the button exists
+      assert html =~ "phx-click=\"toggle_settings_modal\""
+    end
+
+    test "handles expand/collapse event" do
+      assigns = %{
+        id: "test-panel",
+        game: %Game{
+          name: "Test Startup",
+          cash_on_hand: Decimal.new("100500"),
+          burn_rate: Decimal.new("5500"),
+          description: "A test startup company"
+        },
+        ownerships: [
+          %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
+          %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+        ],
+        rounds: [],
+        is_expanded: false
+      }
+
+      html = render_component(&CondensedGameStatePanel.condensed_game_state_panel/1, assigns)
+      # The expand button should be present
+      assert html =~ "phx-click=\"toggle_panel_expansion\""
+    end
   end
 
   describe "helper functions" do

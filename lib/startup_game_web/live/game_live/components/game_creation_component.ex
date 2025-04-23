@@ -36,15 +36,9 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
         />
       </:state_panel>
 
-      <:mobile_state_panel>
-        <.creation_state_panel
-          creation_stage={@creation_stage}
-          temp_name={@temp_name}
-          provider_preference={@provider_preference}
-          initial_player_mode={@initial_player_mode}
-          include_provider_selector={false}
-        />
-      </:mobile_state_panel>
+      <:condensed_panel>
+        <!-- No condensed panel in creation flow -->
+      </:condensed_panel>
 
       <:content_area>
         <div class="h-full flex flex-col">

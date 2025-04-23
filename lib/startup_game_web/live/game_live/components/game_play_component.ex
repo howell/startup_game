@@ -9,6 +9,8 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   alias StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent
   alias StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent
   alias StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent
+  alias StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel
+  alias StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal
 
   @doc """
   Renders the game play interface with chat, company info, and financials.
@@ -22,6 +24,9 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
   attr :streaming_type, :atom, default: nil
   attr :is_mobile_state_visible, :boolean, default: false
   attr :is_view_only, :boolean, default: false
+  attr :is_mobile_panel_expanded, :boolean, default: false
+  attr :is_settings_modal_open, :boolean, default: false
+  attr :active_settings_tab, :any, default: nil
 
   def game_play(assigns) do
     ~H"""
@@ -37,16 +42,25 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
         />
       </:state_panel>
 
-      <:mobile_state_panel>
-        <GameStatePanelComponent.game_state_panel
+      <:condensed_panel>
+        <CondensedGameStatePanel.condensed_game_state_panel
+          id="mobile-condensed-panel"
           game={@game}
-          is_visible={true}
           ownerships={@ownerships}
           rounds={@rounds}
-          id_prefix="mobile"
-          is_view_only={@is_view_only}
+          is_expanded={@is_mobile_panel_expanded}
         />
-      </:mobile_state_panel>
+        <%= if @is_settings_modal_open do %>
+          <GameSettingsModal.game_settings_modal
+            id="settings-modal"
+            game={@game}
+            rounds={@rounds}
+            selected_provider={@game.provider_preference}
+            available_providers={[@game.provider_preference]}
+            current_tab={@active_settings_tab}
+          />
+        <% end %>
+      </:condensed_panel>
 
       <:content_area>
         <ChatInterfaceComponent.chat_interface

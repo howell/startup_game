@@ -34,7 +34,8 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           player_mode={@player_mode}
         />
       </div>
-
+      <!-- Spacer for condensed panel on mobile (handled by layout) -->
+      <div class="h-0 lg:h-auto"></div>
       <%= cond do %>
         <% @is_view_only -> %>
           <div class="p-4 border-t text-center">
@@ -52,7 +53,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           </div>
         <% @game.status == :in_progress -> %>
           <!-- Response form and mode buttons at bottom -->
-          <div class="mt-4 p-4 border-t">
+          <div class="mt-4 p-4 border-t bg-white z-10 sticky bottom-0">
             <div class="mx-auto w-full space-y-3">
               <!-- Mode Switching Buttons -->
               <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
@@ -79,8 +80,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                   </button>
                 </form>
               </div>
-              
-    <!-- Response Input Form -->
+              <!-- Response Input Form -->
               <ResponseForm.response_form
                 placeholder={
                   if @player_mode == :responding,
