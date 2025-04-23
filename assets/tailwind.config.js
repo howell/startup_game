@@ -252,7 +252,13 @@ module.exports = {
           success: "#4CAF50",
           purple: "#9b87f5",
           yellow: "#FFD166",
-        }
+        },
+        "silly-blue": "#4f46e5",  // indigo-600
+        "silly-accent": "#f97316", // orange-500
+        "silly-yellow": "#eab308", // yellow-500
+        "silly-success": "#10b981", // emerald-500
+        "silly-gray": "#475569",   // slate-600
+        "silly-purple": "#7e22ce",  // purple-700
       },
       
       borderRadius: {
@@ -300,6 +306,14 @@ module.exports = {
           "66%": { transform: "scale(0.9)" },
           "100%": { transform: "scale(1)" },
         },
+        fadeIn: {
+          '0%': { opacity: '0', transform: 'translateY(10px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
+        expandPanel: {
+          '0%': { maxHeight: '0', opacity: '0' },
+          '100%': { maxHeight: '50vh', opacity: '1' },
+        },
       },
       
       animation: {
@@ -312,11 +326,19 @@ module.exports = {
         "bounce-subtle": "bounce-subtle 2s ease-in-out infinite",
         "pulse-subtle": "pulse-subtle 2s ease-in-out infinite",
         "blob": "blob 7s infinite",
+        'fadeIn': 'fadeIn 0.2s ease-out',
+        'expandPanel': 'expandPanel 0.3s ease',
       },
       
       fontFamily: {
-        sans: ["Inter", "sans-serif"],
-        display: ["SF Pro Display", "Inter", "sans-serif"],
+        sans: [
+          "Inter var, sans-serif",
+          { fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11"' },
+        ],
+        display: [
+          "Cal Sans, Inter var, sans-serif",
+          { fontFeatureSettings: '"cv02", "cv03", "cv04", "cv11"' },
+        ],
       },
     },
   }
