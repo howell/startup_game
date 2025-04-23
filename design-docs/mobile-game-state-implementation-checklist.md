@@ -14,36 +14,36 @@
 
 ### Create Condensed Game State Panel Component
 
-- [ ] Create file `lib/startup_game_web/live/game_live/components/game_state/condensed_game_state_panel_component.ex`
-- [ ] Implement collapsed view with:
-  - [ ] Company name display
-  - [ ] Cash on hand summary
-  - [ ] Runway indicator
-  - [ ] Ownership percentage breakdown
-  - [ ] Expand/collapse toggle
-- [ ] Implement expanded view with:
-  - [ ] Detailed financial information
-  - [ ] Full ownership breakdown
-  - [ ] Key metrics section
-  - [ ] Settings button to trigger modal
-- [ ] Add CSS for styling both states
-- [ ] Add expand/collapse animation with transition classes
-- [ ] Create helper functions for data formatting and calculations
+- [x] Create file `lib/startup_game_web/live/game_live/components/game_state/condensed_game_state_panel_component.ex`
+- [x] Implement collapsed view with:
+  - [x] Company name display
+  - [x] Cash on hand summary
+  - [x] Runway indicator
+  - [x] Ownership percentage breakdown
+  - [x] Expand/collapse toggle
+- [x] Implement expanded view with:
+  - [x] Detailed financial information
+  - [x] Full ownership breakdown
+  - [x] Key metrics section
+  - [x] Settings button to trigger modal
+- [x] Add CSS for styling both states
+- [x] Add expand/collapse animation with transition classes
+- [x] Create helper functions for data formatting and calculations
 
 ### Create Game Settings Modal Component
 
-- [ ] Create file `lib/startup_game_web/live/game_live/components/game_settings/game_settings_modal_component.ex`
-- [ ] Implement modal shell with:
-  - [ ] Modal header with title and close button
-  - [ ] Tab navigation if using tabbed interface
-  - [ ] Modal backdrop with click-to-close functionality
-  - [ ] Close button and ESC key handling
-- [ ] Implement modal content sections:
-  - [ ] Game visibility settings
-  - [ ] Provider selector
-  - [ ] Recent events display
-- [ ] Add focus trapping for accessibility
-- [ ] Style modal with appropriate z-index and animations
+- [x] Create file `lib/startup_game_web/live/game_live/components/game_settings/game_settings_modal_component.ex`
+- [x] Implement modal shell with:
+  - [x] Modal header with title and close button
+  - [x] Tab navigation if using tabbed interface
+  - [x] Modal backdrop with click-to-close functionality
+  - [x] Close button and ESC key handling
+- [x] Implement modal content sections:
+  - [x] Game visibility settings
+  - [x] Provider selector
+  - [x] Recent events display
+- [x] Add focus trapping for accessibility
+- [x] Style modal with appropriate z-index and animations
 
 ## Phase 3: Update Existing Components
 
