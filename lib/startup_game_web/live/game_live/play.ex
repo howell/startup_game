@@ -18,9 +18,13 @@ defmodule StartupGameWeb.GameLive.Play do
     socket = SocketAssignments.initialize_socket(socket)
     socket = assign(socket, :provider_preference, default_provider_preference())
     socket = assign(socket, :is_mobile_state_visible, false)
+    # New assigns for mobile panel and settings modal state
+    socket = assign(socket, :is_mobile_panel_expanded, false)
+    socket = assign(socket, :is_settings_modal_open, false)
+    socket = assign(socket, :active_settings_tab, "settings")
     # Initialize player_mode (will be properly set in handle_params/CreationHandler)
     socket = assign(socket, :player_mode, :responding)
-
+    # TODO: Session storage for panel state persistence is in progress
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
 
@@ -77,6 +81,9 @@ defmodule StartupGameWeb.GameLive.Play do
             streaming_type={@streaming_type}
             partial_content={@partial_content}
             is_mobile_state_visible={@is_mobile_state_visible}
+            is_mobile_panel_expanded={@is_mobile_panel_expanded}
+            is_settings_modal_open={@is_settings_modal_open}
+            active_settings_tab={@active_settings_tab}
           />
       <% end %>
     </div>
@@ -145,6 +152,20 @@ defmodule StartupGameWeb.GameLive.Play do
   @impl true
   def handle_event("switch_player_mode", %{"player_mode" => player_mode}, socket) do
     PlayHandler.handle_switch_player_mode(socket, player_mode)
+  end
+
+  @impl true
+  def handle_event("toggle_panel_expansion", _params, socket) do
+    {:noreply,
+     assign(socket, :is_mobile_panel_expanded, !socket.assigns.is_mobile_panel_expanded)}
+  end
+
+  def handle_event("toggle_settings_modal", _params, socket) do
+    {:noreply, assign(socket, :is_settings_modal_open, !socket.assigns.is_settings_modal_open)}
+  end
+
+  def handle_event("select_settings_tab", %{"tab" => tab}, socket) do
+    {:noreply, assign(socket, :active_settings_tab, tab)}
   end
 
   # Info handlers delegate to the StreamHandler

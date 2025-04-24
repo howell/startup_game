@@ -41,7 +41,7 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModalTest 
         },
         rounds: [],
         available_providers: [
-          %{id: "test-provider", name: "Test Provider", description: "A test provider"}
+          "Test Provider"
         ],
         selected_provider: nil,
         is_open: true,
@@ -54,7 +54,6 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModalTest 
       assert html =~ "AI Provider"
       assert html =~ "Select which AI provider"
       assert html =~ "Test Provider"
-      assert html =~ "A test provider"
       refute html =~ "Public games will be visible"
     end
 

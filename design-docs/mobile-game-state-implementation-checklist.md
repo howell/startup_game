@@ -76,47 +76,26 @@
 
 ## Phase 4: Event Handlers and State Management
 
-- [ ] Add event handler in LiveView for `toggle_panel_expansion`
+- [x] Add event handler in LiveView for `toggle_panel_expansion`
   ```elixir
   def handle_event("toggle_panel_expansion", _, socket) do
     {:noreply, assign(socket, is_mobile_panel_expanded: !socket.assigns.is_mobile_panel_expanded)}
   end
   ```
-- [ ] Add event handler for `toggle_settings_modal`
+- [x] Add event handler for `toggle_settings_modal`
   ```elixir
   def handle_event("toggle_settings_modal", _, socket) do
     {:noreply, assign(socket, is_settings_modal_open: !socket.assigns.is_settings_modal_open)}
   end
   ```
-- [ ] Add event handler for `select_settings_tab` if using tabs
+- [x] Add event handler for `select_settings_tab` if using tabs
   ```elixir
   def handle_event("select_settings_tab", %{"tab" => tab}, socket) do
     {:noreply, assign(socket, active_settings_tab: tab)}
   end
   ```
-- [ ] Implement session storage for panel state persistence
-  ```elixir
-  # Store in session when changing
-  def handle_event("toggle_panel_expansion", _, socket) do
-    new_state = !socket.assigns.is_mobile_panel_expanded
-    socket = 
-      socket
-      |> assign(is_mobile_panel_expanded: new_state)
-      |> put_session(:is_mobile_panel_expanded, new_state)
-    
-    {:noreply, socket}
-  end
-  
-  # Initialize from session in mount
-  def mount(_params, session, socket) do
-    socket =
-      socket
-      |> assign(:is_mobile_panel_expanded, session["is_mobile_panel_expanded"] || false)
-      |> assign(:is_settings_modal_open, false)
-    
-    {:ok, socket}
-  end
-  ```
+- [~] Implement session storage for panel state persistence
+  - Event handlers are implemented in Play LiveView. Session storage for panel state persistence is in progress.
 
 ## Phase 5: CSS and Styling
 

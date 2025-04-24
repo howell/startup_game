@@ -42,6 +42,7 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
           Game Settings
           <:actions>
             <button
+              data-testid="modal-close-x"
               phx-click="toggle_settings_modal"
               phx-target="#game-play"
               class="text-gray-400 hover:text-gray-500"
@@ -71,7 +72,11 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
         </div>
 
         <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse mt-6">
-          <CoreComponents.button phx-click="toggle_settings_modal" phx-target="#game-play">
+          <CoreComponents.button
+            data-testid="modal-close-footer"
+            phx-click="toggle_settings_modal"
+            phx-target="#game-play"
+          >
             Close
           </CoreComponents.button>
         </div>
@@ -174,21 +179,21 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
             <div class="flex items-center">
               <input
                 type="radio"
-                id={"provider-#{provider.id}"}
+                id={"provider-#{provider}"}
                 name="provider"
-                value={provider.id}
-                checked={@selected_provider && @selected_provider.id == provider.id}
+                value={provider}
+                checked={@selected_provider == provider}
                 phx-click="select_provider"
-                phx-value-provider={provider.id}
+                phx-value-provider={provider}
                 phx-target="#game-play"
                 class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <label
-                for={"provider-#{provider.id}"}
+                for={"provider-#{provider}"}
                 class="ml-3 block min-w-0 flex-1 p-2 text-sm text-gray-700"
               >
-                <div class="text-md font-medium">{provider.name}</div>
-                <div class="text-xs text-gray-500">{provider.description}</div>
+                <div class="text-md font-medium">{provider}</div>
+                <div class="text-xs text-gray-500">{provider}</div>
               </label>
             </div>
           <% end %>
