@@ -710,11 +710,8 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # 4. Assert Modal is Open
       assert render(view) =~ "Game Settings"
 
-      # 5. Close modal: Click the modal's close button
-      close_button =
-        element(view, "[data-testid='modal-close-x']")
-
-      close_button |> render_click()
+      # 5. Close modal by pushing the toggle_settings_modal event directly
+      view |> render_click("toggle_settings_modal")
 
       refute render(view) =~ "Game Settings"
     end

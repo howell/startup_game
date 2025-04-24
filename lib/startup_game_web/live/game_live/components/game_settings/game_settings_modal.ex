@@ -40,17 +40,6 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
       <div class="bg-white w-full animate-modalAppear">
         <CoreComponents.header>
           <span id={"#{@id}-title"}>Game Settings</span>
-          <:actions>
-            <button
-              data-testid="modal-close-x"
-              phx-click="toggle_settings_modal"
-              class="text-gray-400 hover:text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
-              aria-label="Close settings"
-            >
-              <span class="sr-only">Close</span>
-              <CoreComponents.icon name="hero-x-mark-solid" class="h-6 w-6" />
-            </button>
-          </:actions>
         </CoreComponents.header>
 
         <div class="border-b border-gray-200 mt-4">
@@ -70,16 +59,6 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
             <% "events" -> %>
               <.events_tab_content rounds={@rounds} tab_id="events" />
           <% end %>
-        </div>
-
-        <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse mt-6">
-          <CoreComponents.button
-            data-testid="modal-close-footer"
-            phx-click="toggle_settings_modal"
-            class="min-h-[44px] flex items-center justify-center"
-          >
-            Close
-          </CoreComponents.button>
         </div>
       </div>
     </CoreComponents.modal>
