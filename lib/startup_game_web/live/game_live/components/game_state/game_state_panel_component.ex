@@ -7,6 +7,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
   alias StartupGameWeb.GameLive.Components.Shared.ProviderSelector
   alias StartupGameWeb.GameLive.Components.GameState.FinancesComponent
   alias StartupGameWeb.GameLive.Components.GameState.OwnershipComponent
+  alias StartupGameWeb.GameLive.Components.Shared.Icons
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
   alias StartupGame.Games
 
@@ -51,7 +52,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
       <h2 class="heading-md mb-1">{@game.name}</h2>
       <p class="text-foreground/70 text-sm mb-2">{@game.description}</p>
       <div class="flex items-center gap-2 text-foreground/70">
-        <.icon name="hero-arrow-trending-up" class="text-silly-accent" />
+        <Icons.cash_icon size={:sm} />
         <p>
           ${GameFormatters.format_money(@game.cash_on_hand)} • Runway: {GameFormatters.format_runway(
             Games.calculate_runway(@game)
@@ -80,7 +81,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.GameStatePanelComponent d
               class="text-sm bg-white bg-opacity-50 rounded-lg p-2 flex items-start"
             >
               <div class="bg-silly-blue/10 rounded-full p-1 mr-2 mt-0.5">
-                <.icon name="hero-star" class="h-3 w-3 text-silly-blue" />
+                <Icons.star_icon size={:xs} />
               </div>
               {String.slice(round.situation, 0, 60) <>
                 if String.length(round.situation) > 60, do: "...", else: ""}

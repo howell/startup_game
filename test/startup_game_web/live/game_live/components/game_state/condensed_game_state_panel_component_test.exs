@@ -17,8 +17,8 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
           description: "A test startup company"
         },
         ownerships: [
-          %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
-          %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+          %Ownership{entity_name: "Founder", percentage: Decimal.new(88)},
+          %Ownership{entity_name: "Angel", percentage: Decimal.new(12)}
         ],
         rounds: [],
         is_expanded: false
@@ -27,9 +27,9 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
       html = render_component(&CondensedGameStatePanel.condensed_game_state_panel/1, assigns)
 
       assert html =~ "Test Startup"
-      assert html =~ "runway"
+      assert html =~ "months"
       assert html =~ "You:"
-      assert html =~ "Inv:"
+      assert html =~ "Others:"
       assert html =~ "hero-chevron-down-mini"
       refute html =~ "FINANCES"
     end
@@ -79,8 +79,8 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
           description: "A test startup company"
         },
         ownerships: [
-          %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
-          %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+          %Ownership{entity_name: "Founder", percentage: Decimal.new(88)},
+          %Ownership{entity_name: "Angel", percentage: Decimal.new(12)}
         ],
         rounds: [],
         is_expanded: true
@@ -103,8 +103,8 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
           description: "A test startup company"
         },
         ownerships: [
-          %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
-          %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+          %Ownership{entity_name: "Founder", percentage: Decimal.new(88)},
+          %Ownership{entity_name: "Angel", percentage: Decimal.new(12)}
         ],
         rounds: [],
         is_expanded: false
@@ -117,41 +117,28 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
   end
 
   describe "helper functions" do
-    test "format_ownership_percentage/1 formats percentage correctly" do
-      assert CondensedGameStatePanel.format_ownership_percentage(Decimal.new("0.88")) ==
-               "88.0%"
-
-      assert CondensedGameStatePanel.format_ownership_percentage(Decimal.new("0.125")) ==
-               "12.5%"
-
-      assert CondensedGameStatePanel.format_ownership_percentage(Decimal.new("1.0")) ==
-               "100.0%"
-
-      assert CondensedGameStatePanel.format_ownership_percentage(0.88) == "88.0%"
-    end
-
     test "get_founder_percentage/1 returns founder percentage" do
       ownerships = [
-        %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
-        %Ownership{entity_name: "Angel", percentage: Decimal.new("0.12")}
+        %Ownership{entity_name: "Founder", percentage: Decimal.new(88)},
+        %Ownership{entity_name: "Angel", percentage: Decimal.new(12)}
       ]
 
       assert Decimal.equal?(
                CondensedGameStatePanel.get_founder_percentage(ownerships),
-               Decimal.new("0.88")
+               Decimal.new(88)
              )
     end
 
     test "get_investor_percentage/1 returns combined investor percentage" do
       ownerships = [
-        %Ownership{entity_name: "Founder", percentage: Decimal.new("0.88")},
-        %Ownership{entity_name: "Angel", percentage: Decimal.new("0.07")},
-        %Ownership{entity_name: "Venture", percentage: Decimal.new("0.05")}
+        %Ownership{entity_name: "Founder", percentage: Decimal.new(88)},
+        %Ownership{entity_name: "Angel", percentage: Decimal.new(7)},
+        %Ownership{entity_name: "Venture", percentage: Decimal.new(5)}
       ]
 
       assert Decimal.equal?(
                CondensedGameStatePanel.get_investor_percentage(ownerships),
-               Decimal.new("0.12")
+               Decimal.new(12)
              )
     end
   end

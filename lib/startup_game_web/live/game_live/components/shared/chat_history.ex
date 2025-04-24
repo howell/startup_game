@@ -5,8 +5,8 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
   """
   use Phoenix.Component
   alias StartupGameWeb.GameLive.Components.Shared.MessageBubble
+  alias StartupGameWeb.GameLive.Components.Shared.Icons
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
-  alias StartupGameWeb.CoreComponents
 
   @doc """
   Renders the chat history with messages, responses, and outcomes.
@@ -86,8 +86,10 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
 
   defp round_state_changes(assigns) do
     round = assigns.round
-    cash_change = format_change(round.cash_change, "Cash", "hero-banknotes")
-    burn_rate_change = format_change(round.burn_rate_change, "Burn Rate", "hero-fire", "/mo")
+    cash_change = format_change(round.cash_change, "Cash", :cash)
+
+    burn_rate_change =
+      format_change(round.burn_rate_change, "Burn Rate", :burn, "/mo")
 
     ownership_changes = if is_list(round.ownership_changes), do: round.ownership_changes, else: []
 
@@ -113,20 +115,20 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
     >
       <%= if @cash_change do %>
         <div class="flex items-center">
-          <CoreComponents.icon name={elem(@cash_change, 0)} class="h-3 w-3 text-silly-success" />
-          <span>{elem(@cash_change, 1)}</span>
+          <Icons.icon_by_type icon_type={elem(@cash_change, 0)} size={:xs} />
+          <span class="ml-1">{elem(@cash_change, 1)}</span>
         </div>
       <% end %>
       <%= if @burn_rate_change do %>
         <div class="flex items-center">
-          <CoreComponents.icon name={elem(@burn_rate_change, 0)} class="h-3 w-3 text-silly-accent" />
-          <span>{elem(@burn_rate_change, 1)}</span>
+          <Icons.icon_by_type icon_type={elem(@burn_rate_change, 0)} size={:xs} />
+          <span class="ml-1">{elem(@burn_rate_change, 1)}</span>
         </div>
       <% end %>
       <%= for change <- @ownership_changes do %>
         <div class="flex items-center">
-          <CoreComponents.icon name="hero-user-plus" class="h-3 w-3 text-silly-blue" />
-          <span>
+          <Icons.user_add_icon size={:xs} />
+          <span class="ml-1">
             {change.entity_name}:
             <.ownership_change_icon delta={change.percentage_delta} /> {format_percentage_delta(
               change.percentage_delta
@@ -139,11 +141,11 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
   end
 
   # Helper to format a numeric change with prefix, icon, and suffix
-  defp format_change(value, label, icon_name, suffix \\ "") do
+  defp format_change(value, label, icon_type, suffix \\ "") do
     if value && !Decimal.equal?(value, Decimal.new(0)) do
       prefix = if Decimal.gt?(value, 0), do: "+", else: ""
       formatted_value = GameFormatters.format_money(value)
-      {icon_name, "#{label}: #{prefix}#{formatted_value}#{suffix}"}
+      {icon_type, "#{label}: #{prefix}#{formatted_value}#{suffix}"}
     else
       nil
     end
@@ -158,9 +160,9 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ChatHistory do
   defp ownership_change_icon(assigns) do
     ~H"""
     <%= if Decimal.positive?(@delta) do %>
-      <CoreComponents.icon name="hero-arrow-trending-up" class="h-3 w-3 text-silly-success" />
+      <Icons.uptrend_icon size={:xs} />
     <% else %>
-      <CoreComponents.icon name="hero-arrow-trending-down" class="h-3 w-3 text-silly-accent" />
+      <Icons.downtrend_icon size={:xs} />
     <% end %>
     """
   end

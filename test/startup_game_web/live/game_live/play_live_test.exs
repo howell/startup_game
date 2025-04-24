@@ -132,7 +132,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       # Burn rate
       assert html =~ "$5.0k"
       # Runway (50000/5000 = 10)
-      assert html =~ "10.0"
+      assert html =~ "10"
     end
 
     test "displays ownership structure correctly", %{conn: conn, user: user} do
@@ -359,7 +359,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
 
       # Runway (10000/3333.33 ≈ 3.0)
-      assert html =~ "3.0"
+      assert html =~ "3"
     end
   end
 
@@ -589,7 +589,7 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       assert html =~ "+10.0%"
 
       # Verify icons are present
-      assert html =~ "hero-banknotes"
+      assert html =~ "hero-currency-dollar"
       assert html =~ "hero-fire"
       assert html =~ "hero-user-plus"
       assert html =~ "hero-arrow-trending-down"

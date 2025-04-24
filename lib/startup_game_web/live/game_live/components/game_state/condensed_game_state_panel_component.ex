@@ -10,6 +10,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   alias StartupGame.Games.{Game, Ownership}
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
   alias StartupGameWeb.CoreComponents
+  alias StartupGameWeb.GameLive.Components.Shared.Icons
 
   @doc """
   Renders the condensed game state panel with finances and ownership.
@@ -81,21 +82,33 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
         class="w-full text-left py-2 px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
         aria-expanded="false"
       >
-        <div class="flex-1 truncate">
+        <div class="flex flex-row truncate w-full justify-between">
           <span class="font-semibold">{@game.name}</span>
-          • <span>${GameFormatters.format_money(@game.cash_on_hand)}</span>
-          • <span>{GameFormatters.format_runway(Games.calculate_runway(@game))}mo runway</span>
-          •
-          <span class="text-gray-600">
-            You: {format_ownership_percentage(get_founder_percentage(@ownerships))}
-          </span>
-          |
-          <span class="text-gray-600">
-            Inv: {format_ownership_percentage(get_investor_percentage(@ownerships))}
-          </span>
+          <div class="flex items-center">
+            <Icons.cash_icon size={:sm} class="mr-1" />
+            <span>${GameFormatters.format_money(@game.cash_on_hand)}</span>
+          </div>
+          <div class="flex items-center">
+            <Icons.burn_icon size={:sm} class="mr-1" />
+            <span>${GameFormatters.format_money(@game.burn_rate)}/month</span>
+          </div>
+          <div class="flex items-center">
+            <Icons.runway_icon size={:sm} class="mr-1" />
+            <span>{GameFormatters.format_runway(Games.calculate_runway(@game))} months</span>
+          </div>
+          <div class="flex items-center">
+            <Icons.founder_icon size={:sm} class="mr-1" />
+            <span>You: {GameFormatters.format_percentage(get_founder_percentage(@ownerships))}%</span>
+          </div>
+          <div class="flex items-center">
+            <Icons.stakeholder_icon size={:sm} class="mr-1" />
+            <span>
+              Others: {GameFormatters.format_percentage(get_investor_percentage(@ownerships))}%
+            </span>
+          </div>
         </div>
         <div class="min-h-[44px] min-w-[44px] flex items-center justify-center">
-          <CoreComponents.icon name="hero-chevron-down-mini" class="w-5 h-5 ml-2 text-gray-500" />
+          <Icons.chevron_down_icon size={:md} class="ml-2" />
         </div>
       </button>
     </div>
@@ -118,7 +131,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
         >
           <span class="flex-1">{@game_name}</span>
           <div class="min-h-[44px] min-w-[44px] flex items-center justify-center">
-            <CoreComponents.icon name="hero-chevron-up-mini" class="w-5 h-5 ml-2 text-gray-500" />
+            <Icons.chevron_up_icon size={:md} class="ml-2" />
           </div>
         </button>
       </CoreComponents.header>
@@ -135,18 +148,24 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     ~H"""
     <div class="mt-2">
       <.section_header title="FINANCES">
-        <CoreComponents.icon name="hero-banknotes-mini" class="w-4 h-4 ml-1" />
+        <Icons.cash_icon size={:sm} class="ml-1" />
       </.section_header>
       <.data_list>
-        <.data_list_item label="Cash" value={"$#{GameFormatters.format_money(@game.cash_on_hand)}"} />
+        <.data_list_item label="Cash" value={"$#{GameFormatters.format_money(@game.cash_on_hand)}"}>
+          <Icons.cash_icon size={:sm} class="mr-1" />
+        </.data_list_item>
         <.data_list_item
           label="Monthly Burn"
           value={"$#{GameFormatters.format_money(@game.burn_rate)}"}
-        />
+        >
+          <Icons.burn_icon size={:sm} class="mr-1" />
+        </.data_list_item>
         <.data_list_item
           label="Runway"
           value={"#{GameFormatters.format_runway(Games.calculate_runway(@game))} months"}
-        />
+        >
+          <Icons.runway_icon size={:sm} class="mr-1" />
+        </.data_list_item>
       </.data_list>
     </div>
     """
@@ -161,14 +180,20 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     ~H"""
     <div class="mt-2">
       <.section_header title="OWNERSHIP">
-        <CoreComponents.icon name="hero-users-mini" class="w-4 h-4 ml-1" />
+        <Icons.stakeholder_icon size={:sm} class="ml-1" />
       </.section_header>
       <.data_list>
         <%= for ownership <- @ownerships do %>
           <.data_list_item
             label={GameFormatters.format_entity_name(ownership.entity_name)}
-            value={format_ownership_percentage(ownership.percentage)}
-          />
+            value={"#{GameFormatters.format_percentage(ownership.percentage)}%"}
+          >
+            <%= if String.downcase(ownership.entity_name) == "founder" do %>
+              <Icons.founder_icon size={:sm} class="mr-1" />
+            <% else %>
+              <Icons.stakeholder_icon size={:sm} class="mr-1" />
+            <% end %>
+          </.data_list_item>
         <% end %>
       </.data_list>
     </div>
@@ -208,11 +233,15 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   """
   attr :label, :string, required: true
   attr :value, :string, required: true
+  slot :inner_block, required: true
 
   def data_list_item(assigns) do
     ~H"""
     <div class="flex justify-between py-2 text-sm">
-      <dt class="text-gray-600">{@label}:</dt>
+      <dt class="text-gray-600 flex items-center">
+        {render_slot(@inner_block)}
+        {@label}:
+      </dt>
       <dd class="font-medium text-gray-900">{@value}</dd>
     </div>
     """
@@ -228,7 +257,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
         phx-click="toggle_settings_modal"
         class="silly-button-secondary text-sm w-full min-h-[44px] flex items-center justify-center"
       >
-        <CoreComponents.icon name="hero-cog-6-tooth-mini" class="w-4 h-4 mr-1" />
+        <Icons.settings_icon size={:sm} class="mr-1" />
         <span>Settings</span>
       </CoreComponents.button>
     </div>
@@ -236,28 +265,12 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   end
 
   @doc """
-  Format an ownership percentage value for display.
-  This is slightly different from regular percentages because
-  ownership values are stored as decimals (0.0-1.0) but displayed as percentages.
-  """
-  @spec format_ownership_percentage(Decimal.t() | float()) :: String.t()
-  def format_ownership_percentage(%Decimal{} = percentage) do
-    # Convert to a percentage (0-100 scale)
-    percentage_value = Decimal.mult(percentage, Decimal.new(100))
-    "#{Decimal.round(percentage_value, 1)}%"
-  end
-
-  def format_ownership_percentage(percentage) when is_float(percentage) do
-    "#{Float.round(percentage * 100, 1)}%"
-  end
-
-  @doc """
   Get the founder's ownership percentage.
   """
-  @spec get_founder_percentage([Ownership.t()]) :: Decimal.t() | float()
+  @spec get_founder_percentage([Ownership.t()]) :: Decimal.t()
   def get_founder_percentage(ownerships) do
     case Enum.find(ownerships, fn o -> String.downcase(o.entity_name) == "founder" end) do
-      nil -> 1.0
+      nil -> Decimal.new(100)
       ownership -> ownership.percentage
     end
   end
@@ -265,15 +278,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   @doc """
   Get the combined investor ownership percentage.
   """
-  @spec get_investor_percentage([Ownership.t()]) :: Decimal.t() | float()
+  @spec get_investor_percentage([Ownership.t()]) :: Decimal.t()
   def get_investor_percentage(ownerships) do
     founder_percentage = get_founder_percentage(ownerships)
 
-    # Handle both Decimal and float
-    if is_float(founder_percentage) do
-      1.0 - founder_percentage
-    else
-      Decimal.sub(Decimal.new(1), founder_percentage)
-    end
+    Decimal.sub(Decimal.new(100), founder_percentage)
   end
 end

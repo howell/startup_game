@@ -59,7 +59,7 @@ defmodule StartupGameWeb.GameLive.Helpers.GameFormatters do
   def format_runway(value) do
     value
     |> Decimal.to_float()
-    |> :erlang.float_to_binary(decimals: 1)
+    |> :erlang.float_to_binary(decimals: 0)
   end
 
   @doc """

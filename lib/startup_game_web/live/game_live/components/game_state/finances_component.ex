@@ -5,6 +5,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.FinancesComponent do
   use StartupGameWeb, :html
 
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
+  alias StartupGameWeb.GameLive.Components.Shared.Icons
   alias StartupGame.Games
 
   @doc """
@@ -18,61 +19,50 @@ defmodule StartupGameWeb.GameLive.Components.GameState.FinancesComponent do
     <div>
       <h3 class="text-sm font-semibold text-foreground/70 mb-3">COMPANY FINANCES</h3>
       <div class="grid grid-cols-2 gap-3">
-        <.stat_card
-          icon="hero-currency-dollar"
-          icon_class="text-silly-success"
-          value={"$#{GameFormatters.format_money(@game.cash_on_hand)}"}
-          label="Cash"
-        />
+        <.stat_card value={"$#{GameFormatters.format_money(@game.cash_on_hand)}"} label="Cash">
+          <Icons.cash_icon size={icon_size()} />
+        </.stat_card>
+
+        <.stat_card value={"$#{GameFormatters.format_money(@game.burn_rate)}/mo"} label="Burn Rate">
+          <Icons.burn_icon size={icon_size()} />
+        </.stat_card>
 
         <.stat_card
-          icon="hero-arrow-trending-down"
-          icon_class="text-silly-accent"
-          value={"$#{GameFormatters.format_money(@game.burn_rate)}/mo"}
-          label="Burn Rate"
-        />
-
-        <.stat_card
-          icon="hero-exclamation-triangle"
-          icon_class="text-silly-yellow"
           value={GameFormatters.format_runway(Games.calculate_runway(@game))}
           label="Runway (months)"
-        />
+        >
+          <Icons.runway_icon size={icon_size()} />
+        </.stat_card>
 
         <%= if @game.exit_type in [:acquisition, :ipo] do %>
-          <.stat_card
-            icon="hero-trophy"
-            icon_class="text-silly-success"
-            value={"$#{GameFormatters.format_money(@game.exit_value)}"}
-            label="Exit Value"
-          />
+          <.stat_card value={"$#{GameFormatters.format_money(@game.exit_value)}"} label="Exit Value">
+            <Icons.trophy_icon size={icon_size()} />
+          </.stat_card>
         <% else %>
-          <.stat_card
-            icon="hero-building-office-2"
-            icon_class="text-silly-blue"
-            value={length(@ownerships)}
-            label="Stakeholders"
-          />
+          <.stat_card value={length(@ownerships)} label="Stakeholders">
+            <Icons.stakeholder_icon size={icon_size()} />
+          </.stat_card>
         <% end %>
       </div>
     </div>
     """
   end
 
-  attr :icon, :string, required: true
-  attr :icon_class, :string, default: "text-silly-accent"
   attr :value, :any, required: true
   attr :label, :string, required: true
+  slot :inner_block, required: true
 
   defp stat_card(assigns) do
     ~H"""
     <div class="silly-stat-card">
-      <.icon name={@icon} class={@icon_class} />
+      {render_slot(@inner_block)}
       <div>
-        <div class="font-bold"><%= @value %></div>
-        <div class="text-xs text-foreground/70"><%= @label %></div>
+        <div class="font-bold">{@value}</div>
+        <div class="text-xs text-foreground/70">{@label}</div>
       </div>
     </div>
     """
   end
+
+  defp icon_size, do: :lg
 end
