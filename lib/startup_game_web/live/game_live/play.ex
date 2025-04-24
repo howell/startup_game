@@ -24,7 +24,6 @@ defmodule StartupGameWeb.GameLive.Play do
     socket = assign(socket, :active_settings_tab, "settings")
     # Initialize player_mode (will be properly set in handle_params/CreationHandler)
     socket = assign(socket, :player_mode, :responding)
-    # TODO: Session storage for panel state persistence is in progress
     {:ok, socket, temporary_assigns: [rounds: []]}
   end
 
