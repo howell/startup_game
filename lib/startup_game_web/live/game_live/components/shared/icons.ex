@@ -119,7 +119,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.Icons do
 
     ~H"""
     <CoreComponents.icon
-      name="hero-exclamation-triangle"
+      name="hero-clock"
       class={Enum.join([get_size_class(@size), @base_class, @class], " ")}
     />
     """
