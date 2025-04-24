@@ -36,7 +36,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
         "w-full border-t border-b border-gray-200 bg-gray-50 text-sm flex flex-col",
         "sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out",
         @is_expanded && "bg-white",
-        !@is_expanded && "max-h-[60px] overflow-hidden"
+        !@is_expanded && "max-h-[60px]"
       ]}
       aria-expanded={@is_expanded}
     >
@@ -79,32 +79,25 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     <div class="p-2 animate-fadeIn">
       <button
         phx-click="toggle_panel_expansion"
-        class="w-full text-left py-2 px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
+        class="w-full text-left px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
         aria-expanded="false"
       >
         <div class="flex flex-row truncate w-full justify-between">
-          <span class="font-semibold">{@game.name}</span>
           <div class="flex items-center">
             <Icons.cash_icon size={:sm} class="mr-1" />
             <span>${GameFormatters.format_money(@game.cash_on_hand)}</span>
           </div>
           <div class="flex items-center">
             <Icons.burn_icon size={:sm} class="mr-1" />
-            <span>${GameFormatters.format_money(@game.burn_rate)}/month</span>
+            <span>${GameFormatters.format_money(@game.burn_rate)}</span>
           </div>
           <div class="flex items-center">
             <Icons.runway_icon size={:sm} class="mr-1" />
-            <span>{GameFormatters.format_runway(Games.calculate_runway(@game))} months</span>
+            <span>{GameFormatters.format_runway(Games.calculate_runway(@game))}</span>
           </div>
           <div class="flex items-center">
             <Icons.founder_icon size={:sm} class="mr-1" />
-            <span>You: {GameFormatters.format_percentage(get_founder_percentage(@ownerships))}%</span>
-          </div>
-          <div class="flex items-center">
-            <Icons.stakeholder_icon size={:sm} class="mr-1" />
-            <span>
-              Others: {GameFormatters.format_percentage(get_investor_percentage(@ownerships))}%
-            </span>
+            <span>{GameFormatters.format_percentage(get_founder_percentage(@ownerships))}%</span>
           </div>
         </div>
         <div class="min-h-[44px] min-w-[44px] flex items-center justify-center">

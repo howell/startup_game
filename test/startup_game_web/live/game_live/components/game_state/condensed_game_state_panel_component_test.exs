@@ -26,11 +26,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanelCo
 
       html = render_component(&CondensedGameStatePanel.condensed_game_state_panel/1, assigns)
 
-      assert html =~ "Test Startup"
-      assert html =~ "months"
-      assert html =~ "You:"
-      assert html =~ "Others:"
       assert html =~ "hero-chevron-down-mini"
+      assert html =~ "$100.5k"
+      assert html =~ "$5.5k"
+      assert html =~ "88.0%"
       refute html =~ "FINANCES"
     end
 
