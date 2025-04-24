@@ -226,7 +226,7 @@ defmodule StartupGame.GameServiceTest do
 
       # DB game struct should have both rounds
       assert length(loaded_game_db.rounds) == 2
-      [db_round1, db_round2] = Enum.sort_by(loaded_game_db.rounds, & &1.inserted_at)
+      [db_round1, db_round2] = loaded_game_db.rounds
       assert db_round1.situation =~ "An angel investor offers"
       assert db_round1.player_input == "accept"
       assert db_round1.outcome != nil
@@ -294,7 +294,7 @@ defmodule StartupGame.GameServiceTest do
       assert length(rounds) == 1
 
       # Check the round was updated
-      [first_round] = Enum.sort_by(rounds, & &1.inserted_at)
+      [first_round] = rounds
       # Use renamed field
       assert first_round.player_input == "accept"
       assert first_round.outcome != nil
@@ -472,8 +472,7 @@ defmodule StartupGame.GameServiceTest do
       assert length(rounds) == 4
 
       # Check all rounds in order
-      sorted_rounds = Enum.sort_by(rounds, & &1.inserted_at)
-      [first, second, third, fourth] = sorted_rounds
+      [first, second, third, fourth] = rounds
 
       assert first.situation =~ "An angel investor offers"
       # Use renamed field
@@ -511,7 +510,7 @@ defmodule StartupGame.GameServiceTest do
       assert length(rounds) == 4
 
       # All rounds should have player_inputs and outcomes
-      for round <- Enum.sort_by(rounds, & &1.inserted_at) do
+      for round <- rounds do
         assert round.player_input != nil
         assert round.outcome != nil
       end
