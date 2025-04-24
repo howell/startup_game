@@ -43,18 +43,13 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
       </:state_panel>
 
       <:condensed_panel>
-        <div class={[
-          "md:hidden w-full relative",
-          @is_mobile_panel_expanded && "pb-[50vh]"
-        ]}>
-          <CondensedGameStatePanel.condensed_game_state_panel
-            id="mobile-condensed-panel"
-            game={@game}
-            ownerships={@ownerships}
-            rounds={@rounds}
-            is_expanded={@is_mobile_panel_expanded}
-          />
-        </div>
+        <CondensedGameStatePanel.condensed_game_state_panel
+          id="mobile-condensed-panel"
+          game={@game}
+          ownerships={@ownerships}
+          rounds={@rounds}
+          is_expanded={@is_mobile_panel_expanded}
+        />
         <%= if @is_settings_modal_open do %>
           <GameSettingsModal.game_settings_modal
             id="settings-modal"
@@ -69,11 +64,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
       </:condensed_panel>
 
       <:content_area>
-        <div class={[
-          "flex-1 flex flex-col overflow-hidden relative",
-          "transition-all duration-300 ease-in-out",
-          @is_mobile_panel_expanded && "max-h-[50vh] md:max-h-none"
-        ]}>
+        <div class="transition-all duration-300 ease-in-out">
           <ChatInterfaceComponent.chat_interface
             game={@game}
             rounds={@rounds}
