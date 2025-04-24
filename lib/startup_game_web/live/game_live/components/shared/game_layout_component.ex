@@ -15,7 +15,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
 
   def game_layout(assigns) do
     ~H"""
-    <div class="h-[calc(100vh-6rem)] w-screen flex flex-col overflow-hidden">
+    <div class="h-[calc(100vh-3rem)] w-screen flex flex-col overflow-hidden">
       <div class="flex flex-1 overflow-hidden">
         <!-- Game state panel component (for desktop) -->
         <div class="hidden lg:block lg:w-1/3 xl:w-1/4 flex-shrink-0 border-r border-b border-gray-200 z-10">
