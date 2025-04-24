@@ -68,8 +68,8 @@ defmodule StartupGameWeb.GameLive.ViewTest do
 
       # Verify visibility settings section is not present
       refute has_element?(view, "h3", "VISIBILITY SETTINGS")
-      refute has_element?(view, "span", "Public Game")
-      refute has_element?(view, "span", "Leaderboard Eligible")
+      refute has_element?(view, "[data-test-id='visibility-setting']")
+      refute has_element?(view, "h3", "Game Visibility")
 
       # Verify toggle elements are not present
       refute has_element?(view, "#game-public-toggle-main")

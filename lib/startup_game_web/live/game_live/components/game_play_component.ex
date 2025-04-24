@@ -43,38 +43,66 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
       </:state_panel>
 
       <:condensed_panel>
-        <CondensedGameStatePanel.condensed_game_state_panel
-          id="mobile-condensed-panel"
-          game={@game}
-          ownerships={@ownerships}
-          rounds={@rounds}
-          is_expanded={@is_mobile_panel_expanded}
-        />
+        <div class={[
+          "md:hidden w-full relative",
+          @is_mobile_panel_expanded && "pb-[50vh]"
+        ]}>
+          <CondensedGameStatePanel.condensed_game_state_panel
+            id="mobile-condensed-panel"
+            game={@game}
+            ownerships={@ownerships}
+            rounds={@rounds}
+            is_expanded={@is_mobile_panel_expanded}
+          />
+        </div>
         <%= if @is_settings_modal_open do %>
           <GameSettingsModal.game_settings_modal
             id="settings-modal"
             game={@game}
             rounds={@rounds}
             selected_provider={@game.provider_preference}
-            available_providers={[@game.provider_preference]}
-            current_tab={@active_settings_tab}
+            available_providers={get_available_providers(@game.provider_preference)}
+            is_open={@is_settings_modal_open}
+            current_tab={@active_settings_tab || "settings"}
           />
         <% end %>
       </:condensed_panel>
 
       <:content_area>
-        <ChatInterfaceComponent.chat_interface
-          game={@game}
-          rounds={@rounds}
-          response={@response}
-          streaming={@streaming}
-          streaming_type={@streaming_type}
-          partial_content={@partial_content}
-          is_view_only={@is_view_only}
-          player_mode={@game.current_player_mode}
-        />
+        <div class={[
+          "flex-1 flex flex-col overflow-hidden relative",
+          "transition-all duration-300 ease-in-out",
+          @is_mobile_panel_expanded && "max-h-[50vh] md:max-h-none"
+        ]}>
+          <ChatInterfaceComponent.chat_interface
+            game={@game}
+            rounds={@rounds}
+            response={@response}
+            streaming={@streaming}
+            streaming_type={@streaming_type}
+            partial_content={@partial_content}
+            is_view_only={@is_view_only}
+            player_mode={@game.current_player_mode}
+          />
+        </div>
       </:content_area>
     </GameLayoutComponent.game_layout>
     """
+  end
+
+  # Helper function to get available providers
+  defp get_available_providers(current_provider) do
+    providers = [
+      "OpenAI",
+      "Anthropic",
+      "Local Model"
+    ]
+
+    # Ensure the current provider is included in the list
+    if current_provider && current_provider not in providers do
+      [current_provider | providers]
+    else
+      providers
+    end
   end
 end

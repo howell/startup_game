@@ -314,6 +314,10 @@ module.exports = {
           '0%': { maxHeight: '0', opacity: '0' },
           '100%': { maxHeight: '50vh', opacity: '1' },
         },
+        modalAppear: {
+          '0%': { opacity: '0', transform: 'translateY(20px)' },
+          '100%': { opacity: '1', transform: 'translateY(0)' },
+        },
       },
       
       animation: {
@@ -328,6 +332,7 @@ module.exports = {
         "blob": "blob 7s infinite",
         'fadeIn': 'fadeIn 0.2s ease-out',
         'expandPanel': 'expandPanel 0.3s ease',
+        'modalAppear': 'modalAppear 0.3s ease-out',
       },
       
       fontFamily: {

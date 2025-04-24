@@ -37,15 +37,15 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
       show={@is_open}
       on_cancel={JS.push("toggle_settings_modal", target: "#game-play")}
     >
-      <div class="bg-white w-full">
+      <div class="bg-white w-full animate-modalAppear">
         <CoreComponents.header>
-          Game Settings
+          <span id={"#{@id}-title"}>Game Settings</span>
           <:actions>
             <button
               data-testid="modal-close-x"
               phx-click="toggle_settings_modal"
-              phx-target="#game-play"
-              class="text-gray-400 hover:text-gray-500"
+              class="text-gray-400 hover:text-gray-500 min-h-[44px] min-w-[44px] flex items-center justify-center rounded-full focus:outline-none focus:ring-2 focus:ring-primary"
+              aria-label="Close settings"
             >
               <span class="sr-only">Close</span>
               <CoreComponents.icon name="hero-x-mark-solid" class="h-6 w-6" />
@@ -57,17 +57,18 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
           <.settings_tabs current_tab={@current_tab} />
         </div>
 
-        <div class="mt-4">
+        <div class="mt-4 p-4 overflow-y-auto max-h-[60vh]">
           <%= case @current_tab do %>
             <% "settings" -> %>
-              <.settings_tab_content game={@game} />
+              <.settings_tab_content game={@game} tab_id="settings" />
             <% "provider" -> %>
               <.provider_tab_content
                 available_providers={@available_providers}
                 selected_provider={@selected_provider}
+                tab_id="provider"
               />
             <% "events" -> %>
-              <.events_tab_content rounds={@rounds} />
+              <.events_tab_content rounds={@rounds} tab_id="events" />
           <% end %>
         </div>
 
@@ -75,7 +76,7 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
           <CoreComponents.button
             data-testid="modal-close-footer"
             phx-click="toggle_settings_modal"
-            phx-target="#game-play"
+            class="min-h-[44px] flex items-center justify-center"
           >
             Close
           </CoreComponents.button>
@@ -92,7 +93,7 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
 
   def settings_tabs(assigns) do
     ~H"""
-    <nav class="-mb-px flex space-x-8" aria-label="Tabs">
+    <nav class="-mb-px flex space-x-8 px-4" aria-label="Settings Tabs">
       <.tab_button active={@current_tab == "settings"} tab_id="settings">
         Game Settings
       </.tab_button>
@@ -117,13 +118,16 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
     ~H"""
     <button
       class={[
-        "py-2 px-1 border-b-2 font-medium text-sm",
+        "py-2 px-1 border-b-2 font-medium text-sm min-h-[44px] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2",
         @active && "border-primary text-primary",
         !@active && "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
       ]}
       phx-click="select_settings_tab"
       phx-value-tab={@tab_id}
-      phx-target="#game-play"
+      role="tab"
+      aria-selected={@active}
+      aria-controls={"#{@tab_id}-tab-content"}
+      id={"#{@tab_id}-tab"}
     >
       {render_slot(@inner_block)}
     </button>
@@ -134,10 +138,16 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
   Renders the content for the settings tab.
   """
   attr :game, Game, required: true
+  attr :tab_id, :string, required: true
 
   def settings_tab_content(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div
+      id={"#{@tab_id}-tab-content"}
+      role="tabpanel"
+      aria-labelledby={"#{@tab_id}-tab"}
+      class="space-y-6 animate-fadeIn"
+    >
       <div>
         <h3 class="text-lg font-bold mb-2">Game Visibility</h3>
         <div class="flex items-center space-x-2">
@@ -146,9 +156,9 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
             id="game-visibility"
             name="game-visibility"
             phx-click="toggle_game_visibility"
-            phx-target="#game-play"
             checked={@game.is_public}
             label="Make this game public"
+            class="focus:ring-primary"
           />
         </div>
         <p class="text-sm text-gray-500 mt-1">
@@ -165,10 +175,16 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
   """
   attr :available_providers, :list, required: true
   attr :selected_provider, :any, required: true
+  attr :tab_id, :string, required: true
 
   def provider_tab_content(assigns) do
     ~H"""
-    <div class="space-y-6">
+    <div
+      id={"#{@tab_id}-tab-content"}
+      role="tabpanel"
+      aria-labelledby={"#{@tab_id}-tab"}
+      class="space-y-6 animate-fadeIn"
+    >
       <div>
         <h3 class="text-lg font-bold mb-2">AI Provider</h3>
         <p class="text-sm text-gray-500 mb-3">
@@ -185,15 +201,13 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
                 checked={@selected_provider == provider}
                 phx-click="select_provider"
                 phx-value-provider={provider}
-                phx-target="#game-play"
-                class="h-4 w-4 border-gray-300 text-blue-600 focus:ring-blue-500"
+                class="h-5 w-5 border-gray-300 text-primary focus:ring-primary"
               />
               <label
                 for={"provider-#{provider}"}
-                class="ml-3 block min-w-0 flex-1 p-2 text-sm text-gray-700"
+                class="ml-3 block min-w-0 flex-1 p-2 text-sm text-gray-700 min-h-[44px] flex items-center"
               >
                 <div class="text-md font-medium">{provider}</div>
-                <div class="text-xs text-gray-500">{provider}</div>
               </label>
             </div>
           <% end %>
@@ -207,10 +221,16 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
   Renders the content for the recent events tab.
   """
   attr :rounds, :list, required: true
+  attr :tab_id, :string, required: true
 
   def events_tab_content(assigns) do
     ~H"""
-    <div class="space-y-4">
+    <div
+      id={"#{@tab_id}-tab-content"}
+      role="tabpanel"
+      aria-labelledby={"#{@tab_id}-tab"}
+      class="space-y-4 animate-fadeIn"
+    >
       <h3 class="text-lg font-bold">Recent Game Events</h3>
       <div class="overflow-y-auto max-h-96 space-y-3">
         <%= if length(@rounds) > 0 do %>
@@ -232,7 +252,7 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
 
   def event_card(assigns) do
     ~H"""
-    <div class="bg-white p-3 rounded-md border border-gray-200">
+    <div class="bg-white p-3 rounded-md border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div class="flex justify-between">
         <span class="font-medium">Round Event</span>
         <span class="text-sm text-gray-500">

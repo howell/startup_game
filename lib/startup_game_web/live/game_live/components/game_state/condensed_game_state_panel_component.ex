@@ -31,7 +31,13 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     ~H"""
     <div
       id={@id}
-      class="condensed-game-state-panel-container w-full border-t border-b border-gray-200 bg-gray-50 text-sm flex flex-col"
+      class={[
+        "w-full border-t border-b border-gray-200 bg-gray-50 text-sm flex flex-col",
+        "sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out",
+        @is_expanded && "bg-white",
+        !@is_expanded && "max-h-[60px] overflow-hidden"
+      ]}
+      aria-expanded={@is_expanded}
     >
       <%= if @is_expanded do %>
         <.expanded_panel game={@game} ownerships={@ownerships} />
@@ -69,17 +75,17 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
 
   def collapsed_panel(assigns) do
     ~H"""
-    <div class="p-2">
+    <div class="p-2 animate-fadeIn">
       <button
         phx-click="toggle_panel_expansion"
-        phx-target="#game-play"
-        class="w-full text-left py-2 px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
+        class="w-full text-left py-2 px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
         aria-expanded="false"
       >
         <div class="flex-1 truncate">
-          {@game.name} • ${GameFormatters.format_money(@game.cash_on_hand)} • {GameFormatters.format_runway(
-            Games.calculate_runway(@game)
-          )}mo runway •
+          <span class="font-semibold">{@game.name}</span>
+          • <span>${GameFormatters.format_money(@game.cash_on_hand)}</span>
+          • <span>{GameFormatters.format_runway(Games.calculate_runway(@game))}mo runway</span>
+          •
           <span class="text-gray-600">
             You: {format_ownership_percentage(get_founder_percentage(@ownerships))}
           </span>
@@ -88,7 +94,9 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
             Inv: {format_ownership_percentage(get_investor_percentage(@ownerships))}
           </span>
         </div>
-        <CoreComponents.icon name="hero-chevron-down-mini" class="w-4 h-4 ml-2" />
+        <div class="min-h-[44px] min-w-[44px] flex items-center justify-center">
+          <CoreComponents.icon name="hero-chevron-down-mini" class="w-5 h-5 ml-2 text-gray-500" />
+        </div>
       </button>
     </div>
     """
@@ -105,12 +113,13 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
       <CoreComponents.header class="p-0 m-0">
         <button
           phx-click="toggle_panel_expansion"
-          phx-target="#game-play"
-          class="w-full text-left py-2 px-3 font-bold flex items-center hover:bg-gray-100 rounded transition focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full text-left py-2 px-3 font-bold flex items-center hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-expanded="true"
         >
           <span class="flex-1">{@game_name}</span>
-          <CoreComponents.icon name="hero-chevron-up-mini" class="w-4 h-4 ml-2" />
+          <div class="min-h-[44px] min-w-[44px] flex items-center justify-center">
+            <CoreComponents.icon name="hero-chevron-up-mini" class="w-5 h-5 ml-2 text-gray-500" />
+          </div>
         </button>
       </CoreComponents.header>
     </div>
@@ -217,8 +226,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-2 flex justify-center">
       <CoreComponents.button
         phx-click="toggle_settings_modal"
-        phx-target="#game-play"
-        class="silly-button-secondary text-sm"
+        class="silly-button-secondary text-sm w-full min-h-[44px] flex items-center justify-center"
       >
         <CoreComponents.icon name="hero-cog-6-tooth-mini" class="w-4 h-4 mr-1" />
         <span>Settings</span>
