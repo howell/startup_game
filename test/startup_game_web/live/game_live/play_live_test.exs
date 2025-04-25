@@ -761,5 +761,43 @@ defmodule StartupGameWeb.GameLive.PlayLiveTest do
       modal = element(view, "#settings-modal") |> render()
       assert modal =~ "Game Visibility"
     end
+
+    test "can toggle game visibility through settings modal", %{conn: conn, user: user} do
+      # Create a game that's not public
+      game = game_fixture(%{is_public: false}, user)
+      {:ok, view, _html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # 1. Expand the mobile panel
+      view
+      |> element(
+        "#mobile-condensed-panel [aria-expanded='false'][phx-click='toggle_panel_expansion']"
+      )
+      |> render_click()
+
+      # 2. Open the settings modal
+      view
+      |> element("#mobile-condensed-panel [phx-click='toggle_settings_modal']")
+      |> render_click()
+
+      # 3. Verify the game is not public initially
+      modal = element(view, "#settings-modal") |> render()
+      assert modal =~ "Game Visibility"
+
+      # Get the checkbox element
+      checkbox = element(view, "input#game-visibility")
+      # Should not be checked initially
+      refute checkbox |> render() =~ "checked"
+
+      # 4. Toggle the visibility checkbox
+      checkbox |> render_click()
+
+      # 5. Verify game visibility was toggled in the database
+      updated_game = StartupGame.Games.get_game!(game.id)
+      assert updated_game.is_public == true
+
+      # 6. Verify checkbox state updated in the view
+      updated_checkbox = element(view, "input#game-visibility")
+      assert updated_checkbox |> render() =~ "checked"
+    end
   end
 end

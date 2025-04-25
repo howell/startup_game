@@ -134,7 +134,8 @@ defmodule StartupGameWeb.GameLive.Components.GameSettings.GameSettingsModal do
             type="checkbox"
             id="game-visibility"
             name="game-visibility"
-            phx-click="toggle_game_visibility"
+            phx-click="toggle_visibility"
+            phx-value-field="is_public"
             checked={@game.is_public}
             label="Make this game public"
             class="focus:ring-primary"
