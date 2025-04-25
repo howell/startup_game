@@ -1,4 +1,4 @@
-defmodule StartupGameWeb.GameLive.PlayTest do
+defmodule StartupGameWeb.GameLive.Play.BasicTest do
   use StartupGameWeb.ConnCase
 
   import Phoenix.LiveViewTest
@@ -20,7 +20,7 @@ defmodule StartupGameWeb.GameLive.PlayTest do
     %{user: user, game: game}
   end
 
-  describe "Play" do
+  describe "Play LiveView - basic UI" do
     setup [:create_user_and_game]
 
     test "renders game play interface", %{conn: conn, user: user, game: game} do
@@ -58,6 +58,55 @@ defmodule StartupGameWeb.GameLive.PlayTest do
       updated_game = Games.get_game!(game.id)
       assert updated_game.is_public == true
       assert updated_game.is_leaderboard_eligible == true
+    end
+  end
+
+  describe "Play LiveView - helper functions" do
+    setup [:create_user_and_game]
+
+    test "format_money formats decimal values correctly", %{conn: conn, user: user, game: game} do
+      {:ok, game} =
+        Games.update_game(game, %{
+          cash_on_hand: Decimal.new("12345.67"),
+          burn_rate: Decimal.new("1234.56"),
+          start?: false
+        })
+
+      conn = log_in_user(conn, user)
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # Cash on hand
+      assert html =~ "$12.3k"
+      # Burn rate
+      assert html =~ "$1.2k"
+    end
+
+    test "format_percentage formats decimal values correctly", %{
+      conn: conn,
+      user: user,
+      game: game
+    } do
+      ownership_fixture(game, %{entity_name: "Test Entity", percentage: Decimal.new("12.34")})
+
+      conn = log_in_user(conn, user)
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # Percentage with one decimal place
+      assert html =~ "12.3%"
+    end
+
+    test "format_runway formats decimal values correctly", %{conn: conn, user: user, game: game} do
+      {:ok, game} =
+        Games.update_game(game, %{
+          cash_on_hand: Decimal.new("10000.00"),
+          burn_rate: Decimal.new("3333.33")
+        })
+
+      conn = log_in_user(conn, user)
+      {:ok, _view, html} = live(conn, ~p"/games/play/#{game.id}")
+
+      # Runway (10000/3333.33 ≈ 3.0)
+      assert html =~ "3"
     end
   end
 end
