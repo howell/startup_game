@@ -69,6 +69,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                 }
                 value={@response}
                 disabled={@streaming}
+                player_mode={@player_mode}
               />
             </div>
           <% true -> %>

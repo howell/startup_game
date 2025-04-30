@@ -64,7 +64,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
               class="silly-button-secondary px-3 py-1"
               disabled={@disabled}
             >
-              Take the Wheel!<Tooltips.take_the_wheel />
+              Take the Wheel!<Tooltips.take_the_wheel id="chat-take-the-wheel-tooltip" />
             </button>
             <button
               :if={@player_mode == :acting}
@@ -74,7 +74,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
               class="silly-button-secondary px-3 py-1"
               disabled={@disabled}
             >
-              Bezos Take the Wheel!<Tooltips.release_the_wheel />
+              Bezos Take the Wheel!<Tooltips.release_the_wheel id="chat-release-the-wheel-tooltip" />
             </button>
           </form>
         </div>
