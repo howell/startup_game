@@ -38,26 +38,29 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
       </div>
       <!-- Spacer for condensed panel on mobile (handled by layout) -->
       <div class="h-0 lg:h-auto"></div>
-      {render_slot(@info_panel)}
-      <%= cond do %>
-        <% @is_view_only -> %>
-          <div class="p-4 border-t text-center">
-            <p class="text-md text-gray-600">
-              <%= if @game.status == :in_progress do %>
-                Game in progress.
-                <.link navigate={~p"/games/play/#{@game.id}"} class="text-silly-blue hover:underline">
-                  Click here to play
-                </.link>
-                if this is your game.
-              <% else %>
-                Game {GameFormatters.game_end_status(@game)}. {GameFormatters.game_end_message(@game)}
-              <% end %>
-            </p>
-          </div>
-        <% @game.status == :in_progress -> %>
-          <!-- Response form and mode buttons at bottom -->
-          <div class="mt-4 p-4 border-t bg-white z-10 sticky bottom-0">
-            <div class="mx-auto w-full space-y-3">
+      <div class="border-t bg-white z-10 sticky bottom-0">
+        {render_slot(@info_panel)}
+        <%= cond do %>
+          <% @is_view_only -> %>
+            <div class="p-4 text-center">
+              <p class="text-md text-gray-600">
+                <%= if @game.status == :in_progress do %>
+                  Game in progress.
+                  <.link
+                    navigate={~p"/games/play/#{@game.id}"}
+                    class="text-silly-blue hover:underline"
+                  >
+                    Click here to play
+                  </.link>
+                  if this is your game.
+                <% else %>
+                  Game {GameFormatters.game_end_status(@game)} {GameFormatters.game_end_message(@game)}
+                <% end %>
+              </p>
+            </div>
+          <% @game.status == :in_progress -> %>
+            <!-- Response form and mode buttons at bottom -->
+            <div class="mx-auto p-4 w-full space-y-3">
               <!-- Mode Switching Buttons -->
               <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
                 <form>
@@ -94,10 +97,10 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
                 disabled={@streaming}
               />
             </div>
-          </div>
-        <% true -> %>
-          <.game_end_message game={@game} />
-      <% end %>
+          <% true -> %>
+            <.game_end_message game={@game} />
+        <% end %>
+      </div>
     </div>
     """
   end

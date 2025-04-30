@@ -34,8 +34,8 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     <div
       id={@id}
       class={[
-        "w-full border-t border-b border-gray-200 bg-gray-50 text-sm flex flex-col",
-        "sticky bottom-0 z-10 shadow-[0_-2px_10px_rgba(0,0,0,0.05)] transition-all duration-300 ease-in-out",
+        "w-full text-sm flex flex-col border-t border-b",
+        "transition-all duration-300 ease-in-out",
         @is_expanded && "bg-white",
         !@is_expanded && "max-h-[60px]"
       ]}
@@ -85,7 +85,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     <div class="p-2 animate-fadeIn">
       <button
         phx-click="toggle_panel_expansion"
-        class="w-full text-left px-3 font-medium bg-white hover:bg-gray-50 rounded-lg shadow-sm border border-gray-200 transition-colors flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
+        class={[
+          "w-full text-left px-3 font-medium transition-colors",
+          "flex items-center justify-between focus:outline-none focus:ring-2 focus:ring-primary"
+        ]}
         aria-expanded="false"
       >
         <div class="flex flex-row truncate w-full justify-between">
@@ -125,7 +128,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
       <CoreComponents.header class="p-0 m-0">
         <button
           phx-click="toggle_panel_expansion"
-          class="w-full text-left py-2 px-3 font-bold flex items-center hover:bg-gray-100 rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full text-left py-2 px-3 font-bold flex items-center rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-expanded="true"
         >
           <span class="flex-1">{@game_name}</span>
