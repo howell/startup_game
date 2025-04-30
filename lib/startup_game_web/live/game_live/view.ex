@@ -16,7 +16,7 @@ defmodule StartupGameWeb.GameLive.View do
   @impl true
   @spec mount(map(), map(), t()) :: {:ok, t()}
   def mount(_params, _session, socket) do
-    socket = assign(socket, :is_mobile_state_visible, false)
+    socket = assign(socket, :is_mobile_panel_expanded, false)
 
     {:ok, socket}
   end
@@ -64,7 +64,8 @@ defmodule StartupGameWeb.GameLive.View do
         rounds={@rounds}
         ownerships={@ownerships}
         is_view_only={true}
-        is_mobile_state_visible={@is_mobile_state_visible}
+        is_mobile_state_visible={@is_mobile_panel_expanded}
+        is_mobile_panel_expanded={@is_mobile_panel_expanded}
       />
     </div>
     """
@@ -72,8 +73,8 @@ defmodule StartupGameWeb.GameLive.View do
 
   @impl true
   @spec handle_event(String.t(), map(), t()) :: {:noreply, t()}
-  def handle_event("toggle_mobile_state", _, socket) do
-    {:noreply, assign(socket, is_mobile_state_visible: !socket.assigns.is_mobile_state_visible)}
+  def handle_event("toggle_panel_expansion", _, socket) do
+    {:noreply, assign(socket, is_mobile_panel_expanded: !socket.assigns.is_mobile_panel_expanded)}
   end
 
   # Private functions

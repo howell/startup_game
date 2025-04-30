@@ -36,10 +36,6 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
         />
       </:state_panel>
 
-      <:condensed_panel>
-        <!-- No condensed panel in creation flow -->
-      </:condensed_panel>
-
       <:content_area>
         <div class="h-full flex flex-col">
           <div class="flex-1 overflow-y-auto" id="chat-messages">

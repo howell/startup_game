@@ -42,27 +42,6 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
         />
       </:state_panel>
 
-      <:condensed_panel>
-        <CondensedGameStatePanel.condensed_game_state_panel
-          id="mobile-condensed-panel"
-          game={@game}
-          ownerships={@ownerships}
-          rounds={@rounds}
-          is_expanded={@is_mobile_panel_expanded}
-        />
-        <%= if @is_settings_modal_open do %>
-          <GameSettingsModal.game_settings_modal
-            id="settings-modal"
-            game={@game}
-            rounds={@rounds}
-            selected_provider={@game.provider_preference}
-            available_providers={get_available_providers(@game.provider_preference)}
-            is_open={@is_settings_modal_open}
-            current_tab={@active_settings_tab || "settings"}
-          />
-        <% end %>
-      </:condensed_panel>
-
       <:content_area>
         <div class="transition-all duration-300 ease-in-out">
           <ChatInterfaceComponent.chat_interface
@@ -74,7 +53,32 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
             partial_content={@partial_content}
             is_view_only={@is_view_only}
             player_mode={@game.current_player_mode}
-          />
+          >
+            <:info_panel>
+              <CondensedGameStatePanel.condensed_game_state_panel
+                id="mobile-condensed-panel"
+                game={@game}
+                ownerships={@ownerships}
+                rounds={@rounds}
+                is_expanded={@is_mobile_panel_expanded}
+              >
+                <:expanded_footer :if={not @is_view_only}>
+                  <CondensedGameStatePanel.panel_footer />
+                </:expanded_footer>
+              </CondensedGameStatePanel.condensed_game_state_panel>
+              <%= if !@is_view_only && @is_settings_modal_open do %>
+                <GameSettingsModal.game_settings_modal
+                  id="settings-modal"
+                  game={@game}
+                  rounds={@rounds}
+                  selected_provider={@game.provider_preference}
+                  available_providers={get_available_providers(@game.provider_preference)}
+                  is_open={@is_settings_modal_open}
+                  current_tab={@active_settings_tab || "settings"}
+                />
+              <% end %>
+            </:info_panel>
+          </ChatInterfaceComponent.chat_interface>
         </div>
       </:content_area>
     </GameLayoutComponent.game_layout>

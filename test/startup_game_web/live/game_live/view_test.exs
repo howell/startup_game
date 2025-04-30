@@ -119,4 +119,80 @@ defmodule StartupGameWeb.GameLive.ViewTest do
                    end
     end
   end
+
+  describe "View LiveView - mobile UI" do
+    setup do
+      user = user_fixture()
+
+      # Create a public game
+      public_game =
+        game_fixture(
+          %{
+            name: "Public Game",
+            description: "A public game",
+            is_public: true
+          },
+          user
+        )
+
+      %{
+        user: user,
+        public_game: public_game
+      }
+    end
+
+    test "renders condensed game state panel", %{conn: conn, public_game: game} do
+      {:ok, _view, html} = live(conn, ~p"/games/view/#{game.id}")
+
+      # Check that the mobile panel container exists
+      assert html =~ "mobile-condensed-panel"
+
+      # Panel content should include financial information
+      assert html =~ "$10.0k"
+      assert html =~ "hero-currency-dollar"
+      assert html =~ "hero-fire"
+      assert html =~ "hero-clock"
+    end
+
+    test "can toggle mobile state visibility", %{conn: conn, public_game: game} do
+      {:ok, view, _html} = live(conn, ~p"/games/view/#{game.id}")
+
+      view
+      |> element(
+        "#mobile-condensed-panel [aria-expanded='false'][phx-click='toggle_panel_expansion']"
+      )
+      |> render_click()
+
+      mobile_panel_expanded_html = element(view, "#mobile-condensed-panel") |> render()
+      assert mobile_panel_expanded_html =~ "hero-chevron-up-mini"
+      assert mobile_panel_expanded_html =~ "FINANCES"
+      # Collapse again - click button in expanded panel header
+      view
+      |> element(
+        "#mobile-condensed-panel [aria-expanded='true'][phx-click='toggle_panel_expansion']"
+      )
+      |> render_click()
+
+      mobile_panel_collapsed_again_html = element(view, "#mobile-condensed-panel") |> render()
+      assert mobile_panel_collapsed_again_html =~ "hero-chevron-down-mini"
+      refute mobile_panel_collapsed_again_html =~ "FINANCES"
+    end
+
+    test "does not render settings button", %{conn: conn, public_game: game} do
+      {:ok, view, html} = live(conn, ~p"/games/view/#{game.id}")
+
+      # Settings button should not be present in view mode
+      refute html =~ "toggle_settings_modal"
+      refute html =~ "Settings"
+
+      view
+      |> element(
+        "#mobile-condensed-panel [aria-expanded='false'][phx-click='toggle_panel_expansion']"
+      )
+      |> render_click()
+
+      refute html =~ "Settings"
+      refute has_element?(view, "button", "Settings")
+    end
+  end
 end

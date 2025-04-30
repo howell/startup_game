@@ -27,6 +27,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   attr :ownerships, :list, required: true
   attr :rounds, :list, required: true
   attr :is_expanded, :boolean, default: false
+  slot :expanded_footer, required: false
 
   def condensed_game_state_panel(assigns) do
     ~H"""
@@ -41,7 +42,11 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
       aria-expanded={@is_expanded}
     >
       <%= if @is_expanded do %>
-        <.expanded_panel game={@game} ownerships={@ownerships} />
+        <.expanded_panel game={@game} ownerships={@ownerships}>
+          <:expanded_footer>
+            {render_slot(@expanded_footer)}
+          </:expanded_footer>
+        </.expanded_panel>
       <% else %>
         <.collapsed_panel game={@game} ownerships={@ownerships} />
       <% end %>
@@ -54,6 +59,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   """
   attr :game, Game, required: true
   attr :ownerships, :list, required: true
+  slot :expanded_footer
 
   def expanded_panel(assigns) do
     ~H"""
@@ -63,7 +69,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
         <.finances_section game={@game} />
         <.ownership_section ownerships={@ownerships} />
       </div>
-      <.panel_footer />
+      {render_slot(@expanded_footer)}
     </div>
     """
   end

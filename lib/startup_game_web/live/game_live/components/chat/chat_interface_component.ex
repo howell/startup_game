@@ -21,6 +21,8 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
   attr :is_view_only, :boolean, default: false
   attr :player_mode, :atom, required: true
 
+  slot :info_panel, required: false
+
   def chat_interface(assigns) do
     ~H"""
     <div class="h-full flex flex-col">
@@ -36,6 +38,7 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
       </div>
       <!-- Spacer for condensed panel on mobile (handled by layout) -->
       <div class="h-0 lg:h-auto"></div>
+      {render_slot(@info_panel)}
       <%= cond do %>
         <% @is_view_only -> %>
           <div class="p-4 border-t text-center">

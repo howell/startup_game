@@ -6,10 +6,9 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
   use StartupGameWeb, :html
 
   @doc """
-  Renders a consistent game interface layout with state panel, condensed panel (mobile), and content area.
+  Renders a consistent game interface layout with state panel and content area.
   """
   attr :is_mobile_state_visible, :boolean, default: false
-  slot :condensed_panel, required: true
   slot :state_panel, required: true
   slot :content_area, required: true
 
@@ -21,12 +20,8 @@ defmodule StartupGameWeb.GameLive.Components.Shared.GameLayoutComponent do
         <div class="hidden lg:block lg:w-1/3 xl:w-1/4 flex-shrink-0 border-r border-b border-gray-200 z-10">
           {render_slot(@state_panel)}
         </div>
-        <!-- Main content area (chat + condensed panel on mobile) -->
+        <!-- Main content area (chat) -->
         <div class="flex-1 flex flex-col relative bg-white">
-          <!-- Condensed panel for mobile, between chat and response form -->
-          <div class="block lg:hidden z-20">
-            {render_slot(@condensed_panel)}
-          </div>
           <div class="flex-1 min-h-0 overflow-y-auto">
             {render_slot(@content_area)}
           </div>
