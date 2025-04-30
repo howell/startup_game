@@ -34,7 +34,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
     <div
       id={@id}
       class={[
-        "w-full text-sm flex flex-col border-t border-b",
+        "w-full text-sm flex flex-col border-b",
         "transition-all duration-300 ease-in-out",
         @is_expanded && "bg-white",
         !@is_expanded && "max-h-[60px]"

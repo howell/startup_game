@@ -6,7 +6,6 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
 
   alias StartupGameWeb.GameLive.Components.Shared.ChatHistory
   alias StartupGameWeb.GameLive.Components.Shared.ResponseForm
-  alias StartupGameWeb.GameLive.Components.Shared.Tooltips
   alias StartupGameWeb.GameLive.Helpers.GameFormatters
 
   @doc """
@@ -61,31 +60,6 @@ defmodule StartupGameWeb.GameLive.Components.Chat.ChatInterfaceComponent do
           <% @game.status == :in_progress -> %>
             <!-- Response form and mode buttons at bottom -->
             <div class="mx-auto p-4 w-full space-y-3">
-              <!-- Mode Switching Buttons -->
-              <div :if={!@is_view_only} class="flex justify-center space-x-3 text-xs">
-                <form>
-                  <button
-                    :if={@player_mode == :responding}
-                    type="button"
-                    phx-click="switch_player_mode"
-                    phx-value-player_mode="acting"
-                    class="silly-button-secondary px-3 py-1"
-                    disabled={@streaming}
-                  >
-                    Take the Wheel!<Tooltips.take_the_wheel />
-                  </button>
-                  <button
-                    :if={@player_mode == :acting}
-                    type="button"
-                    phx-click="switch_player_mode"
-                    phx-value-player_mode="responding"
-                    class="silly-button-secondary px-3 py-1"
-                    disabled={@streaming}
-                  >
-                    Bezos Take the Wheel!<Tooltips.release_the_wheel />
-                  </button>
-                </form>
-              </div>
               <!-- Response Input Form -->
               <ResponseForm.response_form
                 placeholder={

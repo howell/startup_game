@@ -3,6 +3,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
   Component for rendering a response input form with customizable placeholder and button text.
   """
   use StartupGameWeb, :html
+  alias StartupGameWeb.GameLive.Components.Shared.Tooltips
 
   @doc """
   Renders a response input form.
@@ -20,6 +21,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
   attr :value, :string, default: ""
   attr :submit_event, :string, default: "submit_response"
   attr :disabled, :boolean, default: false
+  attr :player_mode, :atom, default: :responding
 
   def response_form(assigns) do
     ~H"""
@@ -49,8 +51,33 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
           </button>
         </div>
       </div>
-      <div class="mt-2 text-xs text-foreground/60">
-        <span>Press Enter to send</span>
+      <div class="mt-2 text-xs text-foreground/60 relative">
+        <span class="absolute left-0 top-1/2 -translate-y-1/2">Press Enter to send</span>
+        <!-- Mode Switching Buttons -->
+        <div class="flex justify-center space-x-3 text-xs">
+          <form>
+            <button
+              :if={@player_mode == :responding}
+              type="button"
+              phx-click="switch_player_mode"
+              phx-value-player_mode="acting"
+              class="silly-button-secondary px-3 py-1"
+              disabled={@disabled}
+            >
+              Take the Wheel!<Tooltips.take_the_wheel />
+            </button>
+            <button
+              :if={@player_mode == :acting}
+              type="button"
+              phx-click="switch_player_mode"
+              phx-value-player_mode="responding"
+              class="silly-button-secondary px-3 py-1"
+              disabled={@disabled}
+            >
+              Bezos Take the Wheel!<Tooltips.release_the_wheel />
+            </button>
+          </form>
+        </div>
       </div>
     </form>
     """
