@@ -63,9 +63,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
 
   def expanded_panel(assigns) do
     ~H"""
-    <div class="flex flex-col animate-expandPanel max-h-[50vh] overflow-y-auto">
+    <div class="flex flex-col animate-expandPanel ">
       <.panel_header game_name={@game.name} />
       <div class="p-3 flex flex-col gap-4 overflow-y-auto">
+        <span class="text-foreground/70 text-sm">{@game.description}</span>
         <.finances_section game={@game} />
         <.ownership_section ownerships={@ownerships} />
       </div>
@@ -124,11 +125,11 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
 
   def panel_header(assigns) do
     ~H"""
-    <div class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200 p-2">
+    <div class="sticky top-0 z-10 bg-gray-50 border-b border-gray-200">
       <CoreComponents.header class="p-0 m-0">
         <button
           phx-click="toggle_panel_expansion"
-          class="w-full text-left py-2 px-3 font-bold flex items-center rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
+          class="w-full text-left px-3 font-bold flex items-center rounded transition-colors focus:outline-none focus:ring-2 focus:ring-primary"
           aria-expanded="true"
         >
           <span class="flex-1">{@game_name}</span>
@@ -149,9 +150,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   def finances_section(assigns) do
     ~H"""
     <div class="mt-2">
-      <.section_header title="FINANCES">
-        <Icons.cash_icon size={:sm} class="ml-1" />
-      </.section_header>
+      <.section_header title="FINANCES" />
       <.data_list>
         <.data_list_item label="Cash" value={"$#{GameFormatters.format_money(@game.cash_on_hand)}"}>
           <Icons.cash_icon size={:sm} class="mr-1" />
@@ -254,10 +253,10 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   """
   def panel_footer(assigns) do
     ~H"""
-    <div class="sticky bottom-0 bg-gray-50 border-t border-gray-200 p-2 flex justify-center">
+    <div class="w-full bg-gray-50 border-t border-gray-200 py-2 px-4 mx-2 flex justify-center">
       <CoreComponents.button
         phx-click="toggle_settings_modal"
-        class="silly-button-secondary text-sm w-full min-h-[44px] flex items-center justify-center"
+        class="silly-button-secondary text-sm flex items-center justify-center"
       >
         <Icons.settings_icon size={:sm} class="mr-1" />
         <span>Settings</span>
