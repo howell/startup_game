@@ -27,6 +27,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
   attr :ownerships, :list, required: true
   attr :rounds, :list, required: true
   attr :is_expanded, :boolean, default: false
+  attr :class, :string, default: ""
   slot :expanded_footer, required: false
 
   def condensed_game_state_panel(assigns) do
@@ -36,6 +37,7 @@ defmodule StartupGameWeb.GameLive.Components.GameState.CondensedGameStatePanel d
       class={[
         "w-full text-sm flex flex-col border-b",
         "transition-all duration-300 ease-in-out",
+        @class,
         @is_expanded && "bg-white",
         !@is_expanded && "max-h-[60px]"
       ]}

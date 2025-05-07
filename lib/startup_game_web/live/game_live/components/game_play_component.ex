@@ -61,6 +61,7 @@ defmodule StartupGameWeb.GameLive.Components.GamePlayComponent do
                 ownerships={@ownerships}
                 rounds={@rounds}
                 is_expanded={@is_mobile_panel_expanded}
+                class="lg:hidden"
               >
                 <:expanded_footer :if={not @is_view_only}>
                   <CondensedGameStatePanel.panel_footer />
