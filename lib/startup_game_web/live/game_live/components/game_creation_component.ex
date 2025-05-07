@@ -58,6 +58,7 @@ defmodule StartupGameWeb.GameLive.Components.GameCreationComponent do
                 }
                 value={@response}
                 disabled={@streaming}
+                show_mode_buttons={false}
               />
             </div>
           </div>

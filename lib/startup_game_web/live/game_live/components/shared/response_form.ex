@@ -22,6 +22,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
   attr :submit_event, :string, default: "submit_response"
   attr :disabled, :boolean, default: false
   attr :player_mode, :atom, default: :responding
+  attr :show_mode_buttons, :boolean, default: true
 
   def response_form(assigns) do
     ~H"""
@@ -54,7 +55,7 @@ defmodule StartupGameWeb.GameLive.Components.Shared.ResponseForm do
       <div class="mt-2 text-xs text-foreground/60 relative">
         <span class="absolute left-0 top-1/2 -translate-y-1/2">Press Enter to send</span>
         <!-- Mode Switching Buttons -->
-        <div class="flex justify-center space-x-3 text-xs">
+        <div :if={@show_mode_buttons} class="flex justify-center space-x-3 text-xs">
           <form>
             <button
               :if={@player_mode == :responding}

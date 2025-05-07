@@ -55,5 +55,28 @@ defmodule StartupGameWeb.GameLive.Play.CreationTest do
       assert render(view) =~
                "Scenario provider set to Elixir.StartupGame.Engine.Demo.StaticScenarioProvider"
     end
+
+    test "'Take the Wheel!' button is not present during creation phase", %{conn: conn} do
+      {:ok, view, _html} = live(conn, ~p"/games/play")
+
+      # Verify the player mode selector is present during creation
+      assert render(view) =~ "Starting Approach"
+      assert render(view) =~ "Start with a situation (Recommended)"
+      assert render(view) =~ "Start by taking initiative"
+
+      # Verify the "Take the Wheel!" button is NOT visible during creation
+      refute render(view) =~ "Take the Wheel!"
+      refute render(view) =~ "phx-click=\"switch_player_mode\""
+
+      # Submit company name to move to description stage
+      PlayTestHelpers.submit_response(view, "Test Company")
+
+      # Verify the "Take the Wheel!" button is still not present in description input stage
+      refute render(view) =~ "Take the Wheel!"
+      refute render(view) =~ "phx-click=\"switch_player_mode\""
+
+      # Complete the game creation
+      PlayTestHelpers.submit_response(view, "A test company description")
+    end
   end
 end
